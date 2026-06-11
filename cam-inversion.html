@@ -85,7 +85,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 <div class="param-group" id="pgH"><div class="slider-row"><span class="slider-label">行程 h</span><input type="range" id="slH" min="5" max="50" value="25"><span class="slider-val" id="valH">25</span></div></div>
 <div class="param-group hidden" id="pgPsi"><div class="slider-row"><span class="slider-label">摆角 ψ</span><input type="range" id="slPsi" min="10" max="60" value="30"><span class="slider-val" id="valPsi">30°</span></div></div>
 <div class="param-group" id="pgE"><div class="slider-row"><span class="slider-label">偏距 e</span><input type="range" id="slE" min="0" max="35" value="0"><span class="slider-val" id="valE">0</span></div></div>
-<div class="param-group hidden" id="pgRr"><div class="slider-row"><span class="slider-label">滚子半径 rr</span><input type="range" id="slRr" min="3" max="20" value="8"><span class="slider-val" id="valRr">8</span></div></div>
+<div class="param-group hidden" id="pgRr"><div class="slider-row"><span class="slider-label">滚子半径 rr</span><input type="range" id="slRr" min="3" max="20" value="5"><span class="slider-val" id="valRr">5</span></div></div>
 <div class="param-group hidden" id="pgL"><div class="slider-row"><span class="slider-label">摆臂长度 l</span><input type="range" id="slL" min="40" max="140" value="80"><span class="slider-val" id="valL">80</span></div></div>
 </div>
 <div class="section">
@@ -475,12 +475,12 @@ function drawRollerAt(absX, tipY, baseY, degNow, camAngle, actualProfile) {
   // Fixed guide blocks at baseY
   drawGuideBlock(absX - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
   drawGuideBlock(absX + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
-  // Rod from guide top to roller center - de-emphasized (thin decoration, roller is main subject)
-  ctx.strokeStyle = 'rgba(148,163,184,0.2)'; ctx.lineWidth = 1; ctx.lineCap = 'round';
+  // Rod from guide top to roller center
+  ctx.strokeStyle = 'rgba(148,163,184,0.6)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(absX, rodTop); ctx.lineTo(absX, tipY); ctx.stroke(); ctx.lineCap = 'butt';
   // Roller circle at (absX, tipY) - EMPHASIZED as main subject
   ctx.beginPath(); ctx.arc(absX, tipY, rr*scale, 0, PI*2);
-  ctx.fillStyle = 'rgba(52,211,153,0.2)'; ctx.fill();
+  ctx.fillStyle = 'rgba(52,211,153,1)'; ctx.fill();
   ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3; ctx.stroke();
   ctx.beginPath(); ctx.arc(absX, tipY, 2.5, 0, PI*2); ctx.fillStyle = '#34d399'; ctx.fill();
   // Contact point on roller surface (moves as cam rotates)
@@ -577,7 +577,7 @@ function drawActualMode(profile, actualProfile, degNow, sNow, psiNow, camFill, c
     drawOscillatingActual(degNow, psiNow, camAngle);
   } else {
     // Guide blocks at fixed position above cam (r0+h+clearance) to avoid collision
-    const guideBlockY = cy - (r0 + h + 12) * scale;
+    const guideBlockY = cy - (r0 + h + 30) * scale;
     if (followerType === 'pointed') drawPencilAt(guideX, tipY, guideBlockY);
     else if (followerType === 'roller') drawRollerAt(guideX, tipY, guideBlockY, degNow, camAngle, actualProfile);
     else drawFlatAt(guideX, tipY, guideBlockY);
@@ -690,7 +690,7 @@ function drawInversionMode(profile, actualProfile, degNow, sNow, camFill, camStr
     const guideLocalX = e * scale;
     const tipLocalY = -totalS * scale;
     // Guide blocks at fixed position above cam profile to avoid collision
-    const guideBlockLocalY = -(r0 + h + 12) * scale;
+    const guideBlockLocalY = -(r0 + h + 30) * scale;
     if (followerType === 'pointed') drawPencilInLocal(guideLocalX, tipLocalY, guideBlockLocalY);
     else if (followerType === 'roller') drawRollerInLocal(guideLocalX, tipLocalY, guideBlockLocalY);
     else drawFlatInLocal(guideLocalX, tipLocalY, guideBlockLocalY);
@@ -744,12 +744,12 @@ function drawRollerInLocal(lx, tipY, baseY) {
   // Fixed guide blocks at baseY
   drawGuideBlock(lx - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
   drawGuideBlock(lx + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
-  // Rod from guide top to roller center - de-emphasized (thin decoration)
-  ctx.strokeStyle = 'rgba(148,163,184,0.2)'; ctx.lineWidth = 1; ctx.lineCap = 'round';
+  // Rod from guide top to roller center
+  ctx.strokeStyle = 'rgba(148,163,184,0.6)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(lx, rodTop); ctx.lineTo(lx, tipY); ctx.stroke(); ctx.lineCap = 'butt';
   // Roller circle at (lx, tipY) - EMPHASIZED as main subject
   ctx.beginPath(); ctx.arc(lx, tipY, rr*scale, 0, PI*2);
-  ctx.fillStyle = 'rgba(52,211,153,0.2)'; ctx.fill();
+  ctx.fillStyle = 'rgba(52,211,153,1)'; ctx.fill();
   ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3; ctx.stroke();
   ctx.beginPath(); ctx.arc(lx, tipY, 2.5, 0, PI*2); ctx.fillStyle = '#34d399'; ctx.fill();
 }
