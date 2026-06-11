@@ -529,13 +529,14 @@ function draw() {
 function drawActualMode(profile, actualProfile, degNow, sNow, psiNow, camFill, camStroke) {
   const camAngle = delta; // CW rotation in canvas
   // ===== Cam body =====
-  // 凸轮填充始终用 profile (外侧/理论廓线) 做边界 — 视觉上基圆在凸轮内部
-  // 对于滚子从动件，实际廓线(内侧)作为凸轮表面的参考线
-  drawProfilePath(profile, camAngle, { fill: camFill, stroke: camStroke, lineWidth: 1.5 });
   if (followerType === 'roller') {
-    // 实际廓线 (内侧曲线, cam surface) — checkbox 控制
-    if (showActual)
-      drawProfilePath(actualProfile, camAngle, { stroke: '#f97316', lineWidth: 2 });
+    // 滚子从动件：凸轮实体以实际廓线（内等距线）为边界，滚子才能与凸轮表面相切
+    drawProfilePath(actualProfile, camAngle, { fill: camFill, stroke: '#f97316', lineWidth: 2 });
+    // 理论廓线（滚子中心轨迹）作为参考虚线
+    if (showTheory)
+      drawProfilePath(profile, camAngle, { stroke: 'rgba(251,191,36,0.5)', lineWidth: 1, dash: [5,4] });
+  } else {
+    drawProfilePath(profile, camAngle, { fill: camFill, stroke: camStroke, lineWidth: 1.5 });
   }
   // Base circle
   if (showBase) {
@@ -634,12 +635,29 @@ function drawInversionMode(profile, actualProfile, degNow, sNow, camFill, camStr
     }
   }
   // Cam profile (step-by-step reveal)
-  // 凸轮填充始终可见（用 profile 外侧做边界），checkbox 只控制廓线高亮线条
-  drawPartialProfile(profile, traceUpTo, showTheory ? '#fbbf24' : null, 'rgba(148,163,184,0.4)', 'rgba(71,85,105,0.35)');
   if (followerType === 'roller') {
-    // 实际廓线 (内侧曲线) — checkbox 控制
-    if (showActual)
-      drawPartialProfile(actualProfile, traceUpTo, '#f97316', 'rgba(148,163,184,0.3)', 'rgba(0,0,0,0)');
+    // 滚子从动件：凸轮实体以实际廓线为边界
+    drawPartialProfile(actualProfile, traceUpTo, showActual ? '#f97316' : null, 'rgba(249,115,22,0.5)', 'rgba(71,85,105,0.35)');
+    // 理论廓线作为参考虚线
+    if (showTheory) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      for (let i = 0; i <= profile.length; i++) {
+        const p = profile[i % profile.length];
+        if (i === 0) ctx.moveTo(p.x * scale, -p.y * scale);
+        else ctx.lineTo(p.x * scale, -p.y * scale);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = 'rgba(251,191,36,0.5)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+  } else {
+    drawPartialProfile(profile, traceUpTo, showTheory ? '#fbbf24' : null, 'rgba(148,163,184,0.4)', 'rgba(71,85,105,0.35)');
   }
   // Center mark
   ctx.beginPath(); ctx.arc(cx,cy,3,0,PI*2); ctx.fillStyle='#6366f1'; ctx.fill();
