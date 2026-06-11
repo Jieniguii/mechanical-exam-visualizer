@@ -222,9 +222,14 @@ function getProfilePoint(dDeg) {
   const rad = dDeg * DEG;
   const sinD = Math.sin(rad), cosD = Math.cos(rad);
   switch (followerType) {
-    case 'pointed':
-    case 'roller': {
+    case 'pointed': {
       const s0 = (e > 0) ? Math.sqrt(Math.max(0, r0 * r0 - e * e)) : r0;
+      const total = s0 + s;
+      return { x: -total * sinD + e * cosD, y: total * cosD + e * sinD, s: total, ds };
+    }
+    case 'roller': {
+      // 滚子从动件：r0 是基圆半径（实际廓线最小向径），理论廓线 s0 = r0 + rr
+      const s0 = (e > 0) ? Math.sqrt(Math.max(0, (r0 + rr) * (r0 + rr) - e * e)) : r0 + rr;
       const total = s0 + s;
       return { x: -total * sinD + e * cosD, y: total * cosD + e * sinD, s: total, ds };
     }
@@ -562,7 +567,8 @@ function drawActualMode(profile, actualProfile, degNow, sNow, psiNow, camFill, c
   drawRotationArrow(cx, cy, 14, false);
   ctx.fillStyle='rgba(228,228,231,0.5)'; ctx.font='11px sans-serif'; ctx.fillText('ω',cx+18,cy-12);
   // ===== Follower at fixed guide =====
-  const s0 = (e>0)?Math.sqrt(Math.max(0,r0*r0-e*e)):r0;
+  const s0raw = (e>0)?Math.sqrt(Math.max(0,r0*r0-e*e)):r0;
+  const s0 = (followerType === 'roller') ? ((e>0)?Math.sqrt(Math.max(0,(r0+rr)*(r0+rr)-e*e)):(r0+rr)) : s0raw;
   const totalS = s0 + sNow;
   const guideX = cx + e * scale;
   const tipY = cy - totalS * scale;
@@ -611,7 +617,8 @@ function drawOscillatingActual(degNow, psiNow, camAngle) {
 
 function drawInversionMode(profile, actualProfile, degNow, sNow, camFill, camStroke) {
   if (playing) traceUpTo = degNow;
-  const s0 = (e>0)?Math.sqrt(Math.max(0,r0*r0-e*e)):r0;
+  const s0raw = (e>0)?Math.sqrt(Math.max(0,r0*r0-e*e)):r0;
+  const s0 = (followerType === 'roller') ? ((e>0)?Math.sqrt(Math.max(0,(r0+rr)*(r0+rr)-e*e)):(r0+rr)) : s0raw;
   const totalS = s0 + sNow;
   // Base circle
   if (showBase) {
