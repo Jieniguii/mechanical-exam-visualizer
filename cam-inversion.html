@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>凸轮反转法交互演示</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f1117;color:#e4e4e7;font-family:system-ui,sans-serif;overflow:hidden;height:100vh}
+.container{display:flex;height:100vh}
+.canvas-wrap{flex:1;position:relative;min-width:0}
+canvas{display:block;width:100%;height:100%}
+.panel{width:310px;overflow-y:auto;padding:14px;background:#0f1117;border-left:1px solid #1e2028;flex-shrink:0}
+.panel::-webkit-scrollbar{width:4px}
+.panel::-webkit-scrollbar-thumb{background:#2a2d3a;border-radius:2px}
+.section{margin-bottom:14px;padding:12px;background:#1a1d27;border-radius:10px;border:1px solid #252833}
+.section-title{font-size:12px;font-weight:500;color:#71717a;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
+.mode-toggle{display:flex;gap:6px}
+.mode-btn{flex:1;padding:8px;border:1px solid #3a3d47;border-radius:8px;background:transparent;color:#a1a1aa;cursor:pointer;font-size:13px;transition:all .2s}
+.mode-btn.active{background:rgba(99,102,241,0.15);border-color:#6366f1;color:#a5b4fc;font-weight:500}
+.badge{display:inline-block;padding:3px 10px;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);border-radius:20px;color:#fbbf24;font-size:11px}
+.type-tabs{display:flex;gap:4px;flex-wrap:wrap}
+.type-btn{padding:6px 12px;border:1px solid #3a3d47;border-radius:6px;background:transparent;color:#a1a1aa;cursor:pointer;font-size:12px;transition:all .2s}
+.type-btn.active{background:rgba(52,211,153,0.12);border-color:#34d399;color:#6ee7b7;font-weight:500}
+.param-group{margin-bottom:8px}
+.param-group.hidden{display:none}
+.slider-row{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.slider-label{font-size:12px;color:#a1a1aa;min-width:72px;flex-shrink:0}
+.slider-val{font-size:12px;color:#e4e4e7;min-width:40px;text-align:right;flex-shrink:0}
+input[type=range]{flex:1;-webkit-appearance:none;height:4px;background:#3a3d47;border-radius:2px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#e4e4e7;border-radius:50%;cursor:pointer}
+.check-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:12px;color:#a1a1aa;cursor:pointer}
+.check-row input{accent-color:#6366f1}
+.check-row.disabled{opacity:0.3;pointer-events:none}
+.controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ctrl-btn{width:36px;height:36px;border:1px solid #3a3d47;border-radius:8px;background:transparent;color:#a1a1aa;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.ctrl-btn:hover{background:rgba(255,255,255,0.05)}
+.ctrl-btn.playing{background:rgba(99,102,241,0.15);border-color:#6366f1;color:#a5b4fc}
+.speed-row{display:flex;align-items:center;gap:6px;font-size:11px;color:#71717a}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.info-item{padding:6px 8px;background:#13151b;border-radius:6px;border:1px solid #1e2028}
+.info-item .label{font-size:10px;color:#71717a;margin-bottom:2px}
+.info-item .value{font-size:13px;font-weight:500;color:#e4e4e7}
+.info-item .value.warn{color:#ef4444}
+.tip{margin-top:8px;padding:8px 10px;background:#13151b;border-radius:6px;border-left:3px solid #6366f1;font-size:11px;color:#a1a1aa;line-height:1.5}
+.phase-row{display:flex;gap:4px;margin-top:6px}
+.phase-tag{padding:2px 6px;border-radius:4px;font-size:10px;font-weight:500}
+.phase-rise{background:rgba(99,102,241,0.15);color:#a5b4fc}
+.phase-dwell-far{background:rgba(52,211,153,0.15);color:#6ee7b7}
+.phase-return{background:rgba(251,191,36,0.15);color:#fbbf24}
+.phase-dwell-near{background:rgba(113,113,122,0.15);color:#a1a1aa}
+@media(max-width:768px){
+.container{flex-direction:column}
+.canvas-wrap{height:55vh}
+.panel{width:100%;height:45vh;border-left:none;border-top:1px solid #1e2028}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="canvas-wrap"><canvas id="c"></canvas></div>
+<div class="panel">
+<div class="section">
+<div class="mode-toggle">
+<button class="mode-btn active" onclick="setMode('inversion')">反转法</button>
+<button class="mode-btn" onclick="setMode('actual')">实际运动</button>
+</div>
+</div>
+<div class="section">
+<div class="section-title">运动规律</div>
+<div class="badge">简谐运动 (SHM)</div>
+</div>
+<div class="section">
+<div class="section-title">从动件类型</div>
+<div class="type-tabs">
+<button class="type-btn active" onclick="setType('pointed')">尖底</button>
+<button class="type-btn" onclick="setType('roller')">滚子</button>
+<button class="type-btn" onclick="setType('oscillating')">摆动</button>
+<button class="type-btn" onclick="setType('flat')">平底</button>
+</div>
+</div>
+<div class="section" id="paramsSection">
+<div class="section-title">参数设置</div>
+<div class="param-group" id="pgR0"><div class="slider-row"><span class="slider-label">基圆半径 r₀</span><input type="range" id="slR0" min="20" max="80" value="40"><span class="slider-val" id="valR0">40</span></div></div>
+<div class="param-group" id="pgH"><div class="slider-row"><span class="slider-label">行程 h</span><input type="range" id="slH" min="5" max="50" value="25"><span class="slider-val" id="valH">25</span></div></div>
+<div class="param-group hidden" id="pgPsi"><div class="slider-row"><span class="slider-label">摆角 ψ</span><input type="range" id="slPsi" min="10" max="60" value="30"><span class="slider-val" id="valPsi">30°</span></div></div>
+<div class="param-group" id="pgE"><div class="slider-row"><span class="slider-label">偏距 e</span><input type="range" id="slE" min="0" max="35" value="0"><span class="slider-val" id="valE">0</span></div></div>
+<div class="param-group hidden" id="pgRr"><div class="slider-row"><span class="slider-label">滚子半径 rr</span><input type="range" id="slRr" min="3" max="20" value="8"><span class="slider-val" id="valRr">8</span></div></div>
+<div class="param-group hidden" id="pgL"><div class="slider-row"><span class="slider-label">摆臂长度 l</span><input type="range" id="slL" min="40" max="140" value="80"><span class="slider-val" id="valL">80</span></div></div>
+</div>
+<div class="section">
+<div class="section-title">运动角分配</div>
+<div class="param-group"><div class="slider-row"><span class="slider-label">推程角 δ₁</span><input type="range" id="slP1" min="30" max="180" value="120"><span class="slider-val" id="valP1">120°</span></div></div>
+<div class="param-group"><div class="slider-row"><span class="slider-label">远休止角 δ₂</span><input type="range" id="slP2" min="0" max="180" value="60"><span class="slider-val" id="valP2">60°</span></div></div>
+<div class="param-group"><div class="slider-row"><span class="slider-label">回程角 δ₃</span><input type="range" id="slP3" min="30" max="180" value="120"><span class="slider-val" id="valP3">120°</span></div></div>
+<div class="param-group"><div class="slider-row"><span class="slider-label">近休止角 δ₄</span><span class="slider-val" id="valP4" style="flex:1;text-align:center">60°</span></div></div>
+<div class="phase-row"><span class="phase-tag phase-rise">推程</span><span class="phase-tag phase-dwell-far">远休</span><span class="phase-tag phase-return">回程</span><span class="phase-tag phase-dwell-near">近休</span></div>
+</div>
+<div class="section">
+<div class="section-title">显示选项</div>
+<label class="check-row"><input type="checkbox" id="chkBase" checked> 基圆</label>
+<label class="check-row"><input type="checkbox" id="chkTheory" checked> 理论廓线</label>
+<label class="check-row" id="chkActualRow"><input type="checkbox" id="chkActual" checked> 实际廓线</label>
+<label class="check-row" id="chkOffsetRow"><input type="checkbox" id="chkOffset"> 偏距圆</label>
+<label class="check-row"><input type="checkbox" id="chkPressure" checked> 压力角</label>
+<label class="check-row"><input type="checkbox" id="chkPhase" checked> 运动区间</label>
+<label class="check-row"><input type="checkbox" id="chkSD" checked> s-δ位移图</label>
+</div>
+<div class="section">
+<div class="section-title">播放控制</div>
+<div class="controls">
+<button class="ctrl-btn playing" id="btnPlay" onclick="togglePlay()">&#9654;</button>
+<button class="ctrl-btn" onclick="stepAngle(-10)">&#9664;</button>
+<button class="ctrl-btn" onclick="stepAngle(10)">&#9654;</button>
+<div class="speed-row"><span>速度</span><input type="range" id="slSpeed" min="0.1" max="3" step="0.1" value="1" style="width:60px"><span id="valSpeed">1.0x</span></div>
+</div>
+<div class="param-group" style="margin-top:10px">
+<div class="slider-row"><span class="slider-label">角度 δ</span><input type="range" id="slAngle" min="0" max="360" value="0" step="0.5"><span class="slider-val" id="valAngle">0°</span></div>
+</div>
+</div>
+<div class="section">
+<div class="section-title">实时信息</div>
+<div class="info-grid">
+<div class="info-item"><div class="label">当前角度 δ</div><div class="value" id="infoDelta">0°</div></div>
+<div class="info-item"><div class="label" id="infoDispLabel">位移 s</div><div class="value" id="infoDisp">0</div></div>
+<div class="info-item"><div class="label">压力角 α</div><div class="value" id="infoAlpha">0°</div></div>
+<div class="info-item"><div class="label">当前阶段</div><div class="value" id="infoPhase">近休止</div></div>
+</div>
+<div class="tip" id="tipText">反转法：给整个凸轮机构加一个与凸轮角速度大小相等、方向相反的转动（-ω），凸轮顺时针转动时，从动件导路绕凸轮中心逆时针反转。从动件尖端的运动轨迹即为凸轮的理论廓线。</div>
+</div>
+</div>
+</div>
+<script>
+const DEG = Math.PI / 180;
+const PI = Math.PI;
+
+// ===== State =====
+let mode = 'inversion';
+let followerType = 'pointed';
+let r0 = 40, h = 25, e = 0, rr = 8, psiMax = 30, armLen = 80;
+let p1 = 120, p2 = 60, p3 = 120, p4 = 60;
+let delta = 0;
+let playing = true;
+let speed = 1;
+let traceUpTo = 0;
+let showBase=true,showTheory=true,showActual=true,showPressure=true,showPhase=true,showSD=true,showOffset=false;
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, cx, cy, scale;
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  W = rect.width; H = rect.height;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  computeLayout();
+}
+
+function computeLayout() {
+  const maxR = getMaxRadius() + 20;
+  const avail = Math.min(W * 0.42, H * 0.42);
+  scale = avail / Math.max(maxR, 1);
+  cx = W * 0.46;
+  cy = H * 0.44;
+}
+
+function updatePhases() {
+  p1 = +document.getElementById('slP1').value;
+  p2 = +document.getElementById('slP2').value;
+  p3 = +document.getElementById('slP3').value;
+  p4 = Math.max(0, 360 - p1 - p2 - p3);
+  document.getElementById('valP1').textContent = p1 + '°';
+  document.getElementById('valP2').textContent = p2 + '°';
+  document.getElementById('valP3').textContent = p3 + '°';
+  document.getElementById('valP4').textContent = p4 + '°';
+}
+
+// ===== Displacement (SHM) =====
+function getS(dDeg) {
+  const d = ((dDeg % 360) + 360) % 360;
+  if (d <= p1 && p1 > 0) return (h / 2) * (1 - Math.cos(PI * d / p1));
+  if (d <= p1 + p2) return h;
+  if (d <= p1 + p2 + p3 && p3 > 0) return (h / 2) * (1 + Math.cos(PI * (d - p1 - p2) / p3));
+  return 0;
+}
+
+function getDs(dDeg) {
+  const d = ((dDeg % 360) + 360) % 360;
+  if (d <= p1 && p1 > 0) return (h * PI / (2 * p1)) * Math.sin(PI * d / p1);
+  if (d <= p1 + p2) return 0;
+  if (d <= p1 + p2 + p3 && p3 > 0) return -(h * PI / (2 * p3)) * Math.sin(PI * (d - p1 - p2) / p3);
+  return 0;
+}
+
+function getPsi(dDeg) {
+  const d = ((dDeg % 360) + 360) % 360;
+  const max = psiMax * DEG;
+  if (d <= p1 && p1 > 0) return (max / 2) * (1 - Math.cos(PI * d / p1));
+  if (d <= p1 + p2) return max;
+  if (d <= p1 + p2 + p3 && p3 > 0) return (max / 2) * (1 + Math.cos(PI * (d - p1 - p2) / p3));
+  return 0;
+}
+
+function getPhase(dDeg) {
+  const d = ((dDeg % 360) + 360) % 360;
+  if (d <= p1) return '推程';
+  if (d <= p1 + p2) return '远休止';
+  if (d <= p1 + p2 + p3) return '回程';
+  return '近休止';
+}
+
+// ===== Profile (CCW parameterization in math coords) =====
+// δ increases CCW; at δ=0 follower is up (+y), at δ=90° CCW follower is LEFT (-x)
+// In canvas: CCW in math → CCW in canvas (y-flip preserves rotation direction)
+// Actual mode: cam rotates CW (ctx.rotate(+delta)), contact at reference (top) uses δ=delta
+// Inversion mode: guide rotates CCW (ctx.rotate(-degNow*DEG)), matches profile direction
+function getProfilePoint(dDeg) {
+  const s = getS(dDeg);
+  const ds = getDs(dDeg);
+  const rad = dDeg * DEG;
+  const sinD = Math.sin(rad), cosD = Math.cos(rad);
+  switch (followerType) {
+    case 'pointed':
+    case 'roller': {
+      const s0 = (e > 0) ? Math.sqrt(Math.max(0, r0 * r0 - e * e)) : r0;
+      const total = s0 + s;
+      return { x: -total * sinD + e * cosD, y: total * cosD + e * sinD, s: total, ds };
+    }
+    case 'flat': {
+      const total = r0 + s;
+      return { x: -total * sinD + ds * cosD, y: total * cosD + ds * sinD, s: total, ds };
+    }
+    case 'oscillating': {
+      const psi = getPsi(dDeg);
+      const L = r0 + armLen;
+      return {
+        x: -L * sinD + armLen * Math.sin(psi + rad),
+        y: L * cosD - armLen * Math.cos(psi + rad),
+        s: psi, ds: 0
+      };
+    }
+  }
+}
+
+function getMaxRadius() {
+  let maxR = 0;
+  for (let d = 0; d < 360; d++) {
+    const p = getProfilePoint(d);
+    maxR = Math.max(maxR, Math.sqrt(p.x * p.x + p.y * p.y));
+  }
+  if (followerType === 'roller') maxR += rr;
+  if (followerType === 'oscillating') maxR = Math.max(maxR, r0 + armLen + armLen * Math.sin(psiMax * DEG));
+  return maxR + 15;
+}
+
+function computeProfile() {
+  const pts = [];
+  for (let d = 0; d < 360; d++) pts.push(getProfilePoint(d));
+  return pts;
+}
+
+function computeActualProfile(theoPts) {
+  if (followerType !== 'roller') return [];
+  const pts = [];
+  for (let i = 0; i < theoPts.length; i++) {
+    const prev = theoPts[(i - 1 + 360) % 360];
+    const next = theoPts[(i + 1) % 360];
+    const curr = theoPts[i];
+    const tx = next.x - prev.x, ty = next.y - prev.y;
+    const len = Math.sqrt(tx * tx + ty * ty);
+    if (len < 0.01) { pts.push({ x: curr.x, y: curr.y }); continue; }
+    const nx = ty / len, ny = -tx / len;
+    const midR = Math.sqrt(curr.x * curr.x + curr.y * curr.y);
+    const outerR = Math.sqrt((curr.x + nx * 5) * (curr.x + nx * 5) + (curr.y + ny * 5) * (curr.y + ny * 5));
+    const sign = outerR > midR ? 1 : -1;
+    pts.push({ x: curr.x - sign * nx * rr, y: curr.y - sign * ny * rr });
+  }
+  return pts;
+}
+
+function getPressureAngle(dDeg) {
+  const curr = getProfilePoint(dDeg);
+  const next = getProfilePoint(dDeg + 0.5);
+  const prev = getProfilePoint(dDeg - 0.5);
+  const tx = next.x - prev.x, ty = next.y - prev.y;
+  const tLen = Math.sqrt(tx * tx + ty * ty);
+  if (tLen < 0.001) return 0;
+  let nx = ty / tLen, ny = -tx / tLen;
+  const midR = Math.sqrt(curr.x * curr.x + curr.y * curr.y);
+  const outerR = Math.sqrt((curr.x + nx * 2) * (curr.x + nx * 2) + (curr.y + ny * 2) * (curr.y + ny * 2));
+  if (outerR < midR) { nx = -nx; ny = -ny; }
+  let vx, vy;
+  if (followerType === 'oscillating') {
+    const psi = getPsi(dDeg);
+    const L = r0 + armLen;
+    const rad = dDeg * DEG;
+    const ax = -L * Math.sin(rad), ay = L * Math.cos(rad);
+    const bx = curr.x, by = curr.y;
+    const armDx = bx - ax, armDy = by - ay;
+    const al2 = Math.sqrt(armDx * armDx + armDy * armDy);
+    if (al2 < 0.01) return 0;
+    vx = -armDy / al2; vy = armDx / al2;
+  } else {
+    const rad = dDeg * DEG;
+    vx = -Math.sin(rad); vy = Math.cos(rad);
+  }
+  const dot = nx * vx + ny * vy;
+  const cross = nx * vy - ny * vx;
+  let angle = Math.abs(Math.atan2(cross, dot));
+  if (angle > PI / 2) angle = PI - angle;
+  return angle;
+}
+
+// ===== Roller contact point =====
+// Contact point = point on actual profile (cam surface) at current angle.
+// In math coords (y-up), actualProfile[i] = cam surface point at angle i.
+// The roller wraps around the cam: roller center = profile[i], contact = actualProfile[i].
+function getRollerContactMath(degNow, actualProfile) {
+  const idx = ((Math.round(degNow) % 360) + 360) % 360;
+  const ap = actualProfile[idx];
+  if (!ap) return { x: 0, y: 0 };
+  return { x: ap.x, y: ap.y };
+}
+
+
+// ===== Drawing helpers =====
+function toCanvas(mx, my) {
+  return { x: cx + mx * scale, y: cy - my * scale };
+}
+
+function drawCircleShape(x, y, r, stroke, dash) {
+  ctx.beginPath();
+  ctx.arc(x, y, Math.max(r, 0.1), 0, PI * 2);
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 1;
+  if (dash) ctx.setLineDash(dash);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawProfilePath(points, angle, options) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  if (angle) ctx.rotate(angle);
+  ctx.beginPath();
+  for (let i = 0; i <= points.length; i++) {
+    const p = points[i % points.length];
+    if (i === 0) ctx.moveTo(p.x * scale, -p.y * scale);
+    else ctx.lineTo(p.x * scale, -p.y * scale);
+  }
+  ctx.closePath();
+  if (options.fill) { ctx.fillStyle = options.fill; ctx.fill(); }
+  if (options.stroke) {
+    ctx.strokeStyle = options.stroke;
+    ctx.lineWidth = options.lineWidth || 2;
+    if (options.dash) ctx.setLineDash(options.dash);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
+}
+
+function drawPartialProfile(points, upToDeg, revealedColor, bgColor, camFill) {
+  const n = Math.ceil(upToDeg) % 360;
+  ctx.save();
+  ctx.translate(cx, cy);
+  // Full outline (faint fill + SOLID stroke) — 凸轮轮廓为实线
+  ctx.beginPath();
+  for (let i = 0; i <= points.length; i++) {
+    const p = points[i % points.length];
+    if (i === 0) ctx.moveTo(p.x * scale, -p.y * scale);
+    else ctx.lineTo(p.x * scale, -p.y * scale);
+  }
+  ctx.closePath();
+  ctx.fillStyle = camFill || 'rgba(71,85,105,0.35)';
+  ctx.fill();
+  // 凸轮轮廓：实线（用户要求）
+  ctx.strokeStyle = bgColor || 'rgba(148,163,184,0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([]);
+  ctx.stroke();
+  // Revealed (bright solid) — only if revealedColor is provided (not null)
+  if (n >= 1 && revealedColor) {
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const p = points[i];
+      if (i === 0) ctx.moveTo(p.x * scale, -p.y * scale);
+      else ctx.lineTo(p.x * scale, -p.y * scale);
+    }
+    ctx.strokeStyle = revealedColor || '#fbbf24';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawGround(x, y, w) {
+  ctx.strokeStyle = '#52525b'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(x - w/2, y); ctx.lineTo(x + w/2, y); ctx.stroke();
+  for (let i = -w/2; i < w/2; i += 6) {
+    ctx.beginPath(); ctx.moveTo(x+i, y); ctx.lineTo(x+i-4, y+5); ctx.stroke();
+  }
+}
+
+function drawRotationArrow(x, y, r, ccw) {
+  const start = ccw ? 0.5 : -0.5, end = ccw ? -1.5 : 1.5;
+  ctx.strokeStyle = 'rgba(228,228,231,0.45)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(x, y, r, start, end, ccw); ctx.stroke();
+  const tipA = end, tx = x + r * Math.cos(tipA), ty = y + r * Math.sin(tipA);
+  const bA = ccw ? tipA + 0.25 : tipA - 0.25, sp = 2.5;
+  ctx.fillStyle = 'rgba(228,228,231,0.7)';
+  ctx.beginPath(); ctx.moveTo(tx, ty);
+  ctx.lineTo(x+(r+sp)*Math.cos(bA), y+(r+sp)*Math.sin(bA));
+  ctx.lineTo(x+(r-sp)*Math.cos(bA), y+(r-sp)*Math.sin(bA));
+  ctx.closePath(); ctx.fill();
+}
+
+// ===== Draw guide block (机架小方块) =====
+function drawGuideBlock(x, y, w, h) {
+  // Filled block
+  ctx.fillStyle = '#2d3344';
+  ctx.fillRect(x - w/2, y, w, h);
+  ctx.strokeStyle = '#52525b'; ctx.lineWidth = 1;
+  ctx.strokeRect(x - w/2, y, w, h);
+  // Hatching (机架斜线)
+  ctx.save(); ctx.beginPath();
+  ctx.rect(x - w/2, y, w, h); ctx.clip();
+  ctx.strokeStyle = 'rgba(100,116,139,0.4)'; ctx.lineWidth = 0.8;
+  for (let i = -h; i < w + h; i += 5) {
+    ctx.beginPath();
+    ctx.moveTo(x - w/2 + i, y + h);
+    ctx.lineTo(x - w/2 + i - h, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ===== Follower drawing: pointed (pencil) at absolute canvas position =====
+// baseY = fixed guide block position (rest position at base circle)
+function drawPencilAt(absX, tipY, baseY) {
+  const stemW = 6, tipLen = 14;
+  const rodTop = baseY - 40;
+  const blockW = 14, blockH = 12, blockGap = stemW + 6;
+  // Fixed guide blocks at baseY
+  drawGuideBlock(absX - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
+  drawGuideBlock(absX + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
+  // Pencil body: from rodTop down to tip
+  const grad = ctx.createLinearGradient(absX-stemW, 0, absX+stemW, 0);
+  grad.addColorStop(0, '#4a5568'); grad.addColorStop(0.5, '#a0aec0'); grad.addColorStop(1, '#4a5568');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(absX-stemW, rodTop); ctx.lineTo(absX+stemW, rodTop);
+  ctx.lineTo(absX+stemW, tipY-tipLen*0.6); ctx.lineTo(absX+3, tipY-tipLen*0.3);
+  ctx.lineTo(absX, tipY); ctx.lineTo(absX-3, tipY-tipLen*0.3);
+  ctx.lineTo(absX-stemW, tipY-tipLen*0.6); ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(52,211,153,0.6)'; ctx.lineWidth = 1; ctx.stroke();
+  // Contact
+  ctx.beginPath(); ctx.arc(absX, tipY, 3, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
+}
+
+// ===== Follower drawing: roller at absolute canvas position =====
+// Roller center at fixed guide position (guideX, tipY) — moves vertically along guide, NOT orbiting with cam
+// Contact point = actualProfile[degNow] rotated by camAngle — moves around roller surface
+function drawRollerAt(absX, tipY, baseY, degNow, camAngle, actualProfile) {
+  const rodTop = baseY - 40;
+  const blockW = 14, blockH = 12, blockGap = 8;
+  // Fixed guide blocks at baseY
+  drawGuideBlock(absX - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
+  drawGuideBlock(absX + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
+  // Rod from guide top to roller center - de-emphasized (thin decoration, roller is main subject)
+  ctx.strokeStyle = 'rgba(148,163,184,0.2)'; ctx.lineWidth = 1; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(absX, rodTop); ctx.lineTo(absX, tipY); ctx.stroke(); ctx.lineCap = 'butt';
+  // Roller circle at (absX, tipY) - EMPHASIZED as main subject
+  ctx.beginPath(); ctx.arc(absX, tipY, rr*scale, 0, PI*2);
+  ctx.fillStyle = 'rgba(52,211,153,0.2)'; ctx.fill();
+  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3; ctx.stroke();
+  ctx.beginPath(); ctx.arc(absX, tipY, 2.5, 0, PI*2); ctx.fillStyle = '#34d399'; ctx.fill();
+  // Contact point on roller surface (moves as cam rotates)
+  // actualProfile[degNow] is the cam surface point → rotate by camAngle to match ctx.rotate
+  const cpMath = getRollerContactMath(degNow, actualProfile);
+  const cosA = Math.cos(camAngle), sinA = Math.sin(camAngle);
+  const contactX = cx + (cpMath.x * cosA + cpMath.y * sinA) * scale;
+  const contactY = cy + (cpMath.x * sinA - cpMath.y * cosA) * scale;
+  // Highlight contact point: yellow dot + white center
+  ctx.beginPath(); ctx.arc(contactX, contactY, 4, 0, PI*2);
+  ctx.fillStyle = '#fbbf24'; ctx.fill();
+  ctx.beginPath(); ctx.arc(contactX, contactY, 2, 0, PI*2);
+  ctx.fillStyle = '#fff'; ctx.fill();
+}
+
+// ===== Follower drawing: flat (rod + horizontal line) at absolute canvas position =====
+// tipY = flat face position (cam contact surface)
+function drawFlatAt(absX, tipY, baseY) {
+  const rodTop = baseY - 40;
+  const blockW = 14, blockH = 12, blockGap = 8;
+  // Fixed guide blocks at baseY
+  drawGuideBlock(absX - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
+  drawGuideBlock(absX + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
+  // Flat face (contact surface with cam) - draw first so rod overlaps it
+  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(absX-25, tipY); ctx.lineTo(absX+25, tipY); ctx.stroke();
+  // Rod from rodTop down to top of flat face
+  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(absX, rodTop); ctx.lineTo(absX, tipY - 2); ctx.stroke(); ctx.lineCap = 'butt';
+  // Contact point on flat face (at cam surface)
+  ctx.beginPath(); ctx.arc(absX, tipY, 3, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
+}
+
+// ===== Main draw =====
+function draw() {
+  ctx.fillStyle = '#0f1117'; ctx.fillRect(0, 0, W, H);
+  const profile = computeProfile();
+  const actualProfile = computeActualProfile(profile);
+  const degNow = ((delta * 180 / PI) % 360 + 360) % 360;
+  const sNow = getS(degNow);
+  const psiNow = getPsi(degNow);
+  const phaseNow = getPhase(degNow);
+  const camFill = 'rgba(71,85,105,0.35)';
+  const camStroke = '#94a3b8';
+  if (mode === 'actual') drawActualMode(profile, actualProfile, degNow, sNow, psiNow, camFill, camStroke);
+  else drawInversionMode(profile, actualProfile, degNow, sNow, camFill, camStroke);
+  if (showSD) drawSDiagram(degNow);
+  updateInfo(degNow, sNow, psiNow, phaseNow);
+}
+
+function drawActualMode(profile, actualProfile, degNow, sNow, psiNow, camFill, camStroke) {
+  const camAngle = delta; // CW rotation in canvas
+  // ===== Cam body =====
+  // 凸轮填充始终用 profile (外侧/理论廓线) 做边界 — 视觉上基圆在凸轮内部
+  // 对于滚子从动件，实际廓线(内侧)作为凸轮表面的参考线
+  drawProfilePath(profile, camAngle, { fill: camFill, stroke: camStroke, lineWidth: 1.5 });
+  if (followerType === 'roller') {
+    // 实际廓线 (内侧曲线, cam surface) — checkbox 控制
+    if (showActual)
+      drawProfilePath(actualProfile, camAngle, { stroke: '#f97316', lineWidth: 2 });
+  }
+  // Base circle
+  if (showBase) {
+    drawCircleShape(cx, cy, r0*scale, 'rgba(99,102,241,0.3)', [5,4]);
+    ctx.fillStyle = 'rgba(99,102,241,0.5)'; ctx.font = '11px sans-serif';
+    ctx.fillText('r₀='+r0, cx+r0*scale*0.7+6, cy-r0*scale*0.7);
+  }
+  // Phase arcs
+  if (showPhase) {
+    const colors = ['rgba(99,102,241,0.25)','rgba(52,211,153,0.25)','rgba(251,191,36,0.25)','rgba(113,113,122,0.1)'];
+    const angles = [p1,p2,p3,p4];
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(camAngle);
+    let startA = -PI/2;
+    for (let i = 0; i < 4; i++) {
+      if (angles[i] > 0) { ctx.beginPath(); ctx.arc(0,0,(r0-3)*scale,startA,startA+angles[i]*DEG); ctx.strokeStyle=colors[i]; ctx.lineWidth=3; ctx.stroke(); }
+      startA += angles[i]*DEG;
+    }
+    ctx.restore();
+  }
+  // Center mark
+  ctx.beginPath(); ctx.arc(cx,cy,3,0,PI*2); ctx.fillStyle='#6366f1'; ctx.fill();
+  // Rotation arrow CW
+  drawRotationArrow(cx, cy, 14, false);
+  ctx.fillStyle='rgba(228,228,231,0.5)'; ctx.font='11px sans-serif'; ctx.fillText('ω',cx+18,cy-12);
+  // ===== Follower at fixed guide =====
+  const s0 = (e>0)?Math.sqrt(Math.max(0,r0*r0-e*e)):r0;
+  const totalS = s0 + sNow;
+  const guideX = cx + e * scale;
+  const tipY = cy - totalS * scale;
+
+  if (followerType === 'oscillating') {
+    drawOscillatingActual(degNow, psiNow, camAngle);
+  } else {
+    // Guide blocks at fixed position above cam (r0+h+clearance) to avoid collision
+    const guideBlockY = cy - (r0 + h + 12) * scale;
+    if (followerType === 'pointed') drawPencilAt(guideX, tipY, guideBlockY);
+    else if (followerType === 'roller') drawRollerAt(guideX, tipY, guideBlockY, degNow, camAngle, actualProfile);
+    else drawFlatAt(guideX, tipY, guideBlockY);
+  }
+  if (showPressure) drawPressureAnnotation(degNow, camAngle);
+}
+
+function drawOscillatingActual(degNow, psiNow, camAngle) {
+  // In actual motion mode: cam rotates CW, pivot is FIXED at (cx, cy - L*scale)
+  const L = r0 + armLen;
+  // Fixed pivot position in canvas coords
+  const pivot = { x: cx, y: cy - L * scale };
+  // Contact point: cam profile point rotated by camAngle (CW)
+  // Math coords (x,y) with y-up → canvas (cx + x*s, cy - y*s), then CW rotate θ:
+  //   canvas_x' = (x*cosθ - y*sinθ)*s, canvas_y' = -(x*sinθ + y*cosθ)*s
+  const cp = getProfilePoint(degNow);
+  const cosA = Math.cos(camAngle), sinA = Math.sin(camAngle);
+  // Transform matching ctx.rotate(camAngle): (mx*s, -my*s) rotated
+  const contact = {
+    x: cx + (cp.x * cosA + cp.y * sinA) * scale,
+    y: cy + (cp.x * sinA - cp.y * cosA) * scale
+  };
+  // Draw ground at pivot
+  drawGround(pivot.x, pivot.y - 8, 30);
+  // Pivot circle
+  ctx.beginPath(); ctx.arc(pivot.x, pivot.y, 5, 0, PI*2);
+  ctx.fillStyle = '#71717a'; ctx.fill();
+  ctx.strokeStyle = '#52525b'; ctx.lineWidth = 1; ctx.stroke();
+  // Arm from pivot to contact
+  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(pivot.x, pivot.y); ctx.lineTo(contact.x, contact.y); ctx.stroke();
+  ctx.lineCap = 'butt';
+  // Contact dot
+  ctx.beginPath(); ctx.arc(contact.x, contact.y, 3, 0, PI*2);
+  ctx.fillStyle = '#fbbf24'; ctx.fill();
+}
+
+function drawInversionMode(profile, actualProfile, degNow, sNow, camFill, camStroke) {
+  if (playing) traceUpTo = degNow;
+  const s0 = (e>0)?Math.sqrt(Math.max(0,r0*r0-e*e)):r0;
+  const totalS = s0 + sNow;
+  // Base circle
+  if (showBase) {
+    drawCircleShape(cx,cy,r0*scale,'rgba(99,102,241,0.3)',[5,4]);
+    ctx.fillStyle='rgba(99,102,241,0.5)'; ctx.font='11px sans-serif';
+    ctx.fillText('r₀='+r0, cx+r0*scale*0.7+6, cy-r0*scale*0.7);
+  }
+  // Offset circle
+  if (showOffset && e>0 && followerType!=='oscillating' && followerType!=='flat') {
+    drawCircleShape(cx,cy,e*scale,'rgba(239,68,68,0.25)',[3,3]);
+    ctx.fillStyle='rgba(239,68,68,0.4)'; ctx.font='10px sans-serif'; ctx.fillText('e='+e,cx+e*scale+4,cy+2);
+  }
+  // Phase arcs
+  if (showPhase) {
+    const colors = ['rgba(99,102,241,0.25)','rgba(52,211,153,0.25)','rgba(251,191,36,0.25)','rgba(113,113,122,0.1)'];
+    const angles = [p1,p2,p3,p4];
+    let startA = -PI/2;
+    for (let i = 0; i < 4; i++) {
+      if (angles[i]>0){ctx.beginPath();ctx.arc(cx,cy,(r0-3)*scale,startA,startA+angles[i]*DEG);ctx.strokeStyle=colors[i];ctx.lineWidth=3;ctx.stroke();}
+      startA += angles[i]*DEG;
+    }
+  }
+  // Cam profile (step-by-step reveal)
+  // 凸轮填充始终可见（用 profile 外侧做边界），checkbox 只控制廓线高亮线条
+  drawPartialProfile(profile, traceUpTo, showTheory ? '#fbbf24' : null, 'rgba(148,163,184,0.4)', 'rgba(71,85,105,0.35)');
+  if (followerType === 'roller') {
+    // 实际廓线 (内侧曲线) — checkbox 控制
+    if (showActual)
+      drawPartialProfile(actualProfile, traceUpTo, '#f97316', 'rgba(148,163,184,0.3)', 'rgba(0,0,0,0)');
+  }
+  // Center mark
+  ctx.beginPath(); ctx.arc(cx,cy,3,0,PI*2); ctx.fillStyle='#6366f1'; ctx.fill();
+  // ===== Follower orbiting (CCW rotation to match CCW profile) =====
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(-degNow * DEG); // CCW in canvas = matches CCW profile direction
+
+  if (followerType === 'oscillating') {
+    // Oscillating in inverted frame
+    const psi = getPsi(degNow);
+    const L = r0 + armLen;
+    const pivotX = 0, pivotY = -L * scale;
+    const cp = getProfilePoint(degNow);
+    const contactX = cp.x * scale, contactY = -cp.y * scale;
+    ctx.beginPath(); ctx.arc(pivotX, pivotY, 4, 0, PI*2); ctx.fillStyle='#71717a'; ctx.fill();
+    ctx.strokeStyle='#34d399'; ctx.lineWidth=3; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(pivotX, pivotY); ctx.lineTo(contactX, contactY); ctx.stroke(); ctx.lineCap='butt';
+    ctx.beginPath(); ctx.arc(contactX, contactY, 3, 0, PI*2); ctx.fillStyle='#fbbf24'; ctx.fill();
+    drawGround(pivotX, pivotY-8, 30);
+  } else {
+    // Translating follower in inverted frame
+    const guideLocalX = e * scale;
+    const tipLocalY = -totalS * scale;
+    // Guide blocks at fixed position above cam profile to avoid collision
+    const guideBlockLocalY = -(r0 + h + 12) * scale;
+    if (followerType === 'pointed') drawPencilInLocal(guideLocalX, tipLocalY, guideBlockLocalY);
+    else if (followerType === 'roller') drawRollerInLocal(guideLocalX, tipLocalY, guideBlockLocalY);
+    else drawFlatInLocal(guideLocalX, tipLocalY, guideBlockLocalY);
+  }
+  ctx.restore();
+
+  // Contact point for roller follower — drawn in GLOBAL canvas coords (cam is fixed in inversion mode)
+  // Contact point = actualProfile[degNow] in math coords → global canvas (cx+mx*scale, cy-my*scale)
+  if (followerType === 'roller') {
+    const cpMath = getRollerContactMath(degNow, actualProfile);
+    const contactGx = cx + cpMath.x * scale;
+    const contactGy = cy - cpMath.y * scale;
+    ctx.beginPath(); ctx.arc(contactGx, contactGy, 4, 0, PI*2);
+    ctx.fillStyle = '#fbbf24'; ctx.fill();
+    ctx.beginPath(); ctx.arc(contactGx, contactGy, 2, 0, PI*2);
+    ctx.fillStyle = '#fff'; ctx.fill();
+  }
+
+  // CCW rotation arrow
+  drawRotationArrow(cx, cy, 20, true);
+  ctx.fillStyle='rgba(228,228,231,0.5)'; ctx.font='10px sans-serif'; ctx.fillText('-ω',cx+24,cy-16);
+
+  if (showPressure) drawPressureAnnotation(degNow, 0);
+}
+
+// ===== Local-frame follower drawings (for inversion mode, relative to cam center) =====
+// Rod extends from tip (on cam surface) upward with fixed length; guide blocks at top
+function drawPencilInLocal(lx, tipY, baseY) {
+  const stemW = 6;
+  const rodTop = baseY - 40;
+  const blockW = 14, blockH = 12, blockGap = stemW + 6;
+  // Fixed guide blocks at baseY
+  drawGuideBlock(lx - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
+  drawGuideBlock(lx + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
+  // Pencil body from rodTop to tip
+  const grad=ctx.createLinearGradient(lx-stemW,0,lx+stemW,0);
+  grad.addColorStop(0,'#4a5568');grad.addColorStop(0.5,'#a0aec0');grad.addColorStop(1,'#4a5568');
+  ctx.fillStyle=grad;
+  ctx.beginPath();
+  ctx.moveTo(lx-stemW, rodTop); ctx.lineTo(lx+stemW, rodTop);
+  ctx.lineTo(lx+stemW, tipY-14); ctx.lineTo(lx+3, tipY-4);
+  ctx.lineTo(lx, tipY); ctx.lineTo(lx-3, tipY-4);
+  ctx.lineTo(lx-stemW, tipY-14); ctx.closePath();
+  ctx.fill();ctx.strokeStyle='rgba(52,211,153,0.6)';ctx.lineWidth=1;ctx.stroke();
+  ctx.beginPath();ctx.arc(lx,tipY,3,0,PI*2);ctx.fillStyle='#fbbf24';ctx.fill();
+}
+
+function drawRollerInLocal(lx, tipY, baseY) {
+  const rodTop = baseY - 40;
+  const blockW = 14, blockH = 12, blockGap = 8;
+  // Fixed guide blocks at baseY
+  drawGuideBlock(lx - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
+  drawGuideBlock(lx + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
+  // Rod from guide top to roller center - de-emphasized (thin decoration)
+  ctx.strokeStyle = 'rgba(148,163,184,0.2)'; ctx.lineWidth = 1; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(lx, rodTop); ctx.lineTo(lx, tipY); ctx.stroke(); ctx.lineCap = 'butt';
+  // Roller circle at (lx, tipY) - EMPHASIZED as main subject
+  ctx.beginPath(); ctx.arc(lx, tipY, rr*scale, 0, PI*2);
+  ctx.fillStyle = 'rgba(52,211,153,0.2)'; ctx.fill();
+  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3; ctx.stroke();
+  ctx.beginPath(); ctx.arc(lx, tipY, 2.5, 0, PI*2); ctx.fillStyle = '#34d399'; ctx.fill();
+}
+
+function drawFlatInLocal(lx, tipY, baseY) {
+  const rodTop = baseY - 40;
+  const blockW = 14, blockH = 12, blockGap = 8;
+  // Fixed guide blocks at baseY
+  drawGuideBlock(lx - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
+  drawGuideBlock(lx + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
+  // Flat face (contact surface with cam)
+  ctx.strokeStyle='#34d399';ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(lx-25,tipY);ctx.lineTo(lx+25,tipY);ctx.stroke();
+  // Rod from rodTop to top of flat face
+  ctx.strokeStyle='#94a3b8';ctx.lineWidth=4;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(lx,rodTop);ctx.lineTo(lx,tipY-2);ctx.stroke();ctx.lineCap='butt';
+  // Contact point
+  ctx.beginPath();ctx.arc(lx,tipY,3,0,PI*2);ctx.fillStyle='#fbbf24';ctx.fill();
+}
+
+function drawPressureAnnotation(degNow, camAngle) {
+  const alpha = getPressureAngle(degNow);
+  const alphaDeg = alpha * 180 / PI;
+  if (alphaDeg < 1 || alphaDeg > 89) return;
+  const pt = getProfilePoint(degNow);
+  const cosA = Math.cos(camAngle), sinA = Math.sin(camAngle);
+  const gx = cx + (pt.x*cosA + pt.y*sinA)*scale;
+  const gy = cy - (-pt.x*sinA + pt.y*cosA)*scale;
+  const prev = getProfilePoint(degNow-0.5), next = getProfilePoint(degNow+0.5);
+  const tCamX=next.x-prev.x, tCamY=next.y-prev.y;
+  const tLen=Math.sqrt(tCamX*tCamX+tCamY*tCamY);
+  if(tLen<0.001)return;
+  let nCamX=tCamY/tLen,nCamY=-tCamX/tLen;
+  const midR=Math.sqrt(pt.x*pt.x+pt.y*pt.y);
+  const outerR=Math.sqrt((pt.x+nCamX*2)*(pt.x+nCamX*2)+(pt.y+nCamY*2)*(pt.y+nCamY*2));
+  if(outerR<midR){nCamX=-nCamX;nCamY=-nCamY;}
+  const nRX=nCamX*cosA+nCamY*sinA, nRY=-nCamX*sinA+nCamY*cosA;
+  const nGx=nRX*20, nGy=-nRY*20;
+  ctx.beginPath();ctx.moveTo(gx,gy);ctx.lineTo(gx+nGx,gy+nGy);
+  ctx.strokeStyle=alphaDeg>45?'#ef4444':'rgba(251,191,36,0.7)';ctx.lineWidth=1;
+  ctx.setLineDash([3,2]);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=alphaDeg>45?'#ef4444':'#fbbf24';ctx.font='10px sans-serif';
+  ctx.fillText('α='+alphaDeg.toFixed(1)+'°',gx+nGx+4,gy+nGy-2);
+}
+
+function drawSDiagram(degNow) {
+  const dw=Math.min(160,W*0.25),dh=Math.min(100,H*0.15);
+  const dx=W-dw-16,dy=H-dh-16;
+  ctx.fillStyle='rgba(15,17,23,0.85)';ctx.strokeStyle='#252833';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(dx,dy,dw,dh,8);ctx.fill();ctx.stroke();
+  const pad=24,pw=dw-pad-10,ph=dh-pad-10,ox=dx+pad,oy=dy+dh-pad;
+  const isOsc=followerType==='oscillating';
+  ctx.fillStyle='#71717a';ctx.font='10px sans-serif';ctx.fillText(isOsc?'ψ-δ':'s-δ',ox,dy+14);
+  ctx.strokeStyle='#3a3d47';ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(ox,dy+20);ctx.lineTo(ox,oy);ctx.lineTo(ox+pw,oy);ctx.stroke();
+  const phases=[p1,p2,p3,p4];
+  const pColors=['rgba(99,102,241,0.08)','rgba(52,211,153,0.08)','rgba(251,191,36,0.08)','rgba(113,113,122,0.05)'];
+  let px=ox;
+  for(let i=0;i<4;i++){const w=phases[i]/360*pw;ctx.fillStyle=pColors[i];ctx.fillRect(px,dy+20,w,ph);px+=w;}
+  ctx.beginPath();
+  for(let d=0;d<=360;d+=2){const val=isOsc?getPsi(d)/(psiMax*DEG):getS(d)/Math.max(h,1);const x=ox+(d/360)*pw,y=oy-val*ph;if(d===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+  ctx.strokeStyle='rgba(228,228,231,0.5)';ctx.lineWidth=1;ctx.stroke();
+  const val=isOsc?getPsi(degNow)/(psiMax*DEG):getS(degNow)/Math.max(h,1);
+  const cpx=ox+(degNow/360)*pw,cpy=oy-val*ph;
+  ctx.beginPath();ctx.arc(cpx,cpy,4,0,PI*2);ctx.fillStyle='#ef4444';ctx.fill();
+  ctx.beginPath();ctx.arc(cpx,cpy,2,0,PI*2);ctx.fillStyle='#fff';ctx.fill();
+  ctx.setLineDash([2,2]);ctx.strokeStyle='rgba(239,68,68,0.3)';ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(cpx,cpy);ctx.lineTo(cpx,oy);ctx.moveTo(cpx,cpy);ctx.lineTo(ox,cpy);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#52525b';ctx.font='9px sans-serif';
+  ctx.fillText('0°',ox-2,oy+10);ctx.fillText('360°',ox+pw-10,oy+10);ctx.fillText(isOsc?'ψ':'s',ox-12,dy+24);
+}
+
+function updateInfo(degNow, sNow, psiNow, phaseNow) {
+  document.getElementById('infoDelta').textContent = degNow.toFixed(1)+'°';
+  const isOsc = followerType==='oscillating';
+  document.getElementById('infoDispLabel').textContent = isOsc?'摆角 ψ':'位移 s';
+  document.getElementById('infoDisp').textContent = isOsc?(psiNow*180/PI).toFixed(1)+'°':sNow.toFixed(1);
+  const alphaDeg = getPressureAngle(degNow)*180/PI;
+  const alphaEl = document.getElementById('infoAlpha');
+  alphaEl.textContent = alphaDeg.toFixed(1)+'°';
+  alphaEl.className = 'value'+(alphaDeg>50?' warn':'');
+  document.getElementById('infoPhase').textContent = phaseNow;
+  document.getElementById('infoPhase').style.color = phaseNow==='推程'?'#a5b4fc':phaseNow==='远休止'?'#6ee7b7':phaseNow==='回程'?'#fbbf24':'#a1a1aa';
+  document.getElementById('slAngle').value = degNow;
+  document.getElementById('valAngle').textContent = Math.round(degNow)+'°';
+  updateTip(degNow, alphaDeg, phaseNow);
+}
+
+function updateTip(degNow, alphaDeg, phaseNow) {
+  const el = document.getElementById('tipText');
+  if (mode==='inversion') {
+    if (alphaDeg>50){el.textContent='压力角α='+alphaDeg.toFixed(1)+'°过大！传力效果差，建议增大基圆半径r₀。';el.style.borderLeftColor='#ef4444';}
+    else if(phaseNow==='推程'){el.textContent='推程阶段：凸轮轮廓推动从动件远离基圆。观察从动件尖端轨迹，即为凸轮理论廓线。';el.style.borderLeftColor='#6366f1';}
+    else if(phaseNow==='回程'){el.textContent='回程阶段：从动件返回。凸轮顺时针转动时，从动件导路逆时针反转（-ω）。';el.style.borderLeftColor='#fbbf24';}
+    else if(phaseNow==='远休止'){el.textContent='远休止：从动件保持在最高位置，廓线为以(r₀+h)为半径的圆弧。';el.style.borderLeftColor='#34d399';}
+    else{el.textContent='近休止：从动件在基圆上不动，廓线就是基圆。';el.style.borderLeftColor='#6366f1';}
+  } else {
+    if(alphaDeg>50){el.textContent='压力角α过大，传动效率低。切换反转法可直观理解。';el.style.borderLeftColor='#ef4444';}
+    else{el.textContent='实际运动：凸轮以ω顺时针转动，推动从动件按简谐运动往复。切换"反转法"查看廓线设计过程。';el.style.borderLeftColor='#6366f1';}
+  }
+}
+
+// ===== Animation =====
+let lastTime = 0;
+function animate(time) {
+  try {
+    if (playing) {
+      const dt = lastTime ? (time-lastTime)/1000 : 0.016;
+      delta += speed * 0.8 * dt;
+      if (delta > PI*2) delta -= PI*2;
+    }
+    lastTime = time;
+    computeLayout();
+    draw();
+  } catch(e) {
+    ctx.fillStyle='#ef4444'; ctx.font='14px monospace';
+    ctx.fillText('ERROR: '+e.message, 10, 30);
+    console.error(e);
+  }
+  requestAnimationFrame(animate);
+}
+
+// ===== Controls =====
+function setMode(m) {
+  mode=m;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.mode-btn[onclick*="'+m+'"]').classList.add('active');
+  if(m==='inversion') traceUpTo=delta*180/PI;
+}
+function setType(t) {
+  followerType=t;
+  document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.type-btn[onclick*="'+t+'"]').classList.add('active');
+  const isTranslating=(t==='pointed'||t==='roller'||t==='flat');
+  document.getElementById('pgH').classList.toggle('hidden',!isTranslating);
+  document.getElementById('pgPsi').classList.toggle('hidden',isTranslating);
+  document.getElementById('pgE').classList.toggle('hidden',!isTranslating);
+  document.getElementById('pgRr').classList.toggle('hidden',t!=='roller');
+  document.getElementById('pgL').classList.toggle('hidden',t!=='oscillating');
+  document.getElementById('chkActualRow').classList.toggle('disabled',t!=='roller');
+  if(t!=='roller'){document.getElementById('chkActual').checked=false;showActual=false;}
+  document.getElementById('chkOffsetRow').classList.toggle('disabled',!isTranslating||t==='flat');
+  if(!isTranslating||t==='flat'){document.getElementById('chkOffset').checked=false;showOffset=false;}
+  traceUpTo=0;
+}
+function togglePlay(){playing=!playing;const btn=document.getElementById('btnPlay');btn.classList.toggle('playing',playing);btn.innerHTML=playing?'&#10074;&#10074;':'&#9654;';}
+function stepAngle(deg){playing=false;document.getElementById('btnPlay').classList.remove('playing');document.getElementById('btnPlay').innerHTML='&#9654;';delta=((delta+deg*DEG)%(PI*2)+PI*2)%(PI*2);traceUpTo=((delta*180/PI)%360+360)%360;}
+function initEvents(){
+  ['slP1','slP2','slP3'].forEach(id=>{document.getElementById(id).addEventListener('input',updatePhases);});
+  document.getElementById('slR0').addEventListener('input',function(){r0=+this.value;document.getElementById('valR0').textContent=r0;});
+  document.getElementById('slH').addEventListener('input',function(){h=+this.value;document.getElementById('valH').textContent=h;});
+  document.getElementById('slPsi').addEventListener('input',function(){psiMax=+this.value;document.getElementById('valPsi').textContent=psiMax+'°';});
+  document.getElementById('slE').addEventListener('input',function(){e=+this.value;document.getElementById('valE').textContent=e;showOffset=e>0;document.getElementById('chkOffset').checked=showOffset;});
+  document.getElementById('slRr').addEventListener('input',function(){rr=+this.value;document.getElementById('valRr').textContent=rr;});
+  document.getElementById('slL').addEventListener('input',function(){armLen=+this.value;document.getElementById('valL').textContent=armLen;});
+  document.getElementById('slSpeed').addEventListener('input',function(){speed=+this.value;document.getElementById('valSpeed').textContent=speed.toFixed(1)+'x';});
+  document.getElementById('slAngle').addEventListener('input',function(){const d=+this.value;delta=d*DEG;traceUpTo=d;playing=false;document.getElementById('btnPlay').classList.remove('playing');document.getElementById('btnPlay').innerHTML='&#9654;';});
+  document.getElementById('chkBase').addEventListener('change',function(){showBase=this.checked;});
+  document.getElementById('chkTheory').addEventListener('change',function(){showTheory=this.checked;});
+  document.getElementById('chkActual').addEventListener('change',function(){showActual=this.checked;});
+  document.getElementById('chkOffset').addEventListener('change',function(){showOffset=this.checked;});
+  document.getElementById('chkPressure').addEventListener('change',function(){showPressure=this.checked;});
+  document.getElementById('chkPhase').addEventListener('change',function(){showPhase=this.checked;});
+  document.getElementById('chkSD').addEventListener('change',function(){showSD=this.checked;});
+}
+
+window.addEventListener('resize', resize);
+resize(); initEvents(); updatePhases();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

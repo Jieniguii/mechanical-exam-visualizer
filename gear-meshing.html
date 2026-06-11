@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>渐开线齿轮啮合交互演示 — 机械考研可视化</title>
+<style>
+  :root {
+    --bg: #0f1117; --card: #1a1d27; --border: #2a2d3a;
+    --text: #e4e4e7; --text2: #9ca3af; --accent: #6366f1;
+    --accent2: #818cf8; --green: #34d399; --red: #f87171;
+    --amber: #fbbf24; --blue: #60a5fa; --rose: #fb7185;
+  }
+  * { margin:0; padding:0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; overflow-x: hidden;
+  }
+  .app { max-width: 1200px; margin:0 auto; padding:16px; }
+  header { text-align:center; padding:20px 0 12px; }
+  header h1 {
+    font-size:22px; font-weight:600;
+    background: linear-gradient(135deg, var(--accent2), var(--amber));
+    -webkit-background-clip: text; -webkit-text-fill-color:transparent;
+    background-clip: text;
+  }
+  header p { font-size:13px; color:var(--text2); margin-top:4px; }
+  .main-layout {
+    display: grid; grid-template-columns: 1fr 320px;
+    gap:16px; margin-top:12px;
+  }
+  @media (max-width:768px) { .main-layout { grid-template-columns:1fr; } }
+  .canvas-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:12px; overflow:hidden; position:relative;
+  }
+  .canvas-card canvas { width:100%; display:block; cursor:grab; }
+  .canvas-card canvas:active { cursor:grabbing; }
+  .canvas-toolbar {
+    display:flex; align-items:center; gap:8px;
+    padding:10px 14px; border-top:1px solid var(--border); flex-wrap:wrap;
+  }
+  .btn {
+    background:var(--accent); color:#fff; border:none;
+    padding:7px 16px; border-radius:8px; font-size:13px;
+    cursor:pointer; transition:background 0.2s; font-weight:500;
+  }
+  .btn:hover { background:var(--accent2); }
+  .btn.outline {
+    background:transparent; border:1px solid var(--border); color:var(--text2);
+  }
+  .btn.outline:hover { border-color:var(--accent); color:var(--accent2); }
+  .btn.outline.active { border-color:var(--accent); color:var(--accent2); background:rgba(99,102,241,0.1); }
+  .speed-label { font-size:12px; color:var(--text2); margin-left:auto; }
+  .sidebar { display:flex; flex-direction:column; gap:12px; }
+  .panel {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:12px; padding:14px;
+  }
+  .panel-title { font-size:14px; font-weight:600; margin-bottom:12px; color:var(--text); }
+  .slider-group { margin-bottom:10px; }
+  .slider-header {
+    display:flex; justify-content:space-between;
+    align-items:center; margin-bottom:4px;
+  }
+  .slider-label { font-size:13px; color:var(--text2); }
+  .slider-value { font-size:13px; font-weight:600; color:var(--accent2); min-width:36px; text-align:right; }
+  input[type="range"] {
+    width:100%; height:6px; -webkit-appearance:none; appearance:none;
+    background:var(--border); border-radius:3px; outline:none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance:none; appearance:none;
+    width:18px; height:18px; border-radius:50%;
+    background:var(--accent); cursor:pointer; border:2px solid var(--bg);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width:18px; height:18px; border-radius:50%;
+    background:var(--accent); cursor:pointer; border:2px solid var(--bg);
+  }
+  .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .info-item {
+    background:rgba(99,102,241,0.08); border-radius:8px; padding:8px 10px;
+  }
+  .info-item .label { font-size:11px; color:var(--text2); margin-bottom:2px; }
+  .info-item .value { font-size:14px; font-weight:600; }
+  .tip {
+    font-size:12px; color:var(--text2); line-height:1.6;
+    padding:10px; background:rgba(99,102,241,0.06);
+    border-radius:8px; border-left:3px solid var(--accent); margin-top:4px;
+  }
+  .toggle-row {
+    display:flex; align-items:center; gap:6px;
+    margin-bottom:6px; cursor:pointer; font-size:12px; color:var(--text2);
+  }
+  .toggle-row input[type="checkbox"] {
+    accent-color:var(--accent); width:15px; height:15px; cursor:pointer;
+  }
+  .warning-badge {
+    display:inline-block; padding:2px 8px; border-radius:4px;
+    font-size:11px; font-weight:600; background:rgba(248,113,113,0.15);
+    color:var(--red); margin-left:6px;
+  }
+  .legend { display:flex; gap:12px; flex-wrap:wrap; margin-top:4px; }
+  .legend-item {
+    display:flex; align-items:center; gap:4px;
+    font-size:11px; color:var(--text2);
+  }
+  .legend-dot { width:10px; height:10px; border-radius:50%; }
+  footer { text-align:center; padding:20px 0; font-size:12px; color:var(--text2); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>渐开线齿轮啮合交互演示</h1>
+    <p>调节齿数与模数，观察标准直齿圆柱齿轮的啮合传动</p>
+  </header>
+
+  <div class="main-layout">
+    <div>
+      <div class="canvas-card">
+        <canvas id="gearCanvas"></canvas>
+        <div class="canvas-toolbar">
+          <button class="btn" id="playBtn">暂停</button>
+          <button class="btn outline" id="resetBtn">重置</button>
+          <span class="speed-label">
+            转速
+            <input type="range" id="speedSlider" min="0.1" max="3" step="0.1" value="0.8" style="width:80px;vertical-align:middle;margin-left:4px;">
+          </span>
+        </div>
+        <div style="padding:0 14px 8px;">
+          <div class="legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#6366f1"></span>齿轮1</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#34d399"></span>齿轮2</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#f87171"></span>啮合线</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#fbbf24"></span>渐开线</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="panel">
+        <div class="panel-title">齿轮参数</div>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">z₁ (齿轮1齿数)</span>
+            <span class="slider-value" id="valZ1">20</span>
+          </div>
+          <input type="range" id="sliderZ1" min="8" max="60" value="20">
+        </div>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">z₂ (齿轮2齿数)</span>
+            <span class="slider-value" id="valZ2">30</span>
+          </div>
+          <input type="range" id="sliderZ2" min="8" max="60" value="30">
+        </div>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">m (模数)</span>
+            <span class="slider-value" id="valM">4</span>
+          </div>
+          <input type="range" id="sliderM" min="2" max="8" step="0.5" value="4">
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">显示选项</div>
+        <label class="toggle-row"><input type="checkbox" id="showPitch" checked> 分度圆 + 半径标注</label>
+        <label class="toggle-row"><input type="checkbox" id="showBase" checked> 基圆 + 半径标注</label>
+        <label class="toggle-row"><input type="checkbox" id="showAddDed" checked> 齿顶圆/齿根圆</label>
+        <label class="toggle-row"><input type="checkbox" id="showLineOfAction" checked> 啮合线</label>
+        <label class="toggle-row"><input type="checkbox" id="showInvolute"> 渐开线形成过程</label>
+        <label class="toggle-row"><input type="checkbox" id="showPressureAngle"> 压力角标注</label>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">啮合信息 <span id="undercutWarn" class="warning-badge" style="display:none">根切</span></div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="label">传动比 i</div>
+            <div class="value" id="infoRatio" style="color:var(--accent2)">—</div>
+          </div>
+          <div class="info-item">
+            <div class="label">中心距 a</div>
+            <div class="value" id="infoCenter" style="color:var(--green)">—</div>
+          </div>
+          <div class="info-item">
+            <div class="label">重合度 ε</div>
+            <div class="value" id="infoEpsilon" style="color:var(--amber)">—</div>
+          </div>
+          <div class="info-item">
+            <div class="label">压力角 α</div>
+            <div class="value" id="infoAlpha" style="color:var(--blue)">20°</div>
+          </div>
+          <div class="info-item">
+            <div class="label">r₁ / r₂</div>
+            <div class="value" id="infoR" style="color:var(--text2);font-size:12px">—</div>
+          </div>
+          <div class="info-item">
+            <div class="label">r_b1 / r_b2</div>
+            <div class="value" id="infoRb" style="color:var(--text2);font-size:12px">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">知识点提示</div>
+        <div class="tip" id="tipText">
+          渐开线齿轮的齿廓由基圆上的渐开线构成。标准直齿圆柱齿轮的压力角α=20°，模数m为标准值。正确啮合条件：两齿轮的模数和压力角分别相等。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>机械考研可视化学习平台 · 齿轮啮合演示</footer>
+</div>
+
+<script>
+// ===== 渐开线齿轮运动学 =====
+const DEG = 180 / Math.PI;
+const RAD = Math.PI / 180;
+const ALPHA = 20 * RAD; // 标准压力角
+
+let z1 = 20, z2 = 30, m = 4;
+let theta1 = 0; // 齿轮1转角
+let playing = true;
+let speed = 0.8;
+let involuteAnimT = 0; // 渐开线形成动画参数 (0~1 循环)
+
+const canvas = document.getElementById('gearCanvas');
+const ctx = canvas.getContext('2d');
+
+const playBtn = document.getElementById('playBtn');
+const resetBtn = document.getElementById('resetBtn');
+const speedSlider = document.getElementById('speedSlider');
+
+const sliders = {
+  z1: document.getElementById('sliderZ1'),
+  z2: document.getElementById('sliderZ2'),
+  m: document.getElementById('sliderM'),
+};
+const vals = {
+  z1: document.getElementById('valZ1'),
+  z2: document.getElementById('valZ2'),
+  m: document.getElementById('valM'),
+};
+
+// ===== 齿轮几何计算 =====
+function gearParams(z, m, alpha) {
+  const r = m * z / 2;
+  const rb = r * Math.cos(alpha);
+  const ra = r + m;
+  const rf = r - 1.25 * m;
+  const p = Math.PI * m;
+  const s = Math.PI * m / 2;
+  return { z, m, r, rb, ra, rf, p, s, alpha };
+}
+
+// 生成渐开线齿廓点
+function generateGearProfile(z, m, alpha) {
+  const { r, rb, ra, rf } = gearParams(z, m, alpha);
+  const invAlpha = Math.tan(alpha) - alpha;
+  const toothAngle = 2 * Math.PI / z;
+  const halfTooth = Math.PI / (2 * z);
+  const psiMax = Math.acos(Math.min(1, rb / Math.max(rb + 0.01, ra)));
+  const steps = 18;
+
+  const points = [];
+
+  for (let i = 0; i < z; i++) {
+    const center = i * toothAngle;
+
+    // 右侧渐开线（从基圆到齿顶圆）
+    for (let s = 0; s <= steps; s++) {
+      const psi = (s / steps) * psiMax;
+      const ri = rb / Math.cos(psi);
+      const angle = center - halfTooth - invAlpha + (Math.tan(psi) - psi);
+      points.push({ x: ri * Math.cos(angle), y: ri * Math.sin(angle) });
+    }
+
+    // 齿顶圆弧
+    const rightTopAngle = center - halfTooth - invAlpha + (Math.tan(psiMax) - psiMax);
+    const leftTopAngle = center + halfTooth + invAlpha - (Math.tan(psiMax) - psiMax);
+    const arcSteps = 4;
+    for (let s = 1; s <= arcSteps; s++) {
+      const angle = rightTopAngle + (leftTopAngle - rightTopAngle) * s / arcSteps;
+      points.push({ x: ra * Math.cos(angle), y: ra * Math.sin(angle) });
+    }
+
+    // 左侧渐开线（从齿顶圆到基圆）
+    for (let s = steps; s >= 0; s--) {
+      const psi = (s / steps) * psiMax;
+      const ri = rb / Math.cos(psi);
+      const angle = center + halfTooth + invAlpha - (Math.tan(psi) - psi);
+      points.push({ x: ri * Math.cos(angle), y: ri * Math.sin(angle) });
+    }
+
+    // 齿根连接
+    const leftBaseAngle = center + halfTooth + invAlpha;
+    const nextCenter = (i + 1) * toothAngle;
+    const nextRightBaseAngle = nextCenter - halfTooth - invAlpha;
+
+    if (rf < rb) {
+      points.push({ x: rf * Math.cos(leftBaseAngle), y: rf * Math.sin(leftBaseAngle) });
+      const dedSteps = 4;
+      for (let s = 1; s <= dedSteps; s++) {
+        const angle = leftBaseAngle + (nextRightBaseAngle - leftBaseAngle) * s / dedSteps;
+        points.push({ x: rf * Math.cos(angle), y: rf * Math.sin(angle) });
+      }
+      points.push({ x: rb * Math.cos(nextRightBaseAngle), y: rb * Math.sin(nextRightBaseAngle) });
+    } else {
+      points.push({ x: rf * Math.cos(leftBaseAngle), y: rf * Math.sin(leftBaseAngle) });
+      const dedSteps = 4;
+      for (let s = 1; s <= dedSteps; s++) {
+        const angle = leftBaseAngle + (nextRightBaseAngle - leftBaseAngle) * s / dedSteps;
+        points.push({ x: rf * Math.cos(angle), y: rf * Math.sin(angle) });
+      }
+    }
+  }
+
+  return points;
+}
+
+// 计算重合度
+function calcContactRatio(z1, z2, m, alpha) {
+  const p1 = gearParams(z1, m, alpha);
+  const p2 = gearParams(z2, m, alpha);
+  const a = p1.r + p2.r;
+  const g1 = Math.sqrt(Math.max(0, p1.ra * p1.ra - p1.rb * p1.rb));
+  const g2 = Math.sqrt(Math.max(0, p2.ra * p2.ra - p2.rb * p2.rb));
+  const pb = Math.PI * m * Math.cos(alpha);
+  const epsilon = (g1 + g2 - a * Math.sin(alpha)) / pb;
+  return Math.max(0, epsilon);
+}
+
+// ===== 绘制辅助函数 =====
+function resizeCanvas() {
+  const container = canvas.parentElement;
+  const w = container.clientWidth;
+  const h = Math.max(380, Math.min(520, w * 0.7));
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.height = h + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function getScale() {
+  const p1 = gearParams(z1, m, ALPHA);
+  const p2 = gearParams(z2, m, ALPHA);
+  const a = p1.r + p2.r;
+  const maxR = Math.max(p1.ra, p2.ra);
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  // 留出标注空间：左右各留 maxR*0.5
+  const totalW = a + maxR * 2.5;
+  const totalH = maxR * 2.5 + 40;
+  const scale = Math.min(w / (totalW * 1.1), h / (totalH * 1.1));
+  const cx = w / 2;
+  const cy = h / 2;
+  return { scale, cx, cy, centerDist: a * scale, p1, p2 };
+}
+
+function drawGrid(scale, cx, cy) {
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  const step = 40 * scale;
+  if (step < 10) return;
+  for (let x = cx % step; x < w; x += step) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let y = cy % step; y < h; y += step) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+}
+
+function drawGearFilled(cx, cy, profile, scale, fillColor, strokeColor, rotation) {
+  if (profile.length < 3) return;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rotation);
+
+  ctx.beginPath();
+  ctx.moveTo(profile[0].x * scale, -profile[0].y * scale);
+  for (let i = 1; i < profile.length; i++) {
+    ctx.lineTo(profile[i].x * scale, -profile[i].y * scale);
+  }
+  ctx.closePath();
+
+  ctx.fillStyle = fillColor;
+  ctx.fill();
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Center hole
+  const holeR = 6 * scale;
+  ctx.beginPath();
+  ctx.arc(0, 0, holeR, 0, Math.PI * 2);
+  ctx.fillStyle = '#0f1117';
+  ctx.fill();
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Center dot
+  ctx.beginPath();
+  ctx.arc(0, 0, 2 * scale, 0, Math.PI * 2);
+  ctx.fillStyle = strokeColor;
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// 绘制半径标注：带引线箭头的半径标注
+function drawRadiusAnnotation(cx, cy, radiusPx, label, color, scale, angle) {
+  // angle: 标注方向角（弧度），默认右上45°
+  if (angle == null) angle = Math.PI * 0.35;
+  const nx = cx + radiusPx * Math.cos(angle);
+  const ny = cy - radiusPx * Math.sin(angle);
+
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 1.2;
+
+  // 实线从圆心到圆上（半径线）
+  ctx.setLineDash([]);
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(nx, ny);
+  ctx.stroke();
+
+  // 箭头：在圆上，指向圆心方向（表示半径）
+  const arrowLen = 7 * scale;
+  const headAngle = Math.atan2(cy - ny, cx - nx); // 指向圆心
+  ctx.beginPath();
+  ctx.moveTo(nx, ny);
+  ctx.lineTo(nx + arrowLen * Math.cos(headAngle - 0.4), ny + arrowLen * Math.sin(headAngle - 0.4));
+  ctx.lineTo(nx + arrowLen * Math.cos(headAngle + 0.4), ny + arrowLen * Math.sin(headAngle + 0.4));
+  ctx.closePath();
+  ctx.fill();
+
+  // 标注文字（放在线段中间偏上）
+  const midX = (cx + nx) / 2;
+  const midY = (cy + ny) / 2;
+  ctx.font = `${Math.max(10, 11 * Math.min(scale, 1.2))}px sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(label, midX + 6 * Math.cos(angle + Math.PI/2), midY - 6 * Math.sin(angle + Math.PI/2) - 2);
+
+  ctx.restore();
+}
+
+function drawCircle(cx, cy, radius, color, dash) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.setLineDash(dash || []);
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawLineOfAction(cx1, cy1, cx2, cy2, p1, p2, scale) {
+  const a = p1.r + p2.r;
+  const pitchX = cx1 + (p1.r / a) * (cx2 - cx1);
+
+  const centerAngle = Math.atan2(cy2 - cy1, cx2 - cx1);
+  const loaAngle = centerAngle - (Math.PI / 2 - ALPHA);
+
+  const len = (Math.sqrt(Math.max(0, p1.ra * p1.ra - p1.rb * p1.rb)) +
+               Math.sqrt(Math.max(0, p2.ra * p2.ra - p2.rb * p2.rb)));
+
+  const dx = Math.cos(loaAngle);
+  const dy = Math.sin(loaAngle);
+
+  ctx.strokeStyle = 'rgba(248,113,113,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(pitchX - dx * len * scale * 0.8, cy1 - dy * len * scale * 0.8);
+  ctx.lineTo(pitchX + dx * len * scale * 0.8, cy1 + dy * len * scale * 0.8);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Pitch point
+  ctx.fillStyle = '#f87171';
+  ctx.beginPath();
+  ctx.arc(pitchX, cy1, 3 * scale, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#f87171';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('P', pitchX, cy1 - 8 * scale);
+
+  return { pitchX, loaAngle };
+}
+
+function drawPressureAngle(cx1, cy1, pitchX, scale) {
+  ctx.strokeStyle = 'rgba(251,191,36,0.7)';
+  ctx.lineWidth = 1.5;
+
+  // 公切线（在节点P处水平）
+  const tangentLen = 30 * scale;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(pitchX - tangentLen, cy1);
+  ctx.lineTo(pitchX + tangentLen, cy1);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 压力角圆弧
+  const arcR = 25 * scale;
+  ctx.beginPath();
+  ctx.arc(pitchX, cy1, arcR, -ALPHA, 0);
+  ctx.stroke();
+
+  // Alpha 标注
+  const labelAngle = -ALPHA / 2;
+  ctx.fillStyle = '#fbbf24';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('α', pitchX + (arcR + 12) * Math.cos(labelAngle),
+                       cy1 + (arcR + 12) * Math.sin(labelAngle));
+}
+
+// ===== 渐开线形成过程动画（修复：与转速关联 + 增加Rk/Rb/α标注）=====
+function drawInvoluteFormation(cx, cy, rb, scale, speed) {
+  // 渐开线展开角度 psi（与齿轮转速关联）
+  // 齿轮1转得越快，渐开线展开也越快
+  const maxPsi = Math.PI * 1.2; // 最大展开角
+  const currentPsi = involuteAnimT * maxPsi;
+
+  ctx.save();
+
+  // 基圆
+  drawCircle(cx, cy, rb * scale, 'rgba(251,191,36,0.35)', [4, 4]);
+
+  // 绘制渐开线（从基圆到当前psi角）
+  ctx.strokeStyle = '#fbbf24';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const steps = 80;
+  let prevX = 0, prevY = 0;
+  let endX = 0, endY = 0;
+  for (let i = 0; i <= steps; i++) {
+    const psi = (i / steps) * currentPsi;
+    // 渐开线方程：r = rb / cos(psi), 极角 = psi - inv(psi) = psi - tan(psi) + psi = 2*psi - tan(psi) ??? 
+    // 正确：渐开线上点的向径 r = rb / cos(psi)，展角 = inv(psi) = tan(psi) - psi
+    const r = rb / Math.cos(psi);
+    const invPsi = Math.tan(psi) - psi; // 渐开线展角
+    const angle = -invPsi; // 取负使渐开线向右展开（canvas y翻转）
+    const x = cx + r * Math.cos(angle) * scale;
+    const y = cy - r * Math.sin(angle) * scale; // canvas y翻转
+    if (i === 0) { ctx.moveTo(x, y); }
+    else { ctx.lineTo(x, y); }
+    prevX = x; prevY = y;
+    endX = x; endY = y;
+  }
+  ctx.stroke();
+
+  // 发生线（切线）：从基圆切点K0到渐开线上点K的切线
+  const psiK = currentPsi;
+  const rK = rb / Math.cos(psiK); // Rk：点K的向径
+  const invPsiK = Math.tan(psiK) - psiK;
+  const angleK = -invPsiK;
+  const Kx = cx + rK * Math.cos(angleK) * scale;
+  const Ky = cy - rK * Math.sin(angleK) * scale;
+
+  // 基圆上的切点 K0
+  const K0x = cx + rb * Math.cos(angleK) * scale;
+  const K0y = cy - rb * Math.sin(angleK) * scale;
+
+  // 发生线（基圆切点到渐开线点K的切线）
+  ctx.strokeStyle = 'rgba(251,191,36,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(K0x, K0y);
+  ctx.lineTo(Kx, Ky);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 向径 Rk 线（从中心到K点）
+  ctx.strokeStyle = 'rgba(251,191,36,0.4)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 3]);
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(Kx, Ky);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 压力角 α_K：在发生线（切线）与向径之间
+  // 对于渐开线，压力角 = psi（展开角）
+  const alphaK = psiK; // 弧度
+
+  // 标注：Rb（基圆半径）
+  ctx.fillStyle = 'rgba(251,191,36,0.8)';
+  ctx.font = `${Math.max(10, 11 * Math.min(scale, 1.2))}px sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.fillText(`Rb=${(rb).toFixed(1)}`, cx + rb * scale * Math.cos(-0.3) + 4 * scale,
+                                            cy - rb * scale * Math.sin(-0.3) - 4 * scale);
+
+  // 标注：Rk（当前点K的向径）
+  ctx.fillStyle = '#fbbf24';
+  ctx.fillText(`Rk=${(rK).toFixed(1)}`, Kx + 8, Ky - 8);
+
+  // 标注：压力角 α = ψ（渐开线性质：压力角等于展开角）
+  ctx.fillStyle = '#fbbf24';
+  ctx.font = `${Math.max(9, 10 * Math.min(scale, 1.2))}px sans-serif`;
+  ctx.fillText(`α=ψ=${(alphaK * DEG).toFixed(1)}°`, (Kx + K0x) / 2 - 20, (Ky + K0y) / 2 - 8);
+
+  // 点K标记
+  ctx.fillStyle = '#fbbf24';
+  ctx.beginPath();
+  ctx.arc(Kx, Ky, 3 * scale, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 基圆切点K0标记
+  ctx.fillStyle = 'rgba(251,191,36,0.6)';
+  ctx.beginPath();
+  ctx.arc(K0x, K0y, 2.5 * scale, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 说明文字
+  ctx.fillStyle = 'rgba(251,191,36,0.7)';
+  ctx.font = `${Math.max(9, 10 * Math.min(scale, 1.2))}px sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.fillText('渐开线形成：发生线在基圆上纯滚动', cx - 120 * scale, cy - rb * scale - 30 * scale);
+  ctx.fillText('K：渐开线上点  K0：基圆上切点', cx - 120 * scale, cy - rb * scale - 16 * scale);
+  ctx.fillText('压力角α=展开角ψ（渐开线重要性质）', cx - 120 * scale, cy - rb * scale - 2 * scale);
+
+  ctx.restore();
+}
+
+// ===== 主绘制函数 =====
+function draw() {
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  ctx.clearRect(0, 0, w, h);
+
+  const { scale, cx, cy, centerDist, p1, p2 } = getScale();
+
+  // 网格
+  drawGrid(scale, cx, cy);
+
+  // 齿轮中心坐标（O1在左，O2在右，水平对齐）
+  const cx1 = cx - centerDist / 2;
+  const cy1 = cy;
+  const cx2 = cx + centerDist / 2;
+  const cy2 = cy;
+
+  // 齿轮2转角（按传动比反向旋转）
+  const theta2 = -theta1 * z1 / z2 + Math.PI / z2;
+
+  // 生成齿廓
+  const profile1 = generateGearProfile(z1, m, ALPHA);
+  const profile2 = generateGearProfile(z2, m, ALPHA);
+
+  // 显示选项
+  const showPitch = document.getElementById('showPitch').checked;
+  const showBase = document.getElementById('showBase').checked;
+  const showAddDed = document.getElementById('showAddDed').checked;
+  const showLineOfAction = document.getElementById('showLineOfAction').checked;
+  const showInvolute = document.getElementById('showInvolute').checked;
+  const showPressureAngle = document.getElementById('showPressureAngle').checked;
+
+  // ===== 分度圆 + 半径标注 =====
+  if (showPitch) {
+    // 分度圆（虚线）
+    drawCircle(cx1, cy1, p1.r * scale, 'rgba(99,102,241,0.35)', [6, 4]);
+    drawCircle(cx2, cy2, p2.r * scale, 'rgba(52,211,153,0.35)', [6, 4]);
+    // 半径标注 R1、R2（右上方60°，较陡）
+    drawRadiusAnnotation(cx1, cy1, p1.r * scale, `r₁=${(p1.r).toFixed(1)}`, 'rgba(99,102,241,0.8)', scale, Math.PI * 0.35);
+    drawRadiusAnnotation(cx2, cy2, p2.r * scale, `r₂=${(p2.r).toFixed(1)}`, 'rgba(52,211,153,0.8)', scale, Math.PI * 0.35);
+  }
+
+  // ===== 基圆 + 半径标注 =====
+  if (showBase) {
+    drawCircle(cx1, cy1, p1.rb * scale, 'rgba(251,191,36,0.25)', [4, 4]);
+    drawCircle(cx2, cy2, p2.rb * scale, 'rgba(251,191,36,0.25)', [4, 4]);
+    // 半径标注 Rb1、Rb2（右下方15°，较平，避免与分度圆标注重叠）
+    drawRadiusAnnotation(cx1, cy1, p1.rb * scale, `Rb₁=${(p1.rb).toFixed(1)}`, 'rgba(251,191,36,0.7)', scale, -Math.PI * 0.2);
+    drawRadiusAnnotation(cx2, cy2, p2.rb * scale, `Rb₂=${(p2.rb).toFixed(1)}`, 'rgba(251,191,36,0.7)', scale, -Math.PI * 0.2);
+  }
+
+  // 齿顶圆/齿根圆
+  if (showAddDed) {
+    drawCircle(cx1, cy1, p1.ra * scale, 'rgba(99,102,241,0.15)', [2, 4]);
+    drawCircle(cx1, cy1, p1.rf * scale, 'rgba(99,102,241,0.15)', [2, 4]);
+    drawCircle(cx2, cy2, p2.ra * scale, 'rgba(52,211,153,0.15)', [2, 4]);
+    drawCircle(cx2, cy2, p2.rf * scale, 'rgba(52,211,153,0.15)', [2, 4]);
+  }
+
+  // 绘制齿轮齿廓
+  drawGearFilled(cx1, cy1, profile1, scale,
+    'rgba(99,102,241,0.12)', 'rgba(99,102,241,0.7)', theta1);
+  drawGearFilled(cx2, cy2, profile2, scale,
+    'rgba(52,211,153,0.12)', 'rgba(52,211,153,0.7)', theta2);
+
+  // 啮合线
+  if (showLineOfAction) {
+    const loaInfo = drawLineOfAction(cx1, cy1, cx2, cy2, p1, p2, scale);
+    if (showPressureAngle) {
+      drawPressureAngle(cx1, cy1, loaInfo.pitchX, scale);
+    }
+  }
+
+  // 渐开线形成过程动画
+  if (showInvolute) {
+    drawInvoluteFormation(cx1, cy1, p1.rb, scale, speed);
+  }
+
+  // 中心距连线
+  ctx.strokeStyle = 'rgba(100,116,139,0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(cx1, cy1);
+  ctx.lineTo(cx2, cy2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 圆心标记 O1、O2（画在圆心位置，小十字）
+  ctx.strokeStyle = 'rgba(99,102,241,0.8)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx1 - 5 * scale, cy1); ctx.lineTo(cx1 + 5 * scale, cy1);
+  ctx.moveTo(cx1, cy1 - 5 * scale); ctx.lineTo(cx1, cy1 + 5 * scale);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(52,211,153,0.8)';
+  ctx.beginPath();
+  ctx.moveTo(cx2 - 5 * scale, cy2); ctx.lineTo(cx2 + 5 * scale, cy2);
+  ctx.moveTo(cx2, cy2 - 5 * scale); ctx.lineTo(cx2, cy2 + 5 * scale);
+  ctx.stroke();
+
+  // 圆心标注 O1、O2（放在圆心正下方）
+  ctx.fillStyle = 'rgba(99,102,241,0.9)';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('O₁', cx1, cy1 + 16 * scale);
+  ctx.fillStyle = 'rgba(52,211,153,0.9)';
+  ctx.fillText('O₂', cx2, cy2 + 16 * scale);
+
+  // 中心距标注
+  ctx.fillStyle = '#64748b';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`a = ${(p1.r + p2.r).toFixed(1)}`, cx, cy - 10 * scale);
+
+  // 旋转方向箭头
+  if (playing) {
+    const arrowR1 = Math.min(p1.rf * scale - 8, 25);
+    const arrowR2 = Math.min(p2.rf * scale - 8, 25);
+
+    // 齿轮1：逆时针（CCW），弧从-0.3到1.2
+    if (arrowR1 > 10) {
+      ctx.strokeStyle = 'rgba(228,228,231,0.45)';
+      ctx.lineWidth = 1.5;
+      const startA = -0.3, endA = 1.2;
+      ctx.beginPath();
+      ctx.arc(cx1, cy1, arrowR1, startA, endA);
+      ctx.stroke();
+      // 弯曲箭头：尖端在弧末端，两翼沿弧线向后弯曲
+      const tipAngle = endA;
+      const tipX = cx1 + arrowR1 * Math.cos(tipAngle);
+      const tipY = cy1 + arrowR1 * Math.sin(tipAngle);
+      const backAngle = 0.28;
+      const spread = 2 * scale;
+      const bAngle = tipAngle - backAngle;
+      ctx.fillStyle = 'rgba(228,228,231,0.8)';
+      ctx.beginPath();
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(cx1 + (arrowR1 + spread) * Math.cos(bAngle), cy1 + (arrowR1 + spread) * Math.sin(bAngle));
+      ctx.lineTo(cx1 + (arrowR1 - spread) * Math.cos(bAngle), cy1 + (arrowR1 - spread) * Math.sin(bAngle));
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // 齿轮2：顺时针（CW），弧从PI+0.3到PI-1.2
+    if (arrowR2 > 10) {
+      ctx.strokeStyle = 'rgba(228,228,231,0.45)';
+      ctx.lineWidth = 1.5;
+      const startA = Math.PI + 0.3, endA = Math.PI - 1.2;
+      ctx.beginPath();
+      ctx.arc(cx2, cy2, arrowR2, startA, endA, true);
+      ctx.stroke();
+      // 弯曲箭头
+      const tipAngle = endA;
+      const tipX = cx2 + arrowR2 * Math.cos(tipAngle);
+      const tipY = cy2 + arrowR2 * Math.sin(tipAngle);
+      const backAngle = 0.28;
+      const spread = 2 * scale;
+      const bAngle = tipAngle + backAngle; // CW方向向后
+      ctx.fillStyle = 'rgba(228,228,231,0.8)';
+      ctx.beginPath();
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(cx2 + (arrowR2 + spread) * Math.cos(bAngle), cy2 + (arrowR2 + spread) * Math.sin(bAngle));
+      ctx.lineTo(cx2 + (arrowR2 - spread) * Math.cos(bAngle), cy2 + (arrowR2 - spread) * Math.sin(bAngle));
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
+
+// ===== 信息面板更新 =====
+function updateInfo() {
+  const p1 = gearParams(z1, m, ALPHA);
+  const p2 = gearParams(z2, m, ALPHA);
+  const a = p1.r + p2.r;
+  const epsilon = calcContactRatio(z1, z2, m, ALPHA);
+  const ratio = z2 / z1;
+
+  document.getElementById('infoRatio').textContent = ratio.toFixed(2);
+  document.getElementById('infoCenter').textContent = a.toFixed(1);
+  document.getElementById('infoAlpha').textContent = (ALPHA * DEG).toFixed(0) + '°';
+
+  const epsEl = document.getElementById('infoEpsilon');
+  epsEl.textContent = epsilon.toFixed(3);
+  epsEl.style.color = epsilon < 1 ? '#f87171' : epsilon < 1.2 ? '#fbbf24' : '#34d399';
+
+  document.getElementById('infoR').textContent = `${p1.r.toFixed(1)} / ${p2.r.toFixed(1)}`;
+  document.getElementById('infoRb').textContent = `${p1.rb.toFixed(1)} / ${p2.rb.toFixed(1)}`;
+
+  const zMin = Math.ceil(2 / (Math.sin(ALPHA) * Math.sin(ALPHA)));
+  const hasUndercut = z1 < zMin || z2 < zMin;
+  const warnEl = document.getElementById('undercutWarn');
+  warnEl.style.display = hasUndercut ? 'inline-block' : 'none';
+
+  const tipEl = document.getElementById('tipText');
+  if (hasUndercut) {
+    tipEl.textContent = `⚠️ 齿数小于z_min=${zMin}（α=20°），会产生根切。避免方法：①增加齿数 ②正变位。标准齿轮不根切条件：z ≥ z_min = 2/sin²α = ${zMin}。`;
+  } else if (epsilon < 1) {
+    tipEl.textContent = `⚠️ 重合度ε=${epsilon.toFixed(3)} < 1，无法连续传动！增大齿数可提高ε，一般要求ε ≥ 1.2。`;
+  } else if (epsilon < 1.2) {
+    tipEl.textContent = `重合度ε=${epsilon.toFixed(3)}偏小。ε为同时啮合齿对数均值，越大越平稳。增大齿数可提高ε。`;
+  } else {
+    tipEl.textContent = `正确啮合条件：m₁=m₂，α₁=α₂。传动比i=z₂/z₁=${ratio.toFixed(2)}，中心距a=${a.toFixed(1)}。重合度ε=${epsilon.toFixed(3)}，渐开线齿轮具有可分性（中心距微变时i不变）。`;
+  }
+}
+
+// ===== 事件处理 =====
+function updateSliders() {
+  z1 = parseInt(sliders.z1.value);
+  z2 = parseInt(sliders.z2.value);
+  m = parseFloat(sliders.m.value);
+  vals.z1.textContent = z1;
+  vals.z2.textContent = z2;
+  vals.m.textContent = m;
+  updateInfo();
+}
+
+Object.values(sliders).forEach(s => s.addEventListener('input', updateSliders));
+
+playBtn.addEventListener('click', () => {
+  playing = !playing;
+  playBtn.textContent = playing ? '暂停' : '播放';
+});
+
+resetBtn.addEventListener('click', () => {
+  theta1 = 0;
+  involuteAnimT = 0;
+  z1 = 20; z2 = 30; m = 4;
+  sliders.z1.value = z1; sliders.z2.value = z2; sliders.m.value = m;
+  vals.z1.textContent = z1; vals.z2.textContent = z2; vals.m.textContent = m;
+  updateInfo();
+});
+
+speedSlider.addEventListener('input', () => {
+  speed = parseFloat(speedSlider.value);
+});
+
+// ===== 动画循环 =====
+let lastTime = 0;
+function animate(time) {
+  if (playing) {
+    const dt = lastTime ? (time - lastTime) / 1000 : 0.016;
+    theta1 += speed * 1.2 * dt;
+
+    // 修复1：渐开线展开速度与齿轮转速关联
+    involuteAnimT += dt * speed * 0.4;
+    if (involuteAnimT > 1) involuteAnimT -= 1; // 循环
+  }
+  lastTime = time;
+  draw();
+  requestAnimationFrame(animate);
+}
+
+// 初始化
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+updateInfo();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

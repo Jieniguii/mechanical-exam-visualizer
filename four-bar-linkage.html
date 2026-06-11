@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>平面四杆机构交互演示 — 机械考研可视化</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --border: #2a2d3a;
+    --text: #e4e4e7;
+    --text2: #9ca3af;
+    --accent: #6366f1;
+    --accent2: #818cf8;
+    --green: #34d399;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --blue: #60a5fa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  .app {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+  header {
+    text-align: center;
+    padding: 20px 0 12px;
+  }
+  header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--accent2), var(--green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p {
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+  .main-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  @media (max-width: 768px) {
+    .main-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+  .canvas-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+  }
+  .canvas-card canvas {
+    width: 100%;
+    display: block;
+    cursor: grab;
+  }
+  .canvas-card canvas:active {
+    cursor: grabbing;
+  }
+  .canvas-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-weight: 500;
+  }
+  .btn:hover { background: var(--accent2); }
+  .btn.outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .btn.outline:hover { border-color: var(--accent); color: var(--accent2); }
+  .speed-label {
+    font-size: 12px;
+    color: var(--text2);
+    margin-left: auto;
+  }
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .panel-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  .slider-group {
+    margin-bottom: 10px;
+  }
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .slider-label {
+    font-size: 13px;
+    color: var(--text2);
+  }
+  .slider-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent2);
+    min-width: 36px;
+    text-align: right;
+  }
+  input[type="range"] {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--border);
+    border-radius: 3px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .info-item {
+    background: rgba(99,102,241,0.08);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .info-item .label {
+    font-size: 11px;
+    color: var(--text2);
+    margin-bottom: 2px;
+  }
+  .info-item .value {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .type-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .type-crank-rocker { background: rgba(52,211,153,0.15); color: var(--green); }
+  .type-double-crank { background: rgba(96,165,250,0.15); color: var(--blue); }
+  .type-double-rocker { background: rgba(251,191,36,0.15); color: var(--amber); }
+  .type-invalid { background: rgba(248,113,113,0.15); color: var(--red); }
+  .tip {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.6;
+    padding: 10px;
+    background: rgba(99,102,241,0.06);
+    border-radius: 8px;
+    border-left: 3px solid var(--accent);
+    margin-top: 4px;
+  }
+  .dead-point-indicator {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(248,113,113,0.9);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    display: none;
+    animation: blink 0.8s ease-in-out infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  footer {
+    text-align: center;
+    padding: 20px 0;
+    font-size: 12px;
+    color: var(--text2);
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>平面四杆机构交互演示</h1>
+    <p>调节参数，观察机构运动 — 机械考研可视化学习</p>
+  </header>
+
+  <div class="main-layout">
+    <div>
+      <div class="canvas-card">
+        <canvas id="mechCanvas"></canvas>
+        <div class="dead-point-indicator" id="deadPoint">死点位置!</div>
+        <div class="canvas-toolbar">
+          <button class="btn" id="playBtn">播放</button>
+          <button class="btn outline" id="resetBtn">重置</button>
+          <button class="btn outline" id="traceBtn">轨迹</button>
+          <span class="speed-label">
+            转速
+            <input type="range" id="speedSlider" min="0.1" max="3" step="0.1" value="1" style="width:80px;vertical-align:middle;margin-left:4px;">
+          </span>
+        </div>
+        <div style="padding:0 14px 8px;">
+          <div class="legend">
+            <span class="legend-item" id="legendA"><span class="legend-dot" style="background:#6366f1"></span>曲柄</span>
+            <span class="legend-item" id="legendB"><span class="legend-dot" style="background:#34d399"></span>连杆</span>
+            <span class="legend-item" id="legendC"><span class="legend-dot" style="background:#fbbf24"></span>摇杆</span>
+            <span class="legend-item" id="legendD"><span class="legend-dot" style="background:#64748b"></span>机架</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="panel">
+        <div class="panel-title">杆长参数</div>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label" id="labelA">a (曲柄)</span>
+            <span class="slider-value" id="valA">80</span>
+          </div>
+          <input type="range" id="sliderA" min="20" max="200" value="80">
+        </div>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">b (连杆)</span>
+            <span class="slider-value" id="valB">200</span>
+          </div>
+          <input type="range" id="sliderB" min="40" max="300" value="200">
+        </div>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label" id="labelC">c (摇杆)</span>
+            <span class="slider-value" id="valC">160</span>
+          </div>
+          <input type="range" id="sliderC" min="40" max="300" value="160">
+        </div>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">d (机架)</span>
+            <span class="slider-value" id="valD">220</span>
+          </div>
+          <input type="range" id="sliderD" min="40" max="350" value="220">
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">机构信息</div>
+        <div style="margin-bottom:8px;">
+          <span class="slider-label">类型：</span>
+          <span class="type-badge type-crank-rocker" id="typeBadge">曲柄摇杆</span>
+        </div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="label">传动角 γ</div>
+            <div class="value" id="infoGamma" style="color:var(--green)">—</div>
+          </div>
+          <div class="info-item">
+            <div class="label">曲柄角度 θ</div>
+            <div class="value" id="infoTheta" style="color:var(--accent2)">—</div>
+          </div>
+          <div class="info-item">
+            <div class="label">极位夹角 θ'</div>
+            <div class="value" id="infoKTheta" style="color:var(--amber)">—</div>
+          </div>
+          <div class="info-item">
+            <div class="label">行程速比 K</div>
+            <div class="value" id="infoK" style="color:var(--blue)">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">知识点提示</div>
+        <div class="tip" id="tipText">
+          曲柄摇杆机构：最短杆为曲柄且与最长杆之和 ≤ 其余两杆之和（格拉肖夫条件）。曲柄做整周转动，摇杆只往复摆动。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>机械考研可视化学习平台 · MVP演示版</footer>
+</div>
+
+<script>
+// ===== 四杆机构运动学 =====
+const DEG = 180 / Math.PI;
+const RAD = Math.PI / 180;
+
+let a = 80, b = 200, c = 160, d = 220;
+let theta2 = 0; // 输入件角度（弧度）
+let playing = true;
+let showTrace = false;
+let speed = 1;
+let tracePoints = [];
+let oscillateDir = 1; // 摆动方向：1=正方向，-1=反方向
+let validRange = { fullRotation: true, min: 0, max: 2 * Math.PI };
+
+const canvas = document.getElementById('mechCanvas');
+const ctx = canvas.getContext('2d');
+
+// UI elements
+const playBtn = document.getElementById('playBtn');
+const resetBtn = document.getElementById('resetBtn');
+const traceBtn = document.getElementById('traceBtn');
+const speedSlider = document.getElementById('speedSlider');
+const deadPointEl = document.getElementById('deadPoint');
+
+// Sliders
+const sliders = {
+  a: document.getElementById('sliderA'),
+  b: document.getElementById('sliderB'),
+  c: document.getElementById('sliderC'),
+  d: document.getElementById('sliderD'),
+};
+const vals = {
+  a: document.getElementById('valA'),
+  b: document.getElementById('valB'),
+  c: document.getElementById('valC'),
+  d: document.getElementById('valD'),
+};
+
+// Check if link a can make full rotation
+function canCrankRotate(a, b, c, d) {
+  for (let deg = 0; deg < 360; deg++) {
+    const theta = deg * RAD;
+    const Bx = a * Math.cos(theta);
+    const By = a * Math.sin(theta);
+    const BD = Math.sqrt((d - Bx) * (d - Bx) + By * By);
+    if (BD > b + c + 0.5 || BD < Math.abs(b - c) - 0.5) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Find valid angular range for input link a
+function findValidRange(a, b, c, d) {
+  if (canCrankRotate(a, b, c, d)) {
+    return { fullRotation: true, min: 0, max: 2 * Math.PI };
+  }
+
+  // Sweep all angles and find contiguous valid ranges
+  let validDegs = [];
+  for (let deg = 0; deg < 360; deg++) {
+    const theta = deg * RAD;
+    const Bx = a * Math.cos(theta);
+    const By = a * Math.sin(theta);
+    const BD = Math.sqrt((d - Bx) * (d - Bx) + By * By);
+    if (BD <= b + c + 0.5 && BD >= Math.abs(b - c) - 0.5 && BD > 0.5) {
+      validDegs.push(deg);
+    }
+  }
+
+  if (validDegs.length === 0) {
+    return { fullRotation: false, min: 0, max: 0 };
+  }
+
+  // Split into contiguous ranges (gap > 2° means separate)
+  let ranges = [];
+  let start = validDegs[0];
+  let prev = validDegs[0];
+  for (let i = 1; i < validDegs.length; i++) {
+    if (validDegs[i] - prev > 2) {
+      ranges.push({ min: start * RAD, max: prev * RAD });
+      start = validDegs[i];
+    }
+    prev = validDegs[i];
+  }
+  ranges.push({ min: start * RAD, max: prev * RAD });
+
+  // Find largest range
+  let best = ranges[0];
+  for (const r of ranges) {
+    if (r.max - r.min > best.max - best.min) best = r;
+  }
+
+  return { fullRotation: false, min: best.min, max: best.max };
+}
+
+// Solve four-bar linkage
+function solveFourBar(a, b, c, d, theta2) {
+  // A is at origin, D is at (d, 0)
+  // Crank: A->B, length a, angle theta2
+  const Bx = a * Math.cos(theta2);
+  const By = a * Math.sin(theta2);
+
+  // Distance from B to D
+  const BDx = d - Bx;
+  const BDy = -By;
+  const BD = Math.sqrt(BDx * BDx + BDy * BDy);
+
+  if (BD > b + c || BD < Math.abs(b - c) || BD < 1e-6) {
+    return null; // cannot close
+  }
+
+  // Angle of BD line
+  const phi = Math.atan2(BDy, BDx);
+
+  // Law of cosines to find angle at B in triangle BDC
+  const cosBeta = (BD * BD + b * b - c * c) / (2 * BD * b);
+  if (Math.abs(cosBeta) > 1) return null;
+  const beta = Math.acos(Math.max(-1, Math.min(1, cosBeta)));
+
+  // Two solutions (open/crossed)
+  const theta3_open = phi + beta;
+  const theta3_cross = phi - beta;
+
+  // We prefer the "open" configuration (standard)
+  const theta3 = theta3_open;
+
+  const Cx = Bx + b * Math.cos(theta3);
+  const Cy = By + b * Math.sin(theta3);
+
+  // Transmission angle: angle between coupler and rocker at C
+  const theta4 = Math.atan2(Cy, Cx - d);
+  let gamma = Math.abs(theta3 - theta4);
+  if (gamma > Math.PI) gamma = 2 * Math.PI - gamma;
+  if (gamma > Math.PI / 2) gamma = Math.PI - gamma;
+
+  return { Bx, By, Cx, Cy, gamma, theta3, theta4 };
+}
+
+// Check Grashof condition and classify
+function classifyFourBar(a, b, c, d) {
+  const lengths = [a, b, c, d].sort((x, y) => x - y);
+  const s = lengths[0]; // shortest
+  const l = lengths[3]; // longest
+  const p = lengths[1];
+  const q = lengths[2];
+
+  const grashof = (s + l) <= (p + q);
+
+  if (!grashof) {
+    return { type: '双摇杆机构', cls: 'type-double-rocker', grashof: false };
+  }
+
+  // Find which is the shortest
+  const minLen = Math.min(a, b, c, d);
+  if (minLen === a || minLen === d) {
+    // Shortest is adjacent to frame → crank-rocker (if a is shortest crank)
+    if (minLen === a) {
+      return { type: '曲柄摇杆机构', cls: 'type-crank-rocker', grashof: true };
+    } else {
+      return { type: '双曲柄机构', cls: 'type-double-crank', grashof: true };
+    }
+  } else {
+    // Shortest is coupler or rocker
+    if (minLen === b) {
+      return { type: '双摇杆机构', cls: 'type-double-rocker', grashof: true };
+    } else {
+      return { type: '曲柄摇杆机构', cls: 'type-crank-rocker', grashof: true };
+    }
+  }
+}
+
+// Calculate extreme positions (for K)
+function calcExtremePositions(a, b, c, d) {
+  const results = [];
+  // Two collinear positions of crank and coupler
+  // Position 1: crank and coupler stretched out (B1 on line AD extended)
+  const BD1 = b + a;
+  const BD2 = b - a;
+
+  for (const BD of [BD1, BD2]) {
+    if (BD <= 0 || BD > c + d || BD < Math.abs(c - d)) continue;
+    const cosAlpha = (BD * BD + d * d - c * c) / (2 * BD * d);
+    if (Math.abs(cosAlpha) > 1) continue;
+    const alpha = Math.acos(Math.max(-1, Math.min(1, cosAlpha)));
+    const Dx = BD * Math.cos(alpha);
+    const Dy = BD * Math.sin(alpha);
+    results.push({ x: Dx, y: Dy });
+  }
+  return results;
+}
+
+function calcK(a, b, c, d) {
+  const extremes = calcExtremePositions(a, b, c, d);
+  if (extremes.length < 2) return { kTheta: 0, k: 1 };
+
+  const [p1, p2] = extremes;
+  // Angle between two extreme positions at D (rocker pivot)
+  const angle1 = Math.atan2(p1.y - 0, p1.x - d);
+  const angle2 = Math.atan2(p2.y - 0, p2.x - d);
+
+  let kTheta = Math.abs(angle1 - angle2);
+  if (kTheta > Math.PI) kTheta = 2 * Math.PI - kTheta;
+
+  const K = (180 + kTheta * DEG) / (180 - kTheta * DEG);
+  return { kTheta: kTheta * DEG, k: K };
+}
+
+// Drawing
+function resizeCanvas() {
+  const container = canvas.parentElement;
+  const w = container.clientWidth;
+  const h = Math.max(360, Math.min(500, w * 0.65));
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.height = h + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function getScale() {
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  const maxDim = Math.max(a + b, d + c, a + d) * 1.15;
+  const scale = Math.min(w, h) / maxDim;
+  return { scale, cx: w * 0.45, cy: h * 0.55 };
+}
+
+function drawGrid(scale, cx, cy) {
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  const step = 40 * scale;
+  for (let x = cx % step; x < w; x += step) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let y = cy % step; y < h; y += step) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+}
+
+function drawLink(x1, y1, x2, y2, color, width, label) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+
+  // Link label at midpoint
+  if (label) {
+    const mx = (x1 + x2) / 2;
+    const my = (y1 + y2) / 2;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len > 0) {
+      const nx = -dy / len * 14;
+      const ny = dx / len * 14;
+      ctx.fillStyle = color;
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, mx + nx, my + ny);
+    }
+  }
+}
+
+function drawJoint(x, y, radius, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function drawGround(x, y, scale) {
+  // Ground symbol at A
+  const s = 6 * scale;
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 1.5;
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x + i * s, y);
+    ctx.lineTo(x + i * s - s * 0.6, y + s * 0.8);
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(x - 2.5 * s, y);
+  ctx.lineTo(x + 2.5 * s, y);
+  ctx.stroke();
+}
+
+function draw() {
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  ctx.clearRect(0, 0, w, h);
+
+  const { scale, cx, cy } = getScale();
+
+  // Draw grid
+  drawGrid(scale, cx, cy);
+
+  // Solve
+  const result = solveFourBar(a, b, c, d, theta2);
+  if (!result) {
+    ctx.fillStyle = 'var(--red)';
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('当前参数无法构成四杆机构', w / 2, h / 2);
+    return;
+  }
+
+  const { Bx, By, Cx, Cy, gamma } = result;
+
+  // Transform to canvas coords (flip y)
+  function tx(x) { return cx + x * scale; }
+  function ty(y) { return cy - y * scale; }
+
+  const Ax = tx(0), Ay = ty(0);
+  const Bxp = tx(Bx), Byp = ty(By);
+  const Cxp = tx(Cx), Cyp = ty(Cy);
+  const Dx = tx(d), Dy = ty(0);
+
+  // Draw trace
+  if (showTrace && tracePoints.length > 1) {
+    ctx.strokeStyle = 'rgba(99,102,241,0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < tracePoints.length; i++) {
+      const p = tracePoints[i];
+      const px = tx(p.x), py = ty(p.y);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+
+  // Draw ground symbols
+  drawGround(Ax, Ay, scale * 0.7);
+  drawGround(Dx, Dy, scale * 0.7);
+
+  // Draw oscillation range arc for rocker mode
+  if (!validRange.fullRotation && validRange.max > validRange.min) {
+    const arcR2 = 30 * scale;
+    ctx.strokeStyle = 'rgba(251,191,36,0.25)';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    // Canvas y is flipped, so negate angles
+    ctx.arc(Ax, Ay, arcR2, -validRange.max, -validRange.min);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw limit position lines (faded)
+    for (const limitAngle of [validRange.min, validRange.max]) {
+      const lbx = a * Math.cos(limitAngle);
+      const lby = a * Math.sin(limitAngle);
+      const lResult = solveFourBar(a, b, c, d, limitAngle);
+      if (lResult) {
+        ctx.strokeStyle = 'rgba(251,191,36,0.15)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.moveTo(Ax, Ay);
+        ctx.lineTo(tx(lbx), ty(lby));
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(tx(lbx), ty(lby));
+        ctx.lineTo(tx(lResult.Cx), ty(lResult.Cy));
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(Dx, Dy);
+        ctx.lineTo(tx(lResult.Cx), ty(lResult.Cy));
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+  }
+
+  // Determine role labels for current mechanism type
+  const mechType = classifyFourBar(a, b, c, d);
+  let roleA_label, roleC_label;
+  if (mechType.type === '曲柄摇杆机构') { roleA_label = '曲柄'; roleC_label = '摇杆'; }
+  else if (mechType.type === '双曲柄机构') { roleA_label = '曲柄'; roleC_label = '曲柄'; }
+  else { roleA_label = '摇杆'; roleC_label = '摇杆'; }
+
+  // Draw links
+  drawLink(Ax, Ay, Dx, Dy, '#64748b', 3, `d=${d} 机架`);
+  drawLink(Ax, Ay, Bxp, Byp, '#6366f1', 4, `a=${a} ${roleA_label}`);
+  drawLink(Bxp, Byp, Cxp, Cyp, '#34d399', 4, `b=${b} 连杆`);
+  drawLink(Dx, Dy, Cxp, Cyp, '#fbbf24', 4, `c=${c} ${roleC_label}`);
+
+  // Draw joints
+  drawJoint(Ax, Ay, 6, '#475569'); // A - fixed
+  drawJoint(Dx, Dy, 6, '#475569'); // D - fixed
+  drawJoint(Bxp, Byp, 5, '#6366f1'); // B - crank-coupler
+  drawJoint(Cxp, Cyp, 5, '#34d399'); // C - coupler-rocker
+
+  // Draw transmission angle arc at C
+  const arcR = 25 * scale;
+  const angleCD = Math.atan2(Dy - Cyp, Dx - Cxp);
+  const angleCB = Math.atan2(Byp - Cyp, Bxp - Cxp);
+  ctx.strokeStyle = gamma * DEG < 40 ? '#f87171' : 'rgba(52,211,153,0.6)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(Cxp, Cyp, arcR, Math.min(angleCD, angleCB), Math.max(angleCD, angleCB));
+  ctx.stroke();
+
+  // Labels
+  ctx.fillStyle = '#64748b';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('A', Ax, Ay + 18);
+  ctx.fillText('D', Dx, Dy + 18);
+  ctx.fillStyle = '#6366f1';
+  ctx.fillText('B', Bxp + (Bx > 0 ? 14 : -14), Byp - 14);
+  ctx.fillStyle = '#34d399';
+  ctx.fillText('C', Cxp + 14, Cyp - 14);
+
+  // Update info panel
+  document.getElementById('infoGamma').textContent = (gamma * DEG).toFixed(1) + '°';
+  document.getElementById('infoTheta').textContent = (((theta2 * DEG) % 360 + 360) % 360).toFixed(1) + '°';
+
+  const gammaDeg = gamma * DEG;
+  const gammaEl = document.getElementById('infoGamma');
+  if (gammaDeg < 40) {
+    gammaEl.style.color = '#f87171';
+  } else if (gammaDeg < 50) {
+    gammaEl.style.color = '#fbbf24';
+  } else {
+    gammaEl.style.color = '#34d399';
+  }
+
+  // Dead point detection
+  const isDeadPoint = gammaDeg < 5;
+  deadPointEl.style.display = isDeadPoint ? 'block' : 'none';
+}
+
+function updateClassification() {
+  const result = classifyFourBar(a, b, c, d);
+  const badge = document.getElementById('typeBadge');
+  badge.textContent = result.type;
+  badge.className = 'type-badge ' + result.cls;
+
+  // Update valid range for input link
+  validRange = findValidRange(a, b, c, d);
+
+  // Clamp current angle to valid range
+  if (!validRange.fullRotation) {
+    if (theta2 < validRange.min) theta2 = validRange.min;
+    if (theta2 > validRange.max) theta2 = validRange.max;
+  }
+
+  // Update legend labels based on mechanism type
+  const legendA = document.getElementById('legendA');
+  const legendC = document.getElementById('legendC');
+  const labelA = document.getElementById('labelA');
+  const labelC = document.getElementById('labelC');
+
+  // Determine role of each link based on mechanism type
+  let roleA, roleC;
+  if (result.type === '曲柄摇杆机构') {
+    roleA = '曲柄'; roleC = '摇杆';
+  } else if (result.type === '双曲柄机构') {
+    roleA = '曲柄'; roleC = '曲柄';
+  } else {
+    // 双摇杆机构
+    roleA = '摇杆'; roleC = '摇杆';
+  }
+
+  legendA.innerHTML = `<span class="legend-dot" style="background:#6366f1"></span>${roleA}`;
+  legendC.innerHTML = `<span class="legend-dot" style="background:#fbbf24"></span>${roleC}`;
+  labelA.textContent = `a (${roleA})`;
+  labelC.textContent = `c (${roleC})`;
+
+  // K value
+  const { kTheta, k } = calcK(a, b, c, d);
+  document.getElementById('infoKTheta').textContent = kTheta.toFixed(1) + '°';
+  document.getElementById('infoK').textContent = k.toFixed(2);
+
+  // Update angle label
+  const thetaLabel = document.querySelector('.info-item:nth-child(2) .label');
+  if (thetaLabel) thetaLabel.textContent = validRange.fullRotation ? '曲柄角度 θ' : '输入角度 θ';
+
+  // Tip text
+  const tipEl = document.getElementById('tipText');
+  if (!result.grashof) {
+    tipEl.textContent = '不满足格拉肖夫条件（最短杆+最长杆 > 其余两杆之和），无曲柄存在，为双摇杆机构。两连架杆只能摆动，不能整周转动。输入件在极限位置之间来回摆动。';
+  } else if (result.type === '曲柄摇杆机构') {
+    tipEl.textContent = '曲柄摇杆机构：最短杆为曲柄且满足格拉肖夫条件。曲柄做整周转动，摇杆往复摆动。注意传动角γ不应过小（一般≥40°），否则传力效果差。';
+  } else if (result.type === '双曲柄机构') {
+    tipEl.textContent = '双曲柄机构：最短杆为机架，两连架杆都能做整周转动。常见应用：火车车轮联动机构、平行四边形机构。';
+  } else {
+    tipEl.textContent = '双摇杆机构（满足格拉肖夫条件但最短杆为连杆）：两连架杆都只能摆动。典型应用：电风扇摇头机构、汽车转向梯形机构。输入件在极限位置间摆动。';
+  }
+}
+
+function updateSliders() {
+  a = parseInt(sliders.a.value);
+  b = parseInt(sliders.b.value);
+  c = parseInt(sliders.c.value);
+  d = parseInt(sliders.d.value);
+  vals.a.textContent = a;
+  vals.b.textContent = b;
+  vals.c.textContent = c;
+  vals.d.textContent = d;
+  tracePoints = [];
+  updateClassification();
+}
+
+// Event listeners
+Object.values(sliders).forEach(s => s.addEventListener('input', updateSliders));
+
+playBtn.addEventListener('click', () => {
+  playing = !playing;
+  playBtn.textContent = playing ? '暂停' : '播放';
+});
+
+resetBtn.addEventListener('click', () => {
+  theta2 = 0;
+  oscillateDir = 1;
+  tracePoints = [];
+  a = 80; b = 200; c = 160; d = 220;
+  sliders.a.value = a; sliders.b.value = b;
+  sliders.c.value = c; sliders.d.value = d;
+  vals.a.textContent = a; vals.b.textContent = b;
+  vals.c.textContent = c; vals.d.textContent = d;
+  updateClassification();
+});
+
+traceBtn.addEventListener('click', () => {
+  showTrace = !showTrace;
+  traceBtn.style.background = showTrace ? 'var(--accent)' : '';
+  traceBtn.style.color = showTrace ? '#fff' : '';
+  if (!showTrace) tracePoints = [];
+});
+
+speedSlider.addEventListener('input', () => {
+  speed = parseFloat(speedSlider.value);
+});
+
+// Drag to change crank angle
+let dragging = false;
+canvas.addEventListener('mousedown', () => { if (!playing) dragging = true; });
+canvas.addEventListener('mouseup', () => { dragging = false; });
+canvas.addEventListener('mouseleave', () => { dragging = false; });
+canvas.addEventListener('mousemove', (e) => {
+  if (!dragging || playing) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const { scale, cx, cy } = getScale();
+  let angle = Math.atan2(-(my - cy), mx - cx);
+  if (angle < 0) angle += 2 * Math.PI;
+  // Clamp to valid range for rocker mode
+  if (!validRange.fullRotation) {
+    angle = Math.max(validRange.min, Math.min(validRange.max, angle));
+  }
+  theta2 = angle;
+});
+
+// Touch support
+canvas.addEventListener('touchstart', (e) => {
+  if (!playing) { dragging = true; e.preventDefault(); }
+}, { passive: false });
+canvas.addEventListener('touchend', () => { dragging = false; });
+canvas.addEventListener('touchmove', (e) => {
+  if (!dragging || playing) return;
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches[0];
+  const mx = touch.clientX - rect.left;
+  const my = touch.clientY - rect.top;
+  const { scale, cx, cy } = getScale();
+  let angle = Math.atan2(-(my - cy), mx - cx);
+  if (angle < 0) angle += 2 * Math.PI;
+  if (!validRange.fullRotation) {
+    angle = Math.max(validRange.min, Math.min(validRange.max, angle));
+  }
+  theta2 = angle;
+}, { passive: false });
+
+// Animation loop
+let lastTime = 0;
+function animate(time) {
+  if (playing) {
+    const dt = lastTime ? (time - lastTime) / 1000 : 0.016;
+
+    if (validRange.fullRotation) {
+      // Crank can rotate fully — continuous rotation
+      theta2 += speed * 1.5 * dt;
+      if (theta2 > Math.PI * 2) theta2 -= Math.PI * 2;
+    } else {
+      // Rocker — oscillate between limits
+      theta2 += speed * 1.5 * dt * oscillateDir;
+      if (theta2 >= validRange.max) {
+        theta2 = validRange.max;
+        oscillateDir = -1; // Reverse direction
+      }
+      if (theta2 <= validRange.min) {
+        theta2 = validRange.min;
+        oscillateDir = 1; // Reverse direction
+      }
+    }
+
+    // Record trace point (coupler point C)
+    if (showTrace) {
+      const result = solveFourBar(a, b, c, d, theta2);
+      if (result) {
+        tracePoints.push({ x: result.Cx, y: result.Cy });
+        if (tracePoints.length > 2000) tracePoints.shift();
+      }
+    }
+  }
+  lastTime = time;
+  draw();
+  requestAnimationFrame(animate);
+}
+
+// Init
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+updateClassification();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
