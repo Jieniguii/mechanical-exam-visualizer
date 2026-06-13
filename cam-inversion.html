@@ -674,17 +674,27 @@ function drawInversionMode(profile, actualProfile, degNow, sNow, camFill, camStr
   ctx.rotate(-degNow * DEG); // CCW in canvas = matches CCW profile direction
 
   if (followerType === 'oscillating') {
-    // Oscillating in inverted frame
+    // Oscillating in inverted frame — pivot orbits with inversion rotation
     const psi = getPsi(degNow);
     const L = r0 + armLen;
-    const pivotX = 0, pivotY = -L * scale;
+    // Pivot was at (0, L) in math → in local canvas frame after ctx.rotate(-degNow*DEG):
+    //   localCanvas = (mx*scale, -my*scale) of rotated position
+    //   rotated pivot = (-L*sin(degNow), L*cos(degNow)) in math
+    //   → local canvas = (-L*sin(degNow)*scale, -L*cos(degNow)*scale)
+    const pivotX = -L * Math.sin(degNow * DEG) * scale;
+    const pivotY = -L * Math.cos(degNow * DEG) * scale;
+    // Contact point = profile point at degNow (cam is fixed in inversion)
     const cp = getProfilePoint(degNow);
     const contactX = cp.x * scale, contactY = -cp.y * scale;
+    // Draw ground at pivot
+    drawGround(pivotX, pivotY - 8, 30);
+    // Pivot circle
     ctx.beginPath(); ctx.arc(pivotX, pivotY, 4, 0, PI*2); ctx.fillStyle='#71717a'; ctx.fill();
+    // Arm from pivot to contact
     ctx.strokeStyle='#34d399'; ctx.lineWidth=3; ctx.lineCap='round';
     ctx.beginPath(); ctx.moveTo(pivotX, pivotY); ctx.lineTo(contactX, contactY); ctx.stroke(); ctx.lineCap='butt';
+    // Contact dot
     ctx.beginPath(); ctx.arc(contactX, contactY, 3, 0, PI*2); ctx.fillStyle='#fbbf24'; ctx.fill();
-    drawGround(pivotX, pivotY-8, 30);
   } else {
     // Translating follower in inverted frame
     const guideLocalX = e * scale;
