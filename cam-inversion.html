@@ -256,7 +256,9 @@ function getProfilePoint(dDeg) {
     }
     case 'flat': {
       const total = r0 + s;
-      return { x: -total * sinD + ds * cosD, y: total * cosD + ds * sinD, s: total, ds };
+      // ds is per-degree, need per-radian for profile formula
+      const dsRad = ds * (180 / PI);
+      return { x: -total * sinD + dsRad * cosD, y: total * cosD + dsRad * sinD, s: total, ds: dsRad };
     }
     case 'oscillating': {
       const psi = getPsi(dDeg);
@@ -307,6 +309,8 @@ function computeActualProfile(theoPts) {
 }
 
 function getPressureAngle(dDeg) {
+  // 平底从动件：压力角恒为 0°（平底面法线始终与运动方向一致）
+  if (followerType === 'flat') return 0;
   const curr = getProfilePoint(dDeg);
   const next = getProfilePoint(dDeg + 0.5);
   const prev = getProfilePoint(dDeg - 0.5);
@@ -519,20 +523,22 @@ function drawRollerAt(absX, tipY, baseY, degNow, camAngle, actualProfile) {
 
 // ===== Follower drawing: flat (rod + horizontal line) at absolute canvas position =====
 // tipY = flat face position (cam contact surface)
-function drawFlatAt(absX, tipY, baseY) {
+function drawFlatAt(absX, tipY, baseY, dsOffset) {
   const rodTop = baseY - 40;
   const blockW = 14, blockH = 12, blockGap = 8;
+  const halfFlat = 35; // wider to show contact point movement
   // Fixed guide blocks at baseY
   drawGuideBlock(absX - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
   drawGuideBlock(absX + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
-  // Flat face (contact surface with cam) - draw first so rod overlaps it
+  // Flat face (contact surface with cam)
   ctx.strokeStyle = '#34d399'; ctx.lineWidth = 4;
-  ctx.beginPath(); ctx.moveTo(absX-25, tipY); ctx.lineTo(absX+25, tipY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(absX-halfFlat, tipY); ctx.lineTo(absX+halfFlat, tipY); ctx.stroke();
   // Rod from rodTop down to top of flat face
   ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 4; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(absX, rodTop); ctx.lineTo(absX, tipY - 2); ctx.stroke(); ctx.lineCap = 'butt';
-  // Contact point on flat face (at cam surface)
-  ctx.beginPath(); ctx.arc(absX, tipY, 3, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
+  // Contact point at offset on flat face (ds * scale)
+  const contactX = absX + dsOffset;
+  ctx.beginPath(); ctx.arc(contactX, tipY, 3, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
 }
 
 // ===== Main draw =====
@@ -601,7 +607,11 @@ function drawActualMode(profile, actualProfile, degNow, sNow, psiNow, camFill, c
     const guideBlockY = cy - (r0 + h + 30) * scale;
     if (followerType === 'pointed') drawPencilAt(guideX, tipY, guideBlockY);
     else if (followerType === 'roller') drawRollerAt(guideX, tipY, guideBlockY, degNow, camAngle, actualProfile);
-    else drawFlatAt(guideX, tipY, guideBlockY);
+    else {
+      // Flat follower: contact point offset = ds * scale (already in per-radian units from profile)
+      const dsOffset = profile[Math.round(degNow) % 360].ds * scale;
+      drawFlatAt(guideX, tipY, guideBlockY, dsOffset);
+    }
   }
   if (showPressure) drawPressureAnnotation(degNow, camAngle);
 }
@@ -723,7 +733,11 @@ function drawInversionMode(profile, actualProfile, degNow, sNow, camFill, camStr
     const guideBlockLocalY = -(r0 + h + 30) * scale;
     if (followerType === 'pointed') drawPencilInLocal(guideLocalX, tipLocalY, guideBlockLocalY);
     else if (followerType === 'roller') drawRollerInLocal(guideLocalX, tipLocalY, guideBlockLocalY);
-    else drawFlatInLocal(guideLocalX, tipLocalY, guideBlockLocalY);
+    else {
+      // Flat follower: contact point offset = ds * scale (already in per-radian units from profile)
+      const dsOffset = profile[Math.round(degNow) % 360].ds * scale;
+      drawFlatInLocal(guideLocalX, tipLocalY, guideBlockLocalY, dsOffset);
+    }
   }
   ctx.restore();
 
@@ -784,20 +798,22 @@ function drawRollerInLocal(lx, tipY, baseY) {
   ctx.beginPath(); ctx.arc(lx, tipY, 2.5, 0, PI*2); ctx.fillStyle = '#34d399'; ctx.fill();
 }
 
-function drawFlatInLocal(lx, tipY, baseY) {
+function drawFlatInLocal(lx, tipY, baseY, dsOffset) {
   const rodTop = baseY - 40;
   const blockW = 14, blockH = 12, blockGap = 8;
+  const halfFlat = 35; // wider to show contact point movement
   // Fixed guide blocks at baseY
   drawGuideBlock(lx - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
   drawGuideBlock(lx + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
   // Flat face (contact surface with cam)
   ctx.strokeStyle='#34d399';ctx.lineWidth=4;
-  ctx.beginPath();ctx.moveTo(lx-25,tipY);ctx.lineTo(lx+25,tipY);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(lx-halfFlat,tipY);ctx.lineTo(lx+halfFlat,tipY);ctx.stroke();
   // Rod from rodTop to top of flat face
   ctx.strokeStyle='#94a3b8';ctx.lineWidth=4;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(lx,rodTop);ctx.lineTo(lx,tipY-2);ctx.stroke();ctx.lineCap='butt';
-  // Contact point
-  ctx.beginPath();ctx.arc(lx,tipY,3,0,PI*2);ctx.fillStyle='#fbbf24';ctx.fill();
+  // Contact point at offset on flat face (ds * scale)
+  const contactX = lx + dsOffset;
+  ctx.beginPath();ctx.arc(contactX,tipY,3,0,PI*2);ctx.fillStyle='#fbbf24';ctx.fill();
 }
 
 function drawPressureAnnotation(degNow, camAngle) {
