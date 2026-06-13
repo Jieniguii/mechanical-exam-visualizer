@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>机械考研可视化学习平台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f1117;color:#e4e4e7;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px}
+h1{font-size:28px;font-weight:600;margin-bottom:8px;background:linear-gradient(135deg,#6366f1,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.subtitle{font-size:14px;color:#71717a;margin-bottom:40px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;max-width:960px;width:100%}
+.card{background:#1a1d27;border:1px solid #252833;border-radius:16px;padding:28px 24px;text-decoration:none;color:#e4e4e7;transition:all .25s ease;position:relative;overflow:hidden}
+.card:hover{border-color:#6366f1;transform:translateY(-3px);box-shadow:0 8px 32px rgba(99,102,241,0.15)}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#6366f1,#34d399);opacity:0;transition:opacity .25s}
+.card:hover::before{opacity:1}
+.card-icon{font-size:36px;margin-bottom:16px}
+.card-title{font-size:18px;font-weight:600;margin-bottom:8px}
+.card-desc{font-size:13px;color:#a1a1aa;line-height:1.6}
+.card-tag{display:inline-block;margin-top:12px;padding:3px 10px;background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.3);border-radius:12px;color:#6ee7b7;font-size:11px}
+.card-tag.wip{background:rgba(251,191,36,0.12);border-color:rgba(251,191,36,0.3);color:#fbbf24}
+footer{margin-top:48px;font-size:12px;color:#52525b}
+footer a{color:#6366f1;text-decoration:none}
+footer a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<h1>机械考研可视化学习平台</h1>
+<p class="subtitle">Mechanical Engineering Exam — Interactive Visualizations</p>
+<div class="grid">
+  <a class="card" href="four-bar-linkage.html">
+    <div class="card-icon">⚙️</div>
+    <div class="card-title">四杆机构</div>
+    <div class="card-desc">曲柄摇杆机构的运动学可视化，支持参数调节、急回特性分析、传动角/压力角实时显示。</div>
+    <span class="card-tag">已完成</span>
+  </a>
+  <a class="card" href="gear-meshing.html">
+    <div class="card-icon">🔩</div>
+    <div class="card-title">齿轮啮合</div>
+    <div class="card-desc">渐开线标准直齿圆柱齿轮的啮合过程演示，可视化啮合线、重合度、齿廓接触等核心概念。</div>
+    <span class="card-tag">已完成</span>
+  </a>
+  <a class="card" href="cam-inversion.html">
+    <div class="card-icon">📐</div>
+    <div class="card-title">凸轮反转法</div>
+    <div class="card-desc">盘形凸轮机构廓线设计的反转法交互演示，支持尖底/滚子/平底/摆动四种从动件，实时显示压力角与运动规律曲线。</div>
+    <span class="card-tag">已完成</span>
+  </a>
+</div>
+<footer>
+  <p>
+    <a href="https://github.com/Jieniguii/mechanical-exam-visualizer" target="_blank">GitHub 仓库</a>
+    · 知识点以教材为准 · 持续更新中
+  </p>
+</footer>
+</body>
+</html>
