@@ -433,7 +433,7 @@ function drawFollower(contact, s, normal) {
     // 接触点
     ctx.fillStyle = contactColor;
     ctx.beginPath();
-    ctx.arc(contact.x, contact.y, 3, 0, 2 * PI);
+    ctx.arc(contact.x, contact.y, 1.25, 0, 2 * PI);
     ctx.fill();
     
   } else if (followerType === 'roller') {
@@ -467,7 +467,7 @@ function drawFollower(contact, s, normal) {
     // 接触点
     ctx.fillStyle = contactColor;
     ctx.beginPath();
-    ctx.arc(contact.x, contact.y, 3, 0, 2 * PI);
+    ctx.arc(contact.x, contact.y, 1.25, 0, 2 * PI);
     ctx.fill();
     
   } else {
@@ -493,7 +493,7 @@ function drawFollower(contact, s, normal) {
     // 接触点
     ctx.fillStyle = contactColor;
     ctx.beginPath();
-    ctx.arc(contact.x, contact.y, 3, 0, 2 * PI);
+    ctx.arc(contact.x, contact.y, 1.25, 0, 2 * PI);
     ctx.fill();
   }
 }
@@ -507,7 +507,7 @@ function drawStep1(contact) {
   // Just a dot at the contact point
   ctx.fillStyle = '#f97316';
   ctx.beginPath();
-  ctx.arc(contact.x, contact.y, 5, 0, 2 * PI);
+  ctx.arc(contact.x, contact.y, 1.25, 0, 2 * PI);
   ctx.fill();
   // Label only if this is the current step
   if (currentStep === 1) {

@@ -49,7 +49,7 @@ const MechComponents = {
       // 接触点
       ctx.fillStyle = contactColor;
       ctx.beginPath();
-      ctx.arc(contact.x, contact.y, 3, 0, 2 * Math.PI);
+      ctx.arc(contact.x, contact.y, 1.25, 0, 2 * Math.PI);
       ctx.fill();
     },
 
@@ -97,7 +97,7 @@ const MechComponents = {
       // 接触点
       ctx.fillStyle = contactColor;
       ctx.beginPath();
-      ctx.arc(contact.x, contact.y, 3, 0, 2 * Math.PI);
+      ctx.arc(contact.x, contact.y, 1.25, 0, 2 * Math.PI);
       ctx.fill();
     },
 
@@ -144,7 +144,7 @@ const MechComponents = {
       // 接触点
       ctx.fillStyle = contactColor;
       ctx.beginPath();
-      ctx.arc(contact.x, contact.y, 3, 0, 2 * Math.PI);
+      ctx.arc(contact.x, contact.y, 1.25, 0, 2 * Math.PI);
       ctx.fill();
     }
   },
