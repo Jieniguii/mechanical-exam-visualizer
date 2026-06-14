@@ -371,7 +371,7 @@ function draw() {
   const { contact, normal, s } = getContactAndNormal(delta);
   
   // Draw follower
-  drawFollower(contact, s);
+  drawFollower(contact, s, normal);
   
   // Step annotations — each step only shows its own marks, not labels from previous steps
   if (currentStep >= 1) drawStep1(contact);
@@ -391,46 +391,16 @@ function draw() {
   document.getElementById('alphaDisplay').style.color = alpha > 45 ? '#ef4444' : alpha > 30 ? '#f97316' : '#10b981';
 }
 
-function drawFollower(contact, s) {
+function drawFollower(contact, s, normal) {
   const guideX = cx + e * scale;
-  const tipY = cy - (r0 + s) * scale;
   
   if (followerType === 'flat') {
-    // Flat surface
+    // Flat surface perpendicular to guide at contact point
     ctx.strokeStyle = '#f97316';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(tipX_flat(tipY) - 40, tipY);
-    ctx.lineTo(tipX_flat(tipY) + 40, tipY);
-    ctx.stroke();
-    // Stem along guide
-    ctx.strokeStyle = 'rgba(249,115,22,0.5)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(guideX, tipY);
-    ctx.lineTo(guideX, tipY - 80);
-    ctx.stroke();
-  } else if (followerType === 'roller') {
-    // Roller circle at contact
-    ctx.strokeStyle = '#f97316';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.arc(contact.x, contact.y, 8 * scale, 0, 2 * PI);
-    ctx.stroke();
-    // Stem from roller center along guide
-    ctx.strokeStyle = 'rgba(249,115,22,0.5)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(contact.x, contact.y);
-    ctx.lineTo(contact.x, contact.y - 80);
-    ctx.stroke();
-  } else {
-    // Knife: small horizontal line at contact
-    ctx.strokeStyle = '#f97316';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(contact.x - 12, contact.y);
-    ctx.lineTo(contact.x + 12, contact.y);
+    ctx.moveTo(contact.x - 40, contact.y);
+    ctx.lineTo(contact.x + 40, contact.y);
     ctx.stroke();
     // Stem along guide
     ctx.strokeStyle = 'rgba(249,115,22,0.5)';
@@ -439,10 +409,44 @@ function drawFollower(contact, s) {
     ctx.moveTo(guideX, contact.y);
     ctx.lineTo(guideX, contact.y - 80);
     ctx.stroke();
+    
+  } else if (followerType === 'roller') {
+    const rr = 8; // roller radius, same as in generateProfile
+    // Roller center: offset from contact point outward along normal by rr*scale
+    const rollerCX = contact.x + normal.x * rr * scale;
+    const rollerCY = contact.y + normal.y * rr * scale;
+    
+    // Roller circle
+    ctx.strokeStyle = '#f97316';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(rollerCX, rollerCY, rr * scale, 0, 2 * PI);
+    ctx.stroke();
+    
+    // Stem from roller center upward along guide
+    ctx.strokeStyle = 'rgba(249,115,22,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(guideX, rollerCY);
+    ctx.lineTo(guideX, rollerCY - 80);
+    ctx.stroke();
+    
+  } else {
+    // Knife: sharp point at contact - no horizontal line
+    ctx.fillStyle = '#f97316';
+    ctx.beginPath();
+    ctx.arc(contact.x, contact.y, 4, 0, 2 * PI);
+    ctx.fill();
+    
+    // Stem upward along guide
+    ctx.strokeStyle = 'rgba(249,115,22,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(guideX, contact.y);
+    ctx.lineTo(guideX, contact.y - 80);
+    ctx.stroke();
   }
 }
-
-function tipX_flat(tipY) { return cx + e * scale; }
 
 // === Step drawing functions ===
 // Each step only draws its own annotation marks (lines, arcs, dots)
