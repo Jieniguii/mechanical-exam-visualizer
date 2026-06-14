@@ -394,9 +394,9 @@ function drawFollower(contact, s, normal) {
   
   if (followerType === 'flat') {
     // 平底从动件：平底固定在导路位置，只上下移动
-    const tipY = contact.y; // 平底位置 = 接触点 y 坐标
+    const tipY = contact.y;
     
-    // 平底（水平线，固定在 guideX 位置）
+    // 平底（水平线）
     ctx.strokeStyle = followerColor;
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -404,7 +404,7 @@ function drawFollower(contact, s, normal) {
     ctx.lineTo(guideX + 40, tipY);
     ctx.stroke();
     
-    // 焊接符号：两条短线表示平底与杆体焊接
+    // 焊接符号
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(guideX - 8, tipY - 5);
@@ -413,7 +413,7 @@ function drawFollower(contact, s, normal) {
     ctx.lineTo(guideX + 8, tipY + 5);
     ctx.stroke();
     
-    // 杆体（从平底向上延伸）
+    // 杆体
     ctx.strokeStyle = followerColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -421,26 +421,33 @@ function drawFollower(contact, s, normal) {
     ctx.lineTo(guideX, tipY - 80);
     ctx.stroke();
     
-    // 接触点（橙色圆点，在凸轮上）
+    // 接触点
     ctx.fillStyle = contactColor;
     ctx.beginPath();
-    ctx.arc(contact.x, contact.y, 4, 0, 2 * PI);
+    ctx.arc(contact.x, contact.y, 3, 0, 2 * PI);
     ctx.fill();
     
   } else if (followerType === 'roller') {
-    const rr = 8; // roller radius, same as in generateProfile
-    // Roller center: offset from contact point outward along normal by rr*scale
+    const rr = 8;
+    // 滚子中心
     const rollerCX = contact.x + normal.x * rr * scale;
     const rollerCY = contact.y + normal.y * rr * scale;
     
-    // Roller circle (黑色)
+    // 滚子外圆
     ctx.strokeStyle = followerColor;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.arc(rollerCX, rollerCY, rr * scale, 0, 2 * PI);
     ctx.stroke();
     
-    // Stem from roller center upward along guide (黑色)
+    // 滚子中心销轴（小空心圆）
+    ctx.strokeStyle = followerColor;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(rollerCX, rollerCY, 3, 0, 2 * PI);
+    ctx.stroke();
+    
+    // 杆体
     ctx.strokeStyle = followerColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -448,26 +455,37 @@ function drawFollower(contact, s, normal) {
     ctx.lineTo(guideX, rollerCY - 80);
     ctx.stroke();
     
-    // 接触点（橙色圆点）
+    // 接触点
     ctx.fillStyle = contactColor;
     ctx.beginPath();
-    ctx.arc(contact.x, contact.y, 4, 0, 2 * PI);
+    ctx.arc(contact.x, contact.y, 3, 0, 2 * PI);
     ctx.fill();
     
   } else {
-    // Knife: 尖端接触点（橙色）
-    ctx.fillStyle = contactColor;
+    // 尖底从动件：三角形尖头（▽）
+    const tipSize = 6; // 三角形大小
+    ctx.fillStyle = followerColor;
     ctx.beginPath();
-    ctx.arc(contact.x, contact.y, 4, 0, 2 * PI);
+    // 三角形：顶点在 contact 位置，底边在上方
+    ctx.moveTo(contact.x, contact.y); // 顶点（尖端）
+    ctx.lineTo(contact.x - tipSize/2, contact.y - tipSize); // 左下
+    ctx.lineTo(contact.x + tipSize/2, contact.y - tipSize); // 右下
+    ctx.closePath();
     ctx.fill();
     
-    // Stem upward along guide (黑色)
+    // 杆体
     ctx.strokeStyle = followerColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(guideX, contact.y);
+    ctx.moveTo(guideX, contact.y - tipSize);
     ctx.lineTo(guideX, contact.y - 80);
     ctx.stroke();
+    
+    // 接触点
+    ctx.fillStyle = contactColor;
+    ctx.beginPath();
+    ctx.arc(contact.x, contact.y, 3, 0, 2 * PI);
+    ctx.fill();
   }
 }
 
