@@ -47,6 +47,15 @@ canvas { display: block; width: 100%; cursor: crosshair; }
 .back-link { display: inline-block; margin-bottom: 8px; color: var(--accent); text-decoration: none; font-size: 0.88rem; }
 .back-link:hover { text-decoration: underline; }
 select { width: 100%; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.85rem; }
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .main { flex-direction: column; }
+  .sidebar { width: 100%; }
+  header h1 { font-size: 1.2rem; }
+  header p { font-size: 0.85rem; }
+  .canvas-wrap { min-height: 300px; }
+}
 </style>
 </head>
 <body>
@@ -769,7 +778,10 @@ cv.addEventListener('mousemove', (ev) => {
 // Init
 window.addEventListener('resize', resize);
 calcLocalProfile();
-resize();
+// 延迟初始化，确保移动端布局完成
+requestAnimationFrame(() => {
+  resize();
+});
 </script>
 </body>
 </html>
