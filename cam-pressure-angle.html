@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>凸轮压力角动态变化 — 机械考研可视化</title>
+<style>
+:root {
+  --bg: #0f172a; --card: #1e293b; --border: #334155;
+  --accent: #3b82f6; --accent2: #f97316; --accent3: #10b981;
+  --red: #ef4444; --text: #e2e8f0; --muted: #94a3b8; --dim: #64748b;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; text-align: center; }
+header h1 { font-size: 1.5rem; font-weight: 700; color: #fff; }
+header p { color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-top: 6px; }
+.main { display: flex; gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
+.canvas-wrap { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+canvas { display: block; width: 100%; cursor: crosshair; }
+.sidebar { width: 340px; display: flex; flex-direction: column; gap: 12px; }
+.panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.panel h3 { font-size: 0.95rem; margin-bottom: 12px; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.steps { display: flex; flex-direction: column; gap: 8px; }
+.step-btn { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); cursor: pointer; transition: all 0.2s; color: var(--text); font-size: 0.88rem; }
+.step-btn:hover { border-color: var(--accent); background: rgba(59,130,246,0.1); }
+.step-btn.active { border-color: var(--accent); background: rgba(59,130,246,0.15); }
+.step-btn.done { border-color: var(--accent3); background: rgba(16,185,129,0.1); }
+.step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--border); color: var(--muted); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; flex-shrink: 0; }
+.step-btn.active .step-num { background: var(--accent); color: #fff; }
+.step-btn.done .step-num { background: var(--accent3); color: #fff; }
+.step-text { flex: 1; }
+.step-desc { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+.params label { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; font-size: 0.85rem; color: var(--muted); }
+.params input[type=range] { width: 100%; accent-color: var(--accent); }
+.param-val { color: var(--accent); font-weight: 600; }
+.info-box { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); border-radius: 8px; padding: 12px; font-size: 0.83rem; line-height: 1.6; color: var(--muted); }
+.info-box strong { color: var(--accent); }
+.ctrl-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.ctrl-btn { flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+.ctrl-btn:hover { border-color: var(--accent); background: rgba(59,130,246,0.1); }
+.ctrl-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ctrl-btn.primary:hover { background: #2563eb; }
+.angle-display { text-align: center; padding: 12px; background: var(--bg); border-radius: 8px; margin-bottom: 10px; }
+.angle-display .value { font-size: 2rem; font-weight: 700; color: var(--accent2); }
+.angle-display .label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+.back-link { display: inline-block; margin-bottom: 8px; color: var(--accent); text-decoration: none; font-size: 0.88rem; }
+.back-link:hover { text-decoration: underline; }
+select { width: 100%; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📐 凸轮压力角动态变化</h1>
+  <p>分步骤展示压力角的标注过程，直观理解压力角如何随凸轮转角变化</p>
+</header>
+<div class="main">
+  <div class="canvas-wrap">
+    <canvas id="cv"></canvas>
+  </div>
+  <div class="sidebar">
+    <div class="panel">
+      <h3>🎯 分步骤标注</h3>
+      <div class="steps" id="stepsPanel">
+        <div class="step-btn" data-step="1" onclick="toggleStep(1)">
+          <span class="step-num">①</span>
+          <div class="step-text">
+            确定接触点
+            <div class="step-desc">找到凸轮与从动件的接触点P</div>
+          </div>
+        </div>
+        <div class="step-btn" data-step="2" onclick="toggleStep(2)">
+          <span class="step-num">②</span>
+          <div class="step-text">
+            作公法线（力的方向）
+            <div class="step-desc">过接触点P作凸轮轮廓的法线</div>
+          </div>
+        </div>
+        <div class="step-btn" data-step="3" onclick="toggleStep(3)">
+          <span class="step-num">③</span>
+          <div class="step-text">
+            标注运动方向（速度方向）
+            <div class="step-desc">从动件的速度v方向（沿导路）</div>
+          </div>
+        </div>
+        <div class="step-btn" data-step="4" onclick="toggleStep(4)">
+          <span class="step-num">④</span>
+          <div class="step-text">
+            标注压力角 α
+            <div class="step-desc">公法线与速度方向之间的夹角</div>
+          </div>
+        </div>
+        <div class="step-btn" data-step="5" onclick="toggleStep(5)">
+          <span class="step-num">⑤</span>
+          <div class="step-text">
+            观察压力角变化
+            <div class="step-desc">动画演示压力角随凸轮转角的变化</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 12px; display: flex; gap: 8px;">
+        <button class="ctrl-btn" onclick="resetSteps()">重置</button>
+        <button class="ctrl-btn primary" onclick="showAllSteps()">显示全部</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>📊 当前压力角</h3>
+      <div class="angle-display">
+        <div class="value" id="alphaDisplay">0.0°</div>
+        <div class="label">压力角 α</div>
+      </div>
+      <div class="ctrl-row">
+        <button class="ctrl-btn" onclick="toggleAnim()" id="animBtn">▶ 播放动画</button>
+        <button class="ctrl-btn" onclick="resetAngle()">↺ 复位</button>
+      </div>
+      <label style="font-size: 0.85rem; color: var(--muted);">
+        凸轮转角 δ = <span class="param-val" id="deltaDisp">0°</span>
+        <input type="range" id="deltaSlider" min="0" max="360" value="0" step="1" oninput="setAngle(+this.value)">
+      </label>
+    </div>
+    <div class="panel params">
+      <h3>⚙️ 参数调节</h3>
+      <label>
+        从动件类型
+        <select id="followerSel" onchange="updateParams()">
+          <option value="knife">尖底从动件</option>
+          <option value="roller">滚子从动件</option>
+          <option value="flat">平底从动件（α≡0°）</option>
+        </select>
+      </label>
+      <label>
+        基圆半径 r₀ = <span class="param-val" id="r0Disp">40</span>
+        <input type="range" id="r0Slider" min="25" max="70" value="40" oninput="updateParams()">
+      </label>
+      <label>
+        行程 h = <span class="param-val" id="hDisp">25</span>
+        <input type="range" id="hSlider" min="10" max="40" value="25" oninput="updateParams()">
+      </label>
+      <label>
+        偏距 e = <span class="param-val" id="eDisp">0</span>
+        <input type="range" id="eSlider" min="0" max="15" value="0" oninput="updateParams()">
+      </label>
+    </div>
+    <div class="panel">
+      <h3>💡 知识点</h3>
+      <div class="info-box" id="knowledgeBox">
+        <strong>压力角定义：</strong><br>
+        凸轮机构中，从动件与凸轮轮廓接触点处的<strong>公法线方向</strong>（力的传递方向）与从动件<strong>速度方向</strong>之间的夹角 α。<br><br>
+        <strong>作图步骤：</strong><br>
+        ① 找接触点 → ② 作公法线 → ③ 标注速度方向 → ④ 量取夹角<br><br>
+        <strong>关键特性：</strong><br>
+        • 压力角随凸轮转角变化，不是常数<br>
+        • 压力角越大，有效分力越小，侧向力越大<br>
+        • 推程许用压力角：直动 ≤ 30°，摆动 ≤ 45°<br>
+        • 平底从动件压力角恒为 0°
+      </div>
+    </div>
+  </div>
+</div>
+<a href="index.html" class="back-link" style="margin-left: 16px; margin-bottom: 16px;">← 返回首页</a>
+
+<script>
+const PI = Math.PI, cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let W, H, cx, cy, scale = 2.2;
+
+// Params
+let r0 = 40, h = 25, e = 0, followerType = 'knife';
+let delta = 0; // current cam angle in degrees
+let profile = []; // cam profile points
+let currentStep = 0; // 0 = none, 1-5 = step number
+let animating = false, animId = null;
+let trailAlpha = []; // trail of alpha values for chart
+
+// Motion law: simple harmonic
+function motionLaw(deg) {
+  const d = ((deg % 360) + 360) % 360;
+  const p1 = 120, p2 = 60, p3 = 120, p4 = 60;
+  if (d < p1) return h * (1 - Math.cos(PI * d / p1)) / 2; // rise
+  if (d < p1 + p2) return h; // far dwell
+  if (d < p1 + p2 + p3) return h * (1 + Math.cos(PI * (d - p1 - p2) / p3)) / 2; // return
+  return 0; // near dwell
+}
+
+function motionDeriv(deg) {
+  const d = ((deg % 360) + 360) % 360;
+  const p1 = 120, p2 = 60, p3 = 120, p4 = 60;
+  if (d < p1) return h * PI * Math.sin(PI * d / p1) / (2 * p1);
+  if (d < p1 + p2) return 0;
+  if (d < p1 + p2 + p3) return -h * PI * Math.sin(PI * (d - p1 - p2) / p3) / (2 * p3);
+  return 0;
+}
+
+function calcProfile() {
+  profile = [];
+  for (let i = 0; i <= 360; i++) {
+    const s = motionLaw(i);
+    const a = i * PI / 180;
+    let x, y, ds;
+    if (followerType === 'flat') {
+      const ds_deg = motionDeriv(i);
+      const dsRad = ds_deg * (180 / PI); // per radian
+      const total = r0 + s;
+      const sinD = Math.sin(a), cosD = Math.cos(a);
+      x = -total * sinD - dsRad * cosD;
+      y = total * cosD - dsRad * sinD;
+      ds = dsRad;
+    } else if (followerType === 'roller') {
+      const rr = 8; // roller radius
+      const s0 = Math.sqrt((r0 + rr) * (r0 + rr) - e * e);
+      const total = s0 + s;
+      const sinD = Math.sin(a), cosD = Math.cos(a);
+      const xn = -total * sinD - e * cosD;
+      const yn = total * cosD - e * sinD;
+      const len = Math.sqrt(xn * xn + yn * yn);
+      x = xn - rr * xn / len;
+      y = yn - rr * yn / len;
+      ds = motionDeriv(i) * (180 / PI);
+    } else { // knife
+      const s0 = Math.sqrt(r0 * r0 - e * e);
+      const total = s0 + s;
+      const sinD = Math.sin(a), cosD = Math.cos(a);
+      x = -total * sinD - e * cosD;
+      y = total * cosD - e * sinD;
+      ds = motionDeriv(i) * (180 / PI);
+    }
+    profile.push({ x: x * scale, y: -y * scale, s, ds, deg: i });
+  }
+}
+
+function getContactAndNormal(angle) {
+  const idx = Math.round(angle) % profile.length;
+  const pt = profile[idx];
+  const a = angle * PI / 180;
+  
+  // Contact point in global coords (rotated by -angle)
+  const cosA = Math.cos(-a), sinA = Math.sin(-a);
+  const gx = cx + pt.x * cosA - pt.y * sinA;
+  const gy = cy + pt.x * sinA + pt.y * cosA;
+  
+  // Normal direction: perpendicular to profile tangent
+  const idx2 = (idx + 1) % profile.length;
+  const pt2 = profile[idx2];
+  const gx2 = cx + pt2.x * cosA - pt2.y * sinA;
+  const gy2 = cy + pt2.x * sinA + pt2.y * cosA;
+  
+  // Tangent direction
+  const tx = gx2 - gx, ty = gy2 - gy;
+  const tlen = Math.sqrt(tx * tx + ty * ty);
+  
+  // Normal is perpendicular to tangent (pointing toward center)
+  let nx = -ty / tlen, ny = tx / tlen;
+  // Ensure normal points toward cam center
+  const toCenter = { x: cx - gx, y: cy - gy };
+  if (nx * toCenter.x + ny * toCenter.y < 0) { nx = -nx; ny = -ny; }
+  
+  return { contact: { x: gx, y: gy }, normal: { x: nx, y: ny }, s: pt.s, ds: pt.ds };
+}
+
+function calcPressureAngle(angle) {
+  if (followerType === 'flat') return 0;
+  const { normal } = getContactAndNormal(angle);
+  // Velocity direction is along the guide (vertical for e=0, or angled for e≠0)
+  // For translating follower, v direction is along the line of motion
+  const a = angle * PI / 180;
+  // Guide direction in global coords: rotated from local (0,1) by -angle
+  // Local guide direction is (0, 1) (upward)
+  const vx = Math.sin(a), vy = Math.cos(a); // rotated (0,1) by -angle
+  
+  // Pressure angle = angle between normal and velocity
+  const dot = normal.x * vx + normal.y * vy;
+  const alpha = Math.acos(Math.min(1, Math.max(-1, dot)));
+  return alpha * 180 / PI;
+}
+
+function resize() {
+  const rect = cv.parentElement.getBoundingClientRect();
+  cv.width = rect.width * devicePixelRatio;
+  cv.height = Math.max(500, rect.width * 0.75) * devicePixelRatio;
+  cv.style.height = Math.max(500, rect.width * 0.75) + 'px';
+  W = cv.width; H = cv.height;
+  cx = W * 0.45; cy = H * 0.52;
+  draw();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  
+  // Background grid
+  ctx.strokeStyle = 'rgba(148,163,184,0.05)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  
+  // Base circle
+  ctx.strokeStyle = 'rgba(59,130,246,0.4)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r0 * scale, 0, 2 * PI);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  
+  // Prime circle (r0 + s for current position)
+  const s = motionLaw(delta);
+  if (followerType !== 'flat') {
+    ctx.strokeStyle = 'rgba(148,163,184,0.2)';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, (r0 + s) * scale, 0, 2 * PI);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  
+  // Cam profile
+  ctx.beginPath();
+  ctx.moveTo(profile[0].x + cx, profile[0].y + cy);
+  for (let i = 1; i < profile.length; i++) {
+    ctx.lineTo(profile[i].x + cx, profile[i].y + cy);
+  }
+  ctx.closePath();
+  const grad = ctx.createRadialGradient(cx, cy, r0 * scale * 0.5, cx, cy, (r0 + h) * scale * 1.2);
+  grad.addColorStop(0, 'rgba(59,130,246,0.3)');
+  grad.addColorStop(1, 'rgba(59,130,246,0.08)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = '#3b82f6';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  
+  // Rotation center
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(cx, cy, 4, 0, 2 * PI); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx - 10, cy); ctx.lineTo(cx + 10, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, cy - 10); ctx.lineTo(cx, cy + 10); ctx.stroke();
+  
+  // Guide line (from cam center, offset by e)
+  const guideX = cx + e * scale;
+  ctx.strokeStyle = 'rgba(148,163,184,0.3)';
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(guideX, cy - (r0 + h + 20) * scale);
+  ctx.lineTo(guideX, cy + 20 * scale);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  
+  // Get current contact and normal
+  const { contact, normal, ds } = getContactAndNormal(delta);
+  
+  // Follower representation
+  drawFollower(contact, normal);
+  
+  // Step annotations
+  if (currentStep >= 1) drawStep1(contact);
+  if (currentStep >= 2) drawStep2(contact, normal);
+  if (currentStep >= 3) drawStep3(contact);
+  if (currentStep >= 4) drawStep4(contact, normal);
+  if (currentStep >= 5) drawStep5();
+  
+  // Chart at bottom right
+  drawAlphaChart();
+  
+  // Update displays
+  document.getElementById('deltaDisp').textContent = delta.toFixed(1) + '°';
+  document.getElementById('deltaSlider').value = delta;
+  const alpha = calcPressureAngle(delta);
+  document.getElementById('alphaDisplay').textContent = alpha.toFixed(1) + '°';
+  document.getElementById('alphaDisplay').style.color = alpha > 45 ? '#ef4444' : alpha > 30 ? '#f97316' : '#10b981';
+}
+
+function drawFollower(contact, normal) {
+  const s = motionLaw(delta);
+  
+  if (followerType === 'flat') {
+    // Flat follower: draw horizontal flat surface at contact
+    ctx.strokeStyle = '#f97316';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(contact.x - 40, contact.y);
+    ctx.lineTo(contact.x + 40, contact.y);
+    ctx.stroke();
+    // Stem
+    ctx.strokeStyle = 'rgba(249,115,22,0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(contact.x, contact.y);
+    ctx.lineTo(contact.x, contact.y - 80);
+    ctx.stroke();
+  } else if (followerType === 'roller') {
+    // Roller
+    ctx.strokeStyle = '#f97316';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(contact.x, contact.y, 8 * scale, 0, 2 * PI);
+    ctx.stroke();
+    // Stem
+    ctx.strokeStyle = 'rgba(249,115,22,0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(contact.x, contact.y);
+    ctx.lineTo(contact.x, contact.y - 80);
+    ctx.stroke();
+  } else {
+    // Knife
+    ctx.strokeStyle = '#f97316';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(contact.x - 15, contact.y);
+    ctx.lineTo(contact.x + 15, contact.y);
+    ctx.stroke();
+    // Stem
+    ctx.strokeStyle = 'rgba(249,115,22,0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(contact.x, contact.y);
+    ctx.lineTo(contact.x, contact.y - 80);
+    ctx.stroke();
+  }
+}
+
+function drawStep1(contact) {
+  // Step ①: Mark contact point P
+  ctx.save();
+  // Dashed circle around contact
+  ctx.strokeStyle = '#f97316';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.arc(contact.x, contact.y, 12, 0, 2 * PI);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // Label ①
+  drawLabel(contact.x + 18, contact.y - 18, '①', '#f97316');
+  // Point P label
+  ctx.fillStyle = '#f97316';
+  ctx.font = `bold ${14 * devicePixelRatio}px sans-serif`;
+  ctx.fillText('P (接触点)', contact.x + 20, contact.y + 20);
+  ctx.restore();
+}
+
+function drawStep2(contact, normal) {
+  // Step ②: Draw normal line (force direction)
+  ctx.save();
+  ctx.strokeStyle = '#ef4444';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  const len = 120;
+  ctx.beginPath();
+  ctx.moveTo(contact.x - normal.x * len, contact.y - normal.y * len);
+  ctx.lineTo(contact.x + normal.x * len, contact.y + normal.y * len);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // Arrow on normal
+  drawArrow(contact.x + normal.x * len, contact.y + normal.y * len, normal.x, normal.y, '#ef4444');
+  // Label
+  drawLabel(contact.x - normal.x * len - 15, contact.y - normal.y * len - 15, '②', '#ef4444');
+  ctx.fillStyle = '#ef4444';
+  ctx.font = `${12 * devicePixelRatio}px sans-serif`;
+  ctx.fillText('公法线（力的方向）', contact.x + normal.x * len + 10, contact.y + normal.y * len);
+  ctx.restore();
+}
+
+function drawStep3(contact) {
+  // Step ③: Draw velocity direction (along guide, upward)
+  ctx.save();
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  const vLen = 100;
+  // Velocity is vertical (upward for rising)
+  const ds = motionDeriv(delta);
+  const vy = ds >= 0 ? -1 : 1; // upward if rising, downward if falling
+  ctx.beginPath();
+  ctx.moveTo(contact.x, contact.y);
+  ctx.lineTo(contact.x, contact.y + vy * vLen);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  drawArrow(contact.x, contact.y + vy * vLen, 0, vy, '#10b981');
+  drawLabel(contact.x + 15, contact.y + vy * vLen * 0.5, '③', '#10b981');
+  ctx.fillStyle = '#10b981';
+  ctx.font = `${12 * devicePixelRatio}px sans-serif`;
+  ctx.fillText('v (速度方向)', contact.x + 20, contact.y + vy * vLen * 0.5);
+  ctx.restore();
+}
+
+function drawStep4(contact, normal) {
+  // Step ④: Draw pressure angle arc
+  ctx.save();
+  const alpha = calcPressureAngle(delta);
+  if (alpha > 0.5) {
+    // Angle between normal and vertical (velocity direction)
+    const normalAngle = Math.atan2(normal.y, normal.x);
+    const vAngle = -PI / 2; // velocity is upward
+    
+    ctx.strokeStyle = '#a855f7';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    const arcR = 35;
+    let startA = Math.min(normalAngle, vAngle);
+    let endA = Math.max(normalAngle, vAngle);
+    if (endA - startA > PI) { startA += 2 * PI; endA += 2 * PI; }
+    ctx.arc(contact.x, contact.y, arcR, startA, endA);
+    ctx.stroke();
+    
+    // Angle label
+    const midA = (startA + endA) / 2;
+    ctx.fillStyle = '#a855f7';
+    ctx.font = `bold ${14 * devicePixelRatio}px sans-serif`;
+    ctx.fillText('α=' + alpha.toFixed(1) + '°', contact.x + Math.cos(midA) * (arcR + 20), contact.y + Math.sin(midA) * (arcR + 20));
+    drawLabel(contact.x + Math.cos(midA) * (arcR + 40), contact.y + Math.sin(midA) * (arcR + 40), '④', '#a855f7');
+  } else {
+    // alpha ≈ 0
+    ctx.fillStyle = '#10b981';
+    ctx.font = `bold ${14 * devicePixelRatio}px sans-serif`;
+    ctx.fillText('α ≈ 0°（公法线与速度方向重合）', contact.x + 30, contact.y - 30);
+    drawLabel(contact.x + 25, contact.y - 45, '④', '#a855f7');
+  }
+  ctx.restore();
+}
+
+function drawStep5() {
+  // Step ⑤: Show alpha variation trail (already shown in chart)
+  // Draw alpha value at multiple positions around the cam
+  ctx.save();
+  ctx.fillStyle = 'rgba(168,85,247,0.6)';
+  ctx.font = `${10 * devicePixelRatio}px sans-serif`;
+  for (let d = 0; d < 360; d += 30) {
+    const a = calcPressureAngle(d);
+    if (a > 1) {
+      const { contact } = getContactAndNormal(d);
+      ctx.fillText(a.toFixed(0) + '°', contact.x + 5, contact.y - 5);
+    }
+  }
+  ctx.restore();
+}
+
+function drawAlphaChart() {
+  // Draw pressure angle vs cam angle chart at bottom right
+  const chartW = 200, chartH = 100;
+  const chartX = W - chartW - 20, chartY = H - chartH - 20;
+  
+  ctx.save();
+  ctx.fillStyle = 'rgba(30,41,59,0.9)';
+  ctx.strokeStyle = 'rgba(51,65,85,0.8)';
+  ctx.lineWidth = 1;
+  ctx.fillRect(chartX, chartY, chartW, chartH);
+  ctx.strokeRect(chartX, chartY, chartW, chartH);
+  
+  // Title
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = `${10 * devicePixelRatio}px sans-serif`;
+  ctx.fillText('α(δ) 压力角变化曲线', chartX + 10, chartY + 15);
+  
+  // Compute curve
+  let maxAlpha = 0;
+  const alphas = [];
+  for (let d = 0; d <= 360; d++) {
+    const a = calcPressureAngle(d);
+    alphas.push(a);
+    maxAlpha = Math.max(maxAlpha, a);
+  }
+  if (maxAlpha < 5) maxAlpha = 5;
+  
+  // Draw curve
+  ctx.strokeStyle = '#a855f7';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let d = 0; d <= 360; d++) {
+    const x = chartX + 10 + (d / 360) * (chartW - 20);
+    const y = chartY + chartH - 10 - (alphas[d] / maxAlpha) * (chartH - 30);
+    if (d === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  
+  // Current position marker
+  const curX = chartX + 10 + (delta / 360) * (chartW - 20);
+  const curA = calcPressureAngle(delta);
+  const curY = chartY + chartH - 10 - (curA / maxAlpha) * (chartH - 30);
+  ctx.fillStyle = '#a855f7';
+  ctx.beginPath(); ctx.arc(curX, curY, 4, 0, 2 * PI); ctx.fill();
+  
+  // Axes labels
+  ctx.fillStyle = '#64748b';
+  ctx.font = `${9 * devicePixelRatio}px sans-serif`;
+  ctx.fillText('0°', chartX + 5, chartY + chartH - 2);
+  ctx.fillText('360°', chartX + chartW - 30, chartY + chartH - 2);
+  ctx.fillText(maxAlpha.toFixed(0) + '°', chartX + chartW - 25, chartY + 20);
+  
+  ctx.restore();
+}
+
+function drawArrow(x, y, dx, dy, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  const angle = Math.atan2(dy, dx);
+  const size = 10;
+  ctx.moveTo(x, y);
+  ctx.lineTo(x - size * Math.cos(angle - 0.4), y - size * Math.sin(angle - 0.4));
+  ctx.lineTo(x - size * Math.cos(angle + 0.4), y - size * Math.sin(angle + 0.4));
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawLabel(x, y, text, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.strokeStyle = 'rgba(15,23,42,0.8)';
+  ctx.lineWidth = 3;
+  ctx.font = `bold ${16 * devicePixelRatio}px sans-serif`;
+  ctx.strokeText(text, x, y);
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+// UI functions
+function toggleStep(n) {
+  if (currentStep === n) {
+    currentStep = n - 1; // toggle off
+  } else {
+    currentStep = n;
+  }
+  updateStepButtons();
+  draw();
+}
+
+function resetSteps() {
+  currentStep = 0;
+  updateStepButtons();
+  draw();
+}
+
+function showAllSteps() {
+  currentStep = 5;
+  updateStepButtons();
+  draw();
+}
+
+function updateStepButtons() {
+  document.querySelectorAll('.step-btn').forEach(btn => {
+    const s = +btn.dataset.step;
+    btn.classList.remove('active', 'done');
+    if (s === currentStep) btn.classList.add('active');
+    else if (s < currentStep) btn.classList.add('done');
+  });
+}
+
+function setAngle(d) {
+  delta = d;
+  draw();
+}
+
+function resetAngle() {
+  delta = 0;
+  document.getElementById('deltaSlider').value = 0;
+  draw();
+}
+
+function toggleAnim() {
+  animating = !animating;
+  document.getElementById('animBtn').textContent = animating ? '⏸ 暂停' : '▶ 播放动画';
+  if (animating) animate();
+  else cancelAnimationFrame(animId);
+}
+
+function animate() {
+  if (!animating) return;
+  delta = (delta + 0.5) % 360;
+  document.getElementById('deltaSlider').value = delta;
+  draw();
+  animId = requestAnimationFrame(animate);
+}
+
+function updateParams() {
+  r0 = +document.getElementById('r0Slider').value;
+  h = +document.getElementById('hSlider').value;
+  e = +document.getElementById('eSlider').value;
+  followerType = document.getElementById('followerSel').value;
+  document.getElementById('r0Disp').textContent = r0;
+  document.getElementById('hDisp').textContent = h;
+  document.getElementById('eDisp').textContent = e;
+  calcProfile();
+  draw();
+}
+
+// Dragging on canvas
+let dragging = false;
+cv.addEventListener('mousedown', () => dragging = true);
+cv.addEventListener('mouseup', () => dragging = false);
+cv.addEventListener('mouseleave', () => dragging = false);
+cv.addEventListener('mousemove', (ev) => {
+  if (!dragging) return;
+  const rect = cv.getBoundingClientRect();
+  const mx = (ev.clientX - rect.left) * devicePixelRatio;
+  const my = (ev.clientY - rect.top) * devicePixelRatio;
+  // Calculate angle from center
+  const dx = mx - cx, dy = my - cy;
+  let a = Math.atan2(dx, -dy) * 180 / PI;
+  if (a < 0) a += 360;
+  delta = a;
+  document.getElementById('deltaSlider').value = delta;
+  draw();
+});
+
+// Init
+window.addEventListener('resize', resize);
+calcProfile();
+resize();
+</script>
+</body>
+</html>
