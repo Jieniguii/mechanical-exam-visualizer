@@ -78,14 +78,11 @@ select { width: 100%; padding: 6px 10px; background: var(--bg); border: 1px soli
           <span class="step-num">4</span>
           <div class="step-text">标注压力角 α<div class="step-desc">公法线与速度方向之间的夹角</div></div>
         </div>
-        <div class="step-btn" data-step="5" onclick="setStep(5)">
-          <span class="step-num">5</span>
-          <div class="step-text">观察压力角变化<div class="step-desc">动画演示压力角随凸轮转角的变化</div></div>
-        </div>
+
       </div>
       <div style="margin-top: 12px; display: flex; gap: 8px;">
         <button class="ctrl-btn" onclick="setStep(0)">重置</button>
-        <button class="ctrl-btn primary" onclick="setStep(5)">显示全部</button>
+        <button class="ctrl-btn primary" onclick="setStep(4)">显示全部</button>
       </div>
     </div>
     <div class="panel">
@@ -378,7 +375,6 @@ function draw() {
   if (currentStep >= 2) drawStep2(contact, normal);
   if (currentStep >= 3) drawStep3(contact);
   if (currentStep >= 4) drawStep4(contact, normal);
-  if (currentStep >= 5) drawStep5();
   
   // Chart
   drawAlphaChart();
@@ -564,22 +560,6 @@ function drawStep4(contact, normal) {
     ctx.fillText('α ≈ 0°（公法线与速度方向重合）', contact.x + 25, contact.y - 25);
     if (currentStep === 4) {
       drawStepBadge(contact.x + 20, contact.y - 40, '④', '#a855f7');
-    }
-  }
-  ctx.restore();
-}
-
-function drawStep5() {
-  // Show pressure angle values at multiple positions around the cam
-  ctx.save();
-  ctx.font = `${9 * devicePixelRatio}px sans-serif`;
-  for (let d = 0; d < 360; d += 30) {
-    if (Math.abs(d - Math.round(delta)) < 10) continue; // skip current position
-    const a = calcPressureAngle(d);
-    if (a > 1) {
-      const { contact } = getContactAndNormal(d);
-      ctx.fillStyle = a > 45 ? 'rgba(239,68,68,0.6)' : a > 30 ? 'rgba(249,115,22,0.6)' : 'rgba(16,185,129,0.5)';
-      ctx.fillText(a.toFixed(0) + '°', contact.x + 8, contact.y - 8);
     }
   }
   ctx.restore();
