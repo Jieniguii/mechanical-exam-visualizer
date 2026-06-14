@@ -389,22 +389,43 @@ function draw() {
 
 function drawFollower(contact, s, normal) {
   const guideX = cx + e * scale;
+  const followerColor = '#1a1a1a'; // 黑色从动件
+  const contactColor = '#f97316'; // 橙色接触点
   
   if (followerType === 'flat') {
-    // Flat surface perpendicular to guide at contact point
-    ctx.strokeStyle = '#f97316';
+    // 平底从动件：平底固定在导路位置，只上下移动
+    const tipY = contact.y; // 平底位置 = 接触点 y 坐标
+    
+    // 平底（水平线，固定在 guideX 位置）
+    ctx.strokeStyle = followerColor;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(contact.x - 40, contact.y);
-    ctx.lineTo(contact.x + 40, contact.y);
+    ctx.moveTo(guideX - 40, tipY);
+    ctx.lineTo(guideX + 40, tipY);
     ctx.stroke();
-    // Stem along guide
-    ctx.strokeStyle = 'rgba(249,115,22,0.5)';
+    
+    // 焊接符号：两条短线表示平底与杆体焊接
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(guideX, contact.y);
-    ctx.lineTo(guideX, contact.y - 80);
+    ctx.moveTo(guideX - 8, tipY - 5);
+    ctx.lineTo(guideX - 8, tipY + 5);
+    ctx.moveTo(guideX + 8, tipY - 5);
+    ctx.lineTo(guideX + 8, tipY + 5);
     ctx.stroke();
+    
+    // 杆体（从平底向上延伸）
+    ctx.strokeStyle = followerColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(guideX, tipY);
+    ctx.lineTo(guideX, tipY - 80);
+    ctx.stroke();
+    
+    // 接触点（橙色圆点，在凸轮上）
+    ctx.fillStyle = contactColor;
+    ctx.beginPath();
+    ctx.arc(contact.x, contact.y, 4, 0, 2 * PI);
+    ctx.fill();
     
   } else if (followerType === 'roller') {
     const rr = 8; // roller radius, same as in generateProfile
@@ -412,30 +433,36 @@ function drawFollower(contact, s, normal) {
     const rollerCX = contact.x + normal.x * rr * scale;
     const rollerCY = contact.y + normal.y * rr * scale;
     
-    // Roller circle
-    ctx.strokeStyle = '#f97316';
+    // Roller circle (黑色)
+    ctx.strokeStyle = followerColor;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.arc(rollerCX, rollerCY, rr * scale, 0, 2 * PI);
     ctx.stroke();
     
-    // Stem from roller center upward along guide
-    ctx.strokeStyle = 'rgba(249,115,22,0.5)';
+    // Stem from roller center upward along guide (黑色)
+    ctx.strokeStyle = followerColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(guideX, rollerCY);
     ctx.lineTo(guideX, rollerCY - 80);
     ctx.stroke();
     
-  } else {
-    // Knife: sharp point at contact - no horizontal line
-    ctx.fillStyle = '#f97316';
+    // 接触点（橙色圆点）
+    ctx.fillStyle = contactColor;
     ctx.beginPath();
     ctx.arc(contact.x, contact.y, 4, 0, 2 * PI);
     ctx.fill();
     
-    // Stem upward along guide
-    ctx.strokeStyle = 'rgba(249,115,22,0.5)';
+  } else {
+    // Knife: 尖端接触点（橙色）
+    ctx.fillStyle = contactColor;
+    ctx.beginPath();
+    ctx.arc(contact.x, contact.y, 4, 0, 2 * PI);
+    ctx.fill();
+    
+    // Stem upward along guide (黑色)
+    ctx.strokeStyle = followerColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(guideX, contact.y);
