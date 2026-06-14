@@ -513,27 +513,46 @@ function drawStep4(contact, normal) {
   ctx.save();
   const alpha = calcPressureAngle(delta);
   if (alpha > 0.5) {
-    // Angle arc between normal direction and velocity direction
-    const normalAngle = Math.atan2(normal.y, normal.x);
+    // 速度方向：上升时向上(-π/2)，下降时向下(π/2)
     const ds = motionDeriv(delta);
-    const vAngle = ds >= 0 ? -PI / 2 : PI / 2;
+    const vy_dir = ds >= 0 ? -1 : 1;
+    const vAngle = Math.atan2(vy_dir, 0); // -PI/2 或 PI/2
     
+    // 法线方向 - 确保与速度方向的夹角为锐角
+    let nx = normal.x, ny = normal.y;
+    const dot = nx * 0 + ny * vy_dir; // 与速度方向的点积
+    if (dot < 0) { nx = -nx; ny = -ny; } // 翻转使夹角为锐角
+    
+    const normalAngle = Math.atan2(ny, nx);
+    
+    // 画弧：从速度方向到法线方向，走锐角那一侧
     ctx.strokeStyle = '#a855f7';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     const arcR = 40;
-    let startA = Math.min(normalAngle, vAngle);
-    let endA = Math.max(normalAngle, vAngle);
-    if (endA - startA > PI) { const tmp = startA; startA = endA; endA = tmp + 2 * PI; }
-    ctx.arc(contact.x, contact.y, arcR, startA, endA);
+    
+    // 计算角度差，归一化到 [-PI, PI]
+    let diff = normalAngle - vAngle;
+    while (diff > PI) diff -= 2 * PI;
+    while (diff < -PI) diff += 2 * PI;
+    // 现在 |diff| <= PI/2（锐角）
+    const ccw = diff < 0; // 角度差为负则逆时针画
+    
+    ctx.arc(contact.x, contact.y, arcR, vAngle, normalAngle, ccw);
     ctx.stroke();
     
-    const midA = (startA + endA) / 2;
+    // 标签位置：弧的中点
+    const midA = vAngle + diff / 2;
     ctx.fillStyle = '#a855f7';
     ctx.font = `bold ${14 * devicePixelRatio}px sans-serif`;
-    ctx.fillText('α=' + alpha.toFixed(1) + '°', contact.x + Math.cos(midA) * (arcR + 25), contact.y + Math.sin(midA) * (arcR + 25));
+    ctx.fillText('α=' + alpha.toFixed(1) + '°', 
+      contact.x + Math.cos(midA) * (arcR + 25), 
+      contact.y + Math.sin(midA) * (arcR + 25));
     if (currentStep === 4) {
-      drawStepBadge(contact.x + Math.cos(midA) * (arcR + 50), contact.y + Math.sin(midA) * (arcR + 50), '④', '#a855f7');
+      drawStepBadge(
+        contact.x + Math.cos(midA) * (arcR + 50), 
+        contact.y + Math.sin(midA) * (arcR + 50), 
+        '④', '#a855f7');
     }
   } else {
     ctx.fillStyle = '#10b981';
