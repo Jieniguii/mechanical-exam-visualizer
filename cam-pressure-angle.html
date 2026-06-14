@@ -62,45 +62,30 @@ select { width: 100%; padding: 6px 10px; background: var(--bg); border: 1px soli
     <div class="panel">
       <h3>🎯 分步骤标注</h3>
       <div class="steps" id="stepsPanel">
-        <div class="step-btn" data-step="1" onclick="toggleStep(1)">
-          <span class="step-num">①</span>
-          <div class="step-text">
-            确定接触点
-            <div class="step-desc">找到凸轮与从动件的接触点P</div>
-          </div>
+        <div class="step-btn" data-step="1" onclick="setStep(1)">
+          <span class="step-num">1</span>
+          <div class="step-text">确定接触点<div class="step-desc">找到凸轮与从动件的接触点P</div></div>
         </div>
-        <div class="step-btn" data-step="2" onclick="toggleStep(2)">
-          <span class="step-num">②</span>
-          <div class="step-text">
-            作公法线（力的方向）
-            <div class="step-desc">过接触点P作凸轮轮廓的法线</div>
-          </div>
+        <div class="step-btn" data-step="2" onclick="setStep(2)">
+          <span class="step-num">2</span>
+          <div class="step-text">作公法线<div class="step-desc">过接触点P作凸轮轮廓的法线（力的方向）</div></div>
         </div>
-        <div class="step-btn" data-step="3" onclick="toggleStep(3)">
-          <span class="step-num">③</span>
-          <div class="step-text">
-            标注运动方向（速度方向）
-            <div class="step-desc">从动件的速度v方向（沿导路）</div>
-          </div>
+        <div class="step-btn" data-step="3" onclick="setStep(3)">
+          <span class="step-num">3</span>
+          <div class="step-text">标注速度方向<div class="step-desc">从动件的速度v方向（沿导路）</div></div>
         </div>
-        <div class="step-btn" data-step="4" onclick="toggleStep(4)">
-          <span class="step-num">④</span>
-          <div class="step-text">
-            标注压力角 α
-            <div class="step-desc">公法线与速度方向之间的夹角</div>
-          </div>
+        <div class="step-btn" data-step="4" onclick="setStep(4)">
+          <span class="step-num">4</span>
+          <div class="step-text">标注压力角 α<div class="step-desc">公法线与速度方向之间的夹角</div></div>
         </div>
-        <div class="step-btn" data-step="5" onclick="toggleStep(5)">
-          <span class="step-num">⑤</span>
-          <div class="step-text">
-            观察压力角变化
-            <div class="step-desc">动画演示压力角随凸轮转角的变化</div>
-          </div>
+        <div class="step-btn" data-step="5" onclick="setStep(5)">
+          <span class="step-num">5</span>
+          <div class="step-text">观察压力角变化<div class="step-desc">动画演示压力角随凸轮转角的变化</div></div>
         </div>
       </div>
       <div style="margin-top: 12px; display: flex; gap: 8px;">
-        <button class="ctrl-btn" onclick="resetSteps()">重置</button>
-        <button class="ctrl-btn primary" onclick="showAllSteps()">显示全部</button>
+        <button class="ctrl-btn" onclick="setStep(0)">重置</button>
+        <button class="ctrl-btn primary" onclick="setStep(5)">显示全部</button>
       </div>
     </div>
     <div class="panel">
@@ -163,22 +148,21 @@ select { width: 100%; padding: 6px 10px; background: var(--bg); border: 1px soli
 const PI = Math.PI, cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 let W, H, cx, cy, scale = 2.2;
 
-// Params
 let r0 = 40, h = 25, e = 0, followerType = 'knife';
-let delta = 0; // current cam angle in degrees
-let profile = []; // cam profile points
-let currentStep = 0; // 0 = none, 1-5 = step number
+let delta = 0;
+let localProfile = []; // cam profile in local (cam-fixed) coordinates
+let currentStep = 0;
 let animating = false, animId = null;
-let trailAlpha = []; // trail of alpha values for chart
+let animSpeed = 0.15; // degrees per frame — slow
 
-// Motion law: simple harmonic
+// === Motion law: simple harmonic ===
 function motionLaw(deg) {
   const d = ((deg % 360) + 360) % 360;
   const p1 = 120, p2 = 60, p3 = 120, p4 = 60;
-  if (d < p1) return h * (1 - Math.cos(PI * d / p1)) / 2; // rise
-  if (d < p1 + p2) return h; // far dwell
-  if (d < p1 + p2 + p3) return h * (1 + Math.cos(PI * (d - p1 - p2) / p3)) / 2; // return
-  return 0; // near dwell
+  if (d < p1) return h * (1 - Math.cos(PI * d / p1)) / 2;
+  if (d < p1 + p2) return h;
+  if (d < p1 + p2 + p3) return h * (1 + Math.cos(PI * (d - p1 - p2) / p3)) / 2;
+  return 0;
 }
 
 function motionDeriv(deg) {
@@ -190,86 +174,132 @@ function motionDeriv(deg) {
   return 0;
 }
 
-function calcProfile() {
-  profile = [];
+// === Calculate cam profile in LOCAL (cam-fixed) coordinates ===
+// Using inversion method: cam stationary, follower revolves around cam
+function calcLocalProfile() {
+  localProfile = [];
   for (let i = 0; i <= 360; i++) {
     const s = motionLaw(i);
     const a = i * PI / 180;
-    let x, y, ds;
+    const sinA = Math.sin(a), cosA = Math.cos(a);
+    let lx, ly; // local coordinates
+
     if (followerType === 'flat') {
       const ds_deg = motionDeriv(i);
-      const dsRad = ds_deg * (180 / PI); // per radian
+      const dsRad = ds_deg * (180 / PI);
       const total = r0 + s;
-      const sinD = Math.sin(a), cosD = Math.cos(a);
-      x = -total * sinD - dsRad * cosD;
-      y = total * cosD - dsRad * sinD;
-      ds = dsRad;
+      lx = -total * sinA - dsRad * cosA;
+      ly = total * cosA - dsRad * sinA;
     } else if (followerType === 'roller') {
-      const rr = 8; // roller radius
+      const rr = 8;
       const s0 = Math.sqrt((r0 + rr) * (r0 + rr) - e * e);
       const total = s0 + s;
-      const sinD = Math.sin(a), cosD = Math.cos(a);
-      const xn = -total * sinD - e * cosD;
-      const yn = total * cosD - e * sinD;
+      const xn = -total * sinA - e * cosA;
+      const yn = total * cosA - e * sinA;
       const len = Math.sqrt(xn * xn + yn * yn);
-      x = xn - rr * xn / len;
-      y = yn - rr * yn / len;
-      ds = motionDeriv(i) * (180 / PI);
+      lx = xn - rr * xn / len;
+      ly = yn - rr * yn / len;
     } else { // knife
       const s0 = Math.sqrt(r0 * r0 - e * e);
       const total = s0 + s;
-      const sinD = Math.sin(a), cosD = Math.cos(a);
-      x = -total * sinD - e * cosD;
-      y = total * cosD - e * sinD;
-      ds = motionDeriv(i) * (180 / PI);
+      lx = -total * sinA - e * cosA;
+      ly = total * cosA - e * sinA;
     }
-    profile.push({ x: x * scale, y: -y * scale, s, ds, deg: i });
+    localProfile.push({ lx, ly, s, deg: i });
   }
 }
 
-function getContactAndNormal(angle) {
-  const idx = Math.round(angle) % profile.length;
-  const pt = profile[idx];
-  const a = angle * PI / 180;
-  
-  // Contact point in global coords (rotated by -angle)
-  const cosA = Math.cos(-a), sinA = Math.sin(-a);
-  const gx = cx + pt.x * cosA - pt.y * sinA;
-  const gy = cy + pt.x * sinA + pt.y * cosA;
-  
-  // Normal direction: perpendicular to profile tangent
-  const idx2 = (idx + 1) % profile.length;
-  const pt2 = profile[idx2];
-  const gx2 = cx + pt2.x * cosA - pt2.y * sinA;
-  const gy2 = cy + pt2.x * sinA + pt2.y * cosA;
-  
-  // Tangent direction
-  const tx = gx2 - gx, ty = gy2 - gy;
-  const tlen = Math.sqrt(tx * tx + ty * ty);
-  
-  // Normal is perpendicular to tangent (pointing toward center)
-  let nx = -ty / tlen, ny = tx / tlen;
-  // Ensure normal points toward cam center
-  const toCenter = { x: cx - gx, y: cy - gy };
-  if (nx * toCenter.x + ny * toCenter.y < 0) { nx = -nx; ny = -ny; }
-  
-  return { contact: { x: gx, y: gy }, normal: { x: nx, y: ny }, s: pt.s, ds: pt.ds };
+// === Rotate local point to global coordinates ===
+// When cam rotates by angle delta, local point (lx, ly) rotates by +delta
+function localToGlobal(lx, ly, rotDeg) {
+  const a = rotDeg * PI / 180;
+  const cosA = Math.cos(a), sinA = Math.sin(a);
+  return {
+    x: cx + (lx * scale) * cosA - (ly * scale) * sinA,
+    y: cy - (lx * scale) * sinA - (ly * scale) * cosA
+    // Note: canvas y is inverted, so we negate the y component
+  };
 }
 
+// Actually let me redo this properly with canvas coordinates.
+// In local coords: x right, y up. In canvas: x right, y down.
+// So local (lx, ly) → canvas (lx*scale, -ly*scale) relative to center.
+// When cam rotates by delta (counterclockwise in real world = counterclockwise in local):
+// canvas_x = cx + (lx*scale)*cos(delta) - (-ly*scale)*sin(delta)
+// canvas_y = cy + (lx*scale)*sin(delta) + (-ly*scale)*cos(delta)
+
+function localToCanvas(lx, ly, rotDeg) {
+  const a = rotDeg * PI / 180;
+  const cosA = Math.cos(a), sinA = Math.sin(a);
+  const px = lx * scale, py = -ly * scale; // local to canvas offset
+  return {
+    x: cx + px * cosA - py * sinA,
+    y: cy + px * sinA + py * cosA
+  };
+}
+
+// === Get contact point and normal for current delta ===
+function getContactAndNormal(angle) {
+  const idx = Math.round(((angle % 360) + 360) % 360);
+  const pt = localProfile[idx];
+  
+  // Contact point: local profile point rotated by delta
+  const contact = localToCanvas(pt.lx, pt.ly, angle);
+  
+  // Normal: compute from adjacent points on profile
+  const idx2 = (idx + 1) % localProfile.length;
+  const idx0 = (idx - 1 + localProfile.length) % localProfile.length;
+  const pt2 = localProfile[idx2];
+  const pt0 = localProfile[idx0];
+  
+  // Tangent in local coords (central difference)
+  const tlx = (pt2.lx - pt0.lx);
+  const tly = (pt2.ly - pt0.ly);
+  const tlen = Math.sqrt(tlx * tlx + tly * tly);
+  
+  // Normal perpendicular to tangent in local coords
+  let nlx = -tly / tlen, nly = tlx / tlen;
+  
+  // Ensure normal points outward (away from cam center)
+  // In local coords, the profile point is roughly at distance r from center
+  const dot = nlx * pt.lx + nly * pt.ly;
+  if (dot < 0) { nlx = -nlx; nly = -nly; }
+  
+  // Rotate normal to global by delta
+  const a = angle * PI / 180;
+  const cosA = Math.cos(a), sinA = Math.sin(a);
+  // local normal (nlx, nly) → canvas normal
+  const ncx = nlx * scale, ncy = -nly * scale; // to canvas
+  let gnx = ncx * cosA - ncy * sinA;
+  let gny = ncx * sinA + ncy * cosA;
+  const gnLen = Math.sqrt(gnx * gnx + gny * gny);
+  gnx /= gnLen; gny /= gnLen;
+  
+  return { contact, normal: { x: gnx, y: gny }, s: pt.s };
+}
+
+// === Pressure angle calculation ===
 function calcPressureAngle(angle) {
   if (followerType === 'flat') return 0;
   const { normal } = getContactAndNormal(angle);
-  // Velocity direction is along the guide (vertical for e=0, or angled for e≠0)
-  // For translating follower, v direction is along the line of motion
-  const a = angle * PI / 180;
-  // Guide direction in global coords: rotated from local (0,1) by -angle
-  // Local guide direction is (0, 1) (upward)
-  const vx = Math.sin(a), vy = Math.cos(a); // rotated (0,1) by -angle
+  // Velocity direction: along the guide (vertical upward in canvas = negative y)
+  // For translating follower with offset e, guide is vertical line at x = cx + e*scale
+  // Velocity is always vertical (up or down along guide)
+  const ds = motionDeriv(angle);
+  const vy = ds >= 0 ? -1 : 1; // canvas: -1 = up (rising), +1 = down (falling)
+  const vx = 0;
   
-  // Pressure angle = angle between normal and velocity
   const dot = normal.x * vx + normal.y * vy;
-  const alpha = Math.acos(Math.min(1, Math.max(-1, dot)));
-  return alpha * 180 / PI;
+  return Math.acos(Math.min(1, Math.max(-1, Math.abs(dot)))) * 180 / PI;
+}
+
+// === Follower position (fixed guide, vertical) ===
+function getFollowerPos() {
+  const s = motionLaw(delta);
+  const guideX = cx + e * scale;
+  // Follower tip position: on the guide, at distance (r0 + s) above cam center
+  const tipY = cy - (r0 + s) * scale;
+  return { x: guideX, y: tipY, s };
 }
 
 function resize() {
@@ -291,34 +321,36 @@ function draw() {
   for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
   for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
   
-  // Base circle
-  ctx.strokeStyle = 'rgba(59,130,246,0.4)';
-  ctx.lineWidth = 2;
+  // Guide line (fixed, vertical)
+  const guideX = cx + e * scale;
+  ctx.strokeStyle = 'rgba(148,163,184,0.25)';
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(guideX, cy - (r0 + h + 30) * scale);
+  ctx.lineTo(guideX, cy + 30 * scale);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  
+  // Base circle (dashed)
+  ctx.strokeStyle = 'rgba(59,130,246,0.35)';
+  ctx.lineWidth = 1.5;
   ctx.setLineDash([6, 4]);
   ctx.beginPath();
   ctx.arc(cx, cy, r0 * scale, 0, 2 * PI);
   ctx.stroke();
   ctx.setLineDash([]);
   
-  // Prime circle (r0 + s for current position)
-  const s = motionLaw(delta);
-  if (followerType !== 'flat') {
-    ctx.strokeStyle = 'rgba(148,163,184,0.2)';
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.arc(cx, cy, (r0 + s) * scale, 0, 2 * PI);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
-  
-  // Cam profile
+  // Cam profile — ROTATED by delta
   ctx.beginPath();
-  ctx.moveTo(profile[0].x + cx, profile[0].y + cy);
-  for (let i = 1; i < profile.length; i++) {
-    ctx.lineTo(profile[i].x + cx, profile[i].y + cy);
+  for (let i = 0; i <= 360; i++) {
+    const pt = localProfile[i % localProfile.length];
+    const gp = localToCanvas(pt.lx, pt.ly, delta);
+    if (i === 0) ctx.moveTo(gp.x, gp.y);
+    else ctx.lineTo(gp.x, gp.y);
   }
   ctx.closePath();
-  const grad = ctx.createRadialGradient(cx, cy, r0 * scale * 0.5, cx, cy, (r0 + h) * scale * 1.2);
+  const grad = ctx.createRadialGradient(cx, cy, r0 * scale * 0.3, cx, cy, (r0 + h) * scale * 1.2);
   grad.addColorStop(0, 'rgba(59,130,246,0.3)');
   grad.addColorStop(1, 'rgba(59,130,246,0.08)');
   ctx.fillStyle = grad;
@@ -330,36 +362,25 @@ function draw() {
   // Rotation center
   ctx.fillStyle = '#fff';
   ctx.beginPath(); ctx.arc(cx, cy, 4, 0, 2 * PI); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
   ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(cx - 10, cy); ctx.lineTo(cx + 10, cy); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx, cy - 10); ctx.lineTo(cx, cy + 10); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx - 12, cy); ctx.lineTo(cx + 12, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, cy - 12); ctx.lineTo(cx, cy + 12); ctx.stroke();
   
-  // Guide line (from cam center, offset by e)
-  const guideX = cx + e * scale;
-  ctx.strokeStyle = 'rgba(148,163,184,0.3)';
-  ctx.setLineDash([4, 4]);
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(guideX, cy - (r0 + h + 20) * scale);
-  ctx.lineTo(guideX, cy + 20 * scale);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  // Get contact & normal
+  const { contact, normal, s } = getContactAndNormal(delta);
   
-  // Get current contact and normal
-  const { contact, normal, ds } = getContactAndNormal(delta);
+  // Draw follower
+  drawFollower(contact, s);
   
-  // Follower representation
-  drawFollower(contact, normal);
-  
-  // Step annotations
+  // Step annotations — each step only shows its own marks, not labels from previous steps
   if (currentStep >= 1) drawStep1(contact);
   if (currentStep >= 2) drawStep2(contact, normal);
   if (currentStep >= 3) drawStep3(contact);
   if (currentStep >= 4) drawStep4(contact, normal);
   if (currentStep >= 5) drawStep5();
   
-  // Chart at bottom right
+  // Chart
   drawAlphaChart();
   
   // Update displays
@@ -370,191 +391,205 @@ function draw() {
   document.getElementById('alphaDisplay').style.color = alpha > 45 ? '#ef4444' : alpha > 30 ? '#f97316' : '#10b981';
 }
 
-function drawFollower(contact, normal) {
-  const s = motionLaw(delta);
+function drawFollower(contact, s) {
+  const guideX = cx + e * scale;
+  const tipY = cy - (r0 + s) * scale;
   
   if (followerType === 'flat') {
-    // Flat follower: draw horizontal flat surface at contact
+    // Flat surface
     ctx.strokeStyle = '#f97316';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(contact.x - 40, contact.y);
-    ctx.lineTo(contact.x + 40, contact.y);
+    ctx.moveTo(tipX_flat(tipY) - 40, tipY);
+    ctx.lineTo(tipX_flat(tipY) + 40, tipY);
     ctx.stroke();
-    // Stem
-    ctx.strokeStyle = 'rgba(249,115,22,0.6)';
+    // Stem along guide
+    ctx.strokeStyle = 'rgba(249,115,22,0.5)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(contact.x, contact.y);
-    ctx.lineTo(contact.x, contact.y - 80);
+    ctx.moveTo(guideX, tipY);
+    ctx.lineTo(guideX, tipY - 80);
     ctx.stroke();
   } else if (followerType === 'roller') {
-    // Roller
+    // Roller circle at contact
     ctx.strokeStyle = '#f97316';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.arc(contact.x, contact.y, 8 * scale, 0, 2 * PI);
     ctx.stroke();
-    // Stem
-    ctx.strokeStyle = 'rgba(249,115,22,0.6)';
+    // Stem from roller center along guide
+    ctx.strokeStyle = 'rgba(249,115,22,0.5)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(contact.x, contact.y);
     ctx.lineTo(contact.x, contact.y - 80);
     ctx.stroke();
   } else {
-    // Knife
+    // Knife: small horizontal line at contact
     ctx.strokeStyle = '#f97316';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.moveTo(contact.x - 15, contact.y);
-    ctx.lineTo(contact.x + 15, contact.y);
+    ctx.moveTo(contact.x - 12, contact.y);
+    ctx.lineTo(contact.x + 12, contact.y);
     ctx.stroke();
-    // Stem
-    ctx.strokeStyle = 'rgba(249,115,22,0.6)';
+    // Stem along guide
+    ctx.strokeStyle = 'rgba(249,115,22,0.5)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(contact.x, contact.y);
-    ctx.lineTo(contact.x, contact.y - 80);
+    ctx.moveTo(guideX, contact.y);
+    ctx.lineTo(guideX, contact.y - 80);
     ctx.stroke();
   }
 }
 
+function tipX_flat(tipY) { return cx + e * scale; }
+
+// === Step drawing functions ===
+// Each step only draws its own annotation marks (lines, arcs, dots)
+// Labels (①②③ and text) only appear on the CURRENT step
+
 function drawStep1(contact) {
-  // Step ①: Mark contact point P
   ctx.save();
-  // Dashed circle around contact
-  ctx.strokeStyle = '#f97316';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([4, 3]);
-  ctx.beginPath();
-  ctx.arc(contact.x, contact.y, 12, 0, 2 * PI);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  // Label ①
-  drawLabel(contact.x + 18, contact.y - 18, '①', '#f97316');
-  // Point P label
+  // Just a dot at the contact point
   ctx.fillStyle = '#f97316';
-  ctx.font = `bold ${14 * devicePixelRatio}px sans-serif`;
-  ctx.fillText('P (接触点)', contact.x + 20, contact.y + 20);
+  ctx.beginPath();
+  ctx.arc(contact.x, contact.y, 5, 0, 2 * PI);
+  ctx.fill();
+  // Label only if this is the current step
+  if (currentStep === 1) {
+    ctx.fillStyle = '#f97316';
+    ctx.font = `bold ${14 * devicePixelRatio}px sans-serif`;
+    ctx.fillText('P (接触点)', contact.x + 15, contact.y + 20);
+    drawStepBadge(contact.x + 12, contact.y - 12, '①', '#f97316');
+  }
   ctx.restore();
 }
 
 function drawStep2(contact, normal) {
-  // Step ②: Draw normal line (force direction)
   ctx.save();
   ctx.strokeStyle = '#ef4444';
   ctx.lineWidth = 2;
   ctx.setLineDash([6, 4]);
-  const len = 120;
+  const len = 110;
   ctx.beginPath();
   ctx.moveTo(contact.x - normal.x * len, contact.y - normal.y * len);
   ctx.lineTo(contact.x + normal.x * len, contact.y + normal.y * len);
   ctx.stroke();
   ctx.setLineDash([]);
-  // Arrow on normal
   drawArrow(contact.x + normal.x * len, contact.y + normal.y * len, normal.x, normal.y, '#ef4444');
-  // Label
-  drawLabel(contact.x - normal.x * len - 15, contact.y - normal.y * len - 15, '②', '#ef4444');
-  ctx.fillStyle = '#ef4444';
-  ctx.font = `${12 * devicePixelRatio}px sans-serif`;
-  ctx.fillText('公法线（力的方向）', contact.x + normal.x * len + 10, contact.y + normal.y * len);
-  ctx.restore();
-}
-
-function drawStep3(contact) {
-  // Step ③: Draw velocity direction (along guide, upward)
-  ctx.save();
-  ctx.strokeStyle = '#10b981';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 4]);
-  const vLen = 100;
-  // Velocity is vertical (upward for rising)
-  const ds = motionDeriv(delta);
-  const vy = ds >= 0 ? -1 : 1; // upward if rising, downward if falling
-  ctx.beginPath();
-  ctx.moveTo(contact.x, contact.y);
-  ctx.lineTo(contact.x, contact.y + vy * vLen);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  drawArrow(contact.x, contact.y + vy * vLen, 0, vy, '#10b981');
-  drawLabel(contact.x + 15, contact.y + vy * vLen * 0.5, '③', '#10b981');
-  ctx.fillStyle = '#10b981';
-  ctx.font = `${12 * devicePixelRatio}px sans-serif`;
-  ctx.fillText('v (速度方向)', contact.x + 20, contact.y + vy * vLen * 0.5);
-  ctx.restore();
-}
-
-function drawStep4(contact, normal) {
-  // Step ④: Draw pressure angle arc
-  ctx.save();
-  const alpha = calcPressureAngle(delta);
-  if (alpha > 0.5) {
-    // Angle between normal and vertical (velocity direction)
-    const normalAngle = Math.atan2(normal.y, normal.x);
-    const vAngle = -PI / 2; // velocity is upward
-    
-    ctx.strokeStyle = '#a855f7';
-    ctx.lineWidth = 2.5;
-    ctx.setLineDash([]);
-    ctx.beginPath();
-    const arcR = 35;
-    let startA = Math.min(normalAngle, vAngle);
-    let endA = Math.max(normalAngle, vAngle);
-    if (endA - startA > PI) { startA += 2 * PI; endA += 2 * PI; }
-    ctx.arc(contact.x, contact.y, arcR, startA, endA);
-    ctx.stroke();
-    
-    // Angle label
-    const midA = (startA + endA) / 2;
-    ctx.fillStyle = '#a855f7';
-    ctx.font = `bold ${14 * devicePixelRatio}px sans-serif`;
-    ctx.fillText('α=' + alpha.toFixed(1) + '°', contact.x + Math.cos(midA) * (arcR + 20), contact.y + Math.sin(midA) * (arcR + 20));
-    drawLabel(contact.x + Math.cos(midA) * (arcR + 40), contact.y + Math.sin(midA) * (arcR + 40), '④', '#a855f7');
-  } else {
-    // alpha ≈ 0
-    ctx.fillStyle = '#10b981';
-    ctx.font = `bold ${14 * devicePixelRatio}px sans-serif`;
-    ctx.fillText('α ≈ 0°（公法线与速度方向重合）', contact.x + 30, contact.y - 30);
-    drawLabel(contact.x + 25, contact.y - 45, '④', '#a855f7');
+  if (currentStep === 2) {
+    ctx.fillStyle = '#ef4444';
+    ctx.font = `${12 * devicePixelRatio}px sans-serif`;
+    ctx.fillText('公法线（力的方向）', contact.x + normal.x * len + 10, contact.y + normal.y * len);
+    drawStepBadge(contact.x - normal.x * len - 8, contact.y - normal.y * len - 18, '②', '#ef4444');
   }
   ctx.restore();
 }
 
-function drawStep5() {
-  // Step ⑤: Show alpha variation trail (already shown in chart)
-  // Draw alpha value at multiple positions around the cam
+function drawStep3(contact) {
   ctx.save();
-  ctx.fillStyle = 'rgba(168,85,247,0.6)';
-  ctx.font = `${10 * devicePixelRatio}px sans-serif`;
-  for (let d = 0; d < 360; d += 30) {
-    const a = calcPressureAngle(d);
-    if (a > 1) {
-      const { contact } = getContactAndNormal(d);
-      ctx.fillText(a.toFixed(0) + '°', contact.x + 5, contact.y - 5);
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  const vLen = 90;
+  const ds = motionDeriv(delta);
+  const dir = ds >= 0 ? -1 : 1; // canvas: -1 = up, +1 = down
+  ctx.beginPath();
+  ctx.moveTo(contact.x, contact.y);
+  ctx.lineTo(contact.x, contact.y + dir * vLen);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  drawArrow(contact.x, contact.y + dir * vLen, 0, dir, '#10b981');
+  if (currentStep === 3) {
+    ctx.fillStyle = '#10b981';
+    ctx.font = `${12 * devicePixelRatio}px sans-serif`;
+    ctx.fillText('v (速度方向)', contact.x + 15, contact.y + dir * vLen * 0.6);
+    drawStepBadge(contact.x + 12, contact.y + dir * vLen * 0.3, '③', '#10b981');
+  }
+  ctx.restore();
+}
+
+function drawStep4(contact, normal) {
+  ctx.save();
+  const alpha = calcPressureAngle(delta);
+  if (alpha > 0.5) {
+    // Angle arc between normal direction and velocity direction
+    const normalAngle = Math.atan2(normal.y, normal.x);
+    const ds = motionDeriv(delta);
+    const vAngle = ds >= 0 ? -PI / 2 : PI / 2;
+    
+    ctx.strokeStyle = '#a855f7';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    const arcR = 40;
+    let startA = Math.min(normalAngle, vAngle);
+    let endA = Math.max(normalAngle, vAngle);
+    if (endA - startA > PI) { const tmp = startA; startA = endA; endA = tmp + 2 * PI; }
+    ctx.arc(contact.x, contact.y, arcR, startA, endA);
+    ctx.stroke();
+    
+    const midA = (startA + endA) / 2;
+    ctx.fillStyle = '#a855f7';
+    ctx.font = `bold ${14 * devicePixelRatio}px sans-serif`;
+    ctx.fillText('α=' + alpha.toFixed(1) + '°', contact.x + Math.cos(midA) * (arcR + 25), contact.y + Math.sin(midA) * (arcR + 25));
+    if (currentStep === 4) {
+      drawStepBadge(contact.x + Math.cos(midA) * (arcR + 50), contact.y + Math.sin(midA) * (arcR + 50), '④', '#a855f7');
+    }
+  } else {
+    ctx.fillStyle = '#10b981';
+    ctx.font = `bold ${14 * devicePixelRatio}px sans-serif`;
+    ctx.fillText('α ≈ 0°（公法线与速度方向重合）', contact.x + 25, contact.y - 25);
+    if (currentStep === 4) {
+      drawStepBadge(contact.x + 20, contact.y - 40, '④', '#a855f7');
     }
   }
   ctx.restore();
 }
 
+function drawStep5() {
+  // Show pressure angle values at multiple positions around the cam
+  ctx.save();
+  ctx.font = `${9 * devicePixelRatio}px sans-serif`;
+  for (let d = 0; d < 360; d += 30) {
+    if (Math.abs(d - Math.round(delta)) < 10) continue; // skip current position
+    const a = calcPressureAngle(d);
+    if (a > 1) {
+      const { contact } = getContactAndNormal(d);
+      ctx.fillStyle = a > 45 ? 'rgba(239,68,68,0.6)' : a > 30 ? 'rgba(249,115,22,0.6)' : 'rgba(16,185,129,0.5)';
+      ctx.fillText(a.toFixed(0) + '°', contact.x + 8, contact.y - 8);
+    }
+  }
+  ctx.restore();
+}
+
+function drawStepBadge(x, y, text, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.font = `bold ${16 * devicePixelRatio}px sans-serif`;
+  ctx.strokeStyle = 'rgba(15,23,42,0.8)';
+  ctx.lineWidth = 3;
+  ctx.strokeText(text, x, y);
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
 function drawAlphaChart() {
-  // Draw pressure angle vs cam angle chart at bottom right
-  const chartW = 200, chartH = 100;
+  const chartW = 200, chartH = 110;
   const chartX = W - chartW - 20, chartY = H - chartH - 20;
   
   ctx.save();
-  ctx.fillStyle = 'rgba(30,41,59,0.9)';
+  ctx.fillStyle = 'rgba(30,41,59,0.92)';
   ctx.strokeStyle = 'rgba(51,65,85,0.8)';
   ctx.lineWidth = 1;
-  ctx.fillRect(chartX, chartY, chartW, chartH);
-  ctx.strokeRect(chartX, chartY, chartW, chartH);
+  ctx.beginPath();
+  ctx.roundRect(chartX, chartY, chartW, chartH, 8);
+  ctx.fill();
+  ctx.stroke();
   
-  // Title
   ctx.fillStyle = '#94a3b8';
   ctx.font = `${10 * devicePixelRatio}px sans-serif`;
-  ctx.fillText('α(δ) 压力角变化曲线', chartX + 10, chartY + 15);
+  ctx.fillText('α(δ) 压力角变化曲线', chartX + 10, chartY + 16);
   
-  // Compute curve
   let maxAlpha = 0;
   const alphas = [];
   for (let d = 0; d <= 360; d++) {
@@ -563,31 +598,48 @@ function drawAlphaChart() {
     maxAlpha = Math.max(maxAlpha, a);
   }
   if (maxAlpha < 5) maxAlpha = 5;
+  maxAlpha *= 1.15;
+  
+  // Draw axes
+  ctx.strokeStyle = 'rgba(148,163,184,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(chartX + 10, chartY + chartH - 15);
+  ctx.lineTo(chartX + chartW - 10, chartY + chartH - 15);
+  ctx.stroke();
   
   // Draw curve
   ctx.strokeStyle = '#a855f7';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   for (let d = 0; d <= 360; d++) {
-    const x = chartX + 10 + (d / 360) * (chartW - 20);
-    const y = chartY + chartH - 10 - (alphas[d] / maxAlpha) * (chartH - 30);
+    const x = chartX + 10 + (d / 360) * (chartW - 25);
+    const y = chartY + chartH - 15 - (alphas[d] / maxAlpha) * (chartH - 35);
     if (d === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   }
   ctx.stroke();
   
   // Current position marker
-  const curX = chartX + 10 + (delta / 360) * (chartW - 20);
+  const curX = chartX + 10 + (delta / 360) * (chartW - 25);
   const curA = calcPressureAngle(delta);
-  const curY = chartY + chartH - 10 - (curA / maxAlpha) * (chartH - 30);
+  const curY = chartY + chartH - 15 - (curA / maxAlpha) * (chartH - 35);
   ctx.fillStyle = '#a855f7';
   ctx.beginPath(); ctx.arc(curX, curY, 4, 0, 2 * PI); ctx.fill();
   
-  // Axes labels
+  // Vertical line at current position
+  ctx.strokeStyle = 'rgba(168,85,247,0.3)';
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(curX, chartY + 22);
+  ctx.lineTo(curX, chartY + chartH - 15);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  
   ctx.fillStyle = '#64748b';
   ctx.font = `${9 * devicePixelRatio}px sans-serif`;
-  ctx.fillText('0°', chartX + 5, chartY + chartH - 2);
-  ctx.fillText('360°', chartX + chartW - 30, chartY + chartH - 2);
-  ctx.fillText(maxAlpha.toFixed(0) + '°', chartX + chartW - 25, chartY + 20);
+  ctx.fillText('0°', chartX + 5, chartY + chartH - 4);
+  ctx.fillText('360°', chartX + chartW - 30, chartY + chartH - 4);
+  ctx.fillText(maxAlpha.toFixed(0) + '°', chartX + chartW - 28, chartY + 26);
   
   ctx.restore();
 }
@@ -595,9 +647,9 @@ function drawAlphaChart() {
 function drawArrow(x, y, dx, dy, color) {
   ctx.save();
   ctx.fillStyle = color;
-  ctx.beginPath();
   const angle = Math.atan2(dy, dx);
   const size = 10;
+  ctx.beginPath();
   ctx.moveTo(x, y);
   ctx.lineTo(x - size * Math.cos(angle - 0.4), y - size * Math.sin(angle - 0.4));
   ctx.lineTo(x - size * Math.cos(angle + 0.4), y - size * Math.sin(angle + 0.4));
@@ -606,59 +658,20 @@ function drawArrow(x, y, dx, dy, color) {
   ctx.restore();
 }
 
-function drawLabel(x, y, text, color) {
-  ctx.save();
-  ctx.fillStyle = color;
-  ctx.strokeStyle = 'rgba(15,23,42,0.8)';
-  ctx.lineWidth = 3;
-  ctx.font = `bold ${16 * devicePixelRatio}px sans-serif`;
-  ctx.strokeText(text, x, y);
-  ctx.fillText(text, x, y);
-  ctx.restore();
-}
-
-// UI functions
-function toggleStep(n) {
-  if (currentStep === n) {
-    currentStep = n - 1; // toggle off
-  } else {
-    currentStep = n;
-  }
-  updateStepButtons();
-  draw();
-}
-
-function resetSteps() {
-  currentStep = 0;
-  updateStepButtons();
-  draw();
-}
-
-function showAllSteps() {
-  currentStep = 5;
-  updateStepButtons();
-  draw();
-}
-
-function updateStepButtons() {
+// === UI ===
+function setStep(n) {
+  currentStep = n;
   document.querySelectorAll('.step-btn').forEach(btn => {
     const s = +btn.dataset.step;
     btn.classList.remove('active', 'done');
     if (s === currentStep) btn.classList.add('active');
     else if (s < currentStep) btn.classList.add('done');
   });
-}
-
-function setAngle(d) {
-  delta = d;
   draw();
 }
 
-function resetAngle() {
-  delta = 0;
-  document.getElementById('deltaSlider').value = 0;
-  draw();
-}
+function setAngle(d) { delta = d; draw(); }
+function resetAngle() { delta = 0; document.getElementById('deltaSlider').value = 0; draw(); }
 
 function toggleAnim() {
   animating = !animating;
@@ -669,7 +682,7 @@ function toggleAnim() {
 
 function animate() {
   if (!animating) return;
-  delta = (delta + 0.5) % 360;
+  delta = (delta + animSpeed) % 360;
   document.getElementById('deltaSlider').value = delta;
   draw();
   animId = requestAnimationFrame(animate);
@@ -683,11 +696,11 @@ function updateParams() {
   document.getElementById('r0Disp').textContent = r0;
   document.getElementById('hDisp').textContent = h;
   document.getElementById('eDisp').textContent = e;
-  calcProfile();
+  calcLocalProfile();
   draw();
 }
 
-// Dragging on canvas
+// Drag on canvas
 let dragging = false;
 cv.addEventListener('mousedown', () => dragging = true);
 cv.addEventListener('mouseup', () => dragging = false);
@@ -697,7 +710,6 @@ cv.addEventListener('mousemove', (ev) => {
   const rect = cv.getBoundingClientRect();
   const mx = (ev.clientX - rect.left) * devicePixelRatio;
   const my = (ev.clientY - rect.top) * devicePixelRatio;
-  // Calculate angle from center
   const dx = mx - cx, dy = my - cy;
   let a = Math.atan2(dx, -dy) * 180 / PI;
   if (a < 0) a += 360;
@@ -708,7 +720,7 @@ cv.addEventListener('mousemove', (ev) => {
 
 // Init
 window.addEventListener('resize', resize);
-calcProfile();
+calcLocalProfile();
 resize();
 </script>
 </body>
