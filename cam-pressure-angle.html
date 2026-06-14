@@ -456,12 +456,12 @@ function drawFollower(contact, s, normal) {
     ctx.arc(rollerCX, rollerCY, 3, 0, 2 * PI);
     ctx.stroke();
     
-    // 杆体
+    // 杆体（从滚子中心开始画，确保连接）
     ctx.strokeStyle = followerColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(guideX, rollerCY);
-    ctx.lineTo(guideX, rollerCY - 80);
+    ctx.moveTo(rollerCX, rollerCY);
+    ctx.lineTo(rollerCX, rollerCY - 80);
     ctx.stroke();
     
     // 接触点
