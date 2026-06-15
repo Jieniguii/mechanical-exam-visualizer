@@ -146,7 +146,6 @@
             <span class="legend-item"><span class="legend-dot" style="background:#6366f1"></span>齿轮1</span>
             <span class="legend-item"><span class="legend-dot" style="background:#34d399"></span>齿轮2</span>
             <span class="legend-item"><span class="legend-dot" style="background:#f87171"></span>啮合线</span>
-            <span class="legend-item"><span class="legend-dot" style="background:#fbbf24"></span>渐开线</span>
           </div>
         </div>
       </div>
@@ -184,7 +183,6 @@
         <label class="toggle-row"><input type="checkbox" id="showBase" checked> 基圆 + 半径标注</label>
         <label class="toggle-row"><input type="checkbox" id="showAddDed" checked> 齿顶圆/齿根圆</label>
         <label class="toggle-row"><input type="checkbox" id="showLineOfAction" checked> 啮合线</label>
-        <label class="toggle-row"><input type="checkbox" id="showInvolute"> 渐开线形成过程</label>
         <label class="toggle-row"><input type="checkbox" id="showPressureAngle"> 压力角标注</label>
       </div>
 
@@ -240,7 +238,6 @@ let z1 = 20, z2 = 30, m = 4;
 let theta1 = 0; // 齿轮1转角
 let playing = true;
 let speed = 0.1;
-let involuteAnimT = 0; // 渐开线形成动画参数 (0~1 循环)
 
 const canvas = document.getElementById('gearCanvas');
 const ctx = canvas.getContext('2d');
@@ -531,6 +528,33 @@ function drawLineOfAction(cx1, cy1, cx2, cy2, p1, p2, scale, theta1Val, z1Val) {
   ctx.stroke();
   ctx.setLineDash([]);
 
+  // ===== 极限啮合点 N₁、N₂ 标注 =====
+  // N₁: 齿轮1基圆与啮合线切点，s = -rb₁ × sin(α)
+  const sN1 = -p1.rb * sinA;
+  // N₂: 齿轮2基圆与啮合线切点，s = rb₂ × sin(α)
+  const sN2 = p2.rb * sinA;
+  
+  // 绘制 N₁ 点
+  const n1x = pitchX + sN1 * dx * scale;
+  const n1y = cy1 + sN1 * dy * scale;
+  ctx.fillStyle = '#8b5cf6';
+  ctx.beginPath();
+  ctx.arc(n1x, n1y, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('N₁', n1x + 8, n1y - 6);
+  
+  // 绘制 N₂ 点
+  const n2x = pitchX + sN2 * dx * scale;
+  const n2y = cy1 + sN2 * dy * scale;
+  ctx.fillStyle = '#8b5cf6';
+  ctx.beginPath();
+  ctx.arc(n2x, n2y, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.textAlign = 'right';
+  ctx.fillText('N₂', n2x - 8, n2y + 14);
+
   // ===== 啮合点（接触点）严谨计算 =====
   // 原理：啮合点沿实际啮合线 B1→B2 移动
   // 齿轮转过一个基圆齿距，啮合点走完一个 pb
@@ -599,116 +623,6 @@ function drawPressureAngle(cx1, cy1, pitchX, scale) {
                        cy1 + (arcR + 12) * Math.sin(labelAngle));
 }
 
-// ===== 渐开线形成过程动画（修复：与转速关联 + 增加Rk/Rb/α标注）=====
-function drawInvoluteFormation(cx, cy, rb, scale, speed) {
-  // 渐开线展开角度 psi（与齿轮转速关联）
-  // 齿轮1转得越快，渐开线展开也越快
-  const maxPsi = Math.PI * 1.2; // 最大展开角
-  const currentPsi = involuteAnimT * maxPsi;
-
-  ctx.save();
-
-  // 基圆
-  drawCircle(cx, cy, rb * scale, 'rgba(251,191,36,0.35)', [4, 4]);
-
-  // 绘制渐开线（从基圆到当前psi角）
-  ctx.strokeStyle = '#fbbf24';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  const steps = 80;
-  let prevX = 0, prevY = 0;
-  let endX = 0, endY = 0;
-  for (let i = 0; i <= steps; i++) {
-    const psi = (i / steps) * currentPsi;
-    // 渐开线方程：r = rb / cos(psi), 极角 = psi - inv(psi) = psi - tan(psi) + psi = 2*psi - tan(psi) ??? 
-    // 正确：渐开线上点的向径 r = rb / cos(psi)，展角 = inv(psi) = tan(psi) - psi
-    const r = rb / Math.cos(psi);
-    const invPsi = Math.tan(psi) - psi; // 渐开线展角
-    const angle = -invPsi; // 取负使渐开线向右展开（canvas y翻转）
-    const x = cx + r * Math.cos(angle) * scale;
-    const y = cy - r * Math.sin(angle) * scale; // canvas y翻转
-    if (i === 0) { ctx.moveTo(x, y); }
-    else { ctx.lineTo(x, y); }
-    prevX = x; prevY = y;
-    endX = x; endY = y;
-  }
-  ctx.stroke();
-
-  // 发生线（切线）：从基圆切点K0到渐开线上点K的切线
-  const psiK = currentPsi;
-  const rK = rb / Math.cos(psiK); // Rk：点K的向径
-  const invPsiK = Math.tan(psiK) - psiK;
-  const angleK = -invPsiK;
-  const Kx = cx + rK * Math.cos(angleK) * scale;
-  const Ky = cy - rK * Math.sin(angleK) * scale;
-
-  // 基圆上的切点 K0
-  const K0x = cx + rb * Math.cos(angleK) * scale;
-  const K0y = cy - rb * Math.sin(angleK) * scale;
-
-  // 发生线（基圆切点到渐开线点K的切线）
-  ctx.strokeStyle = 'rgba(251,191,36,0.5)';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([3, 3]);
-  ctx.beginPath();
-  ctx.moveTo(K0x, K0y);
-  ctx.lineTo(Kx, Ky);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // 向径 Rk 线（从中心到K点）
-  ctx.strokeStyle = 'rgba(251,191,36,0.4)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([2, 3]);
-  ctx.beginPath();
-  ctx.moveTo(cx, cy);
-  ctx.lineTo(Kx, Ky);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // 压力角 α_K：在发生线（切线）与向径之间
-  // 对于渐开线，压力角 = psi（展开角）
-  const alphaK = psiK; // 弧度
-
-  // 标注：Rb（基圆半径）
-  ctx.fillStyle = 'rgba(251,191,36,0.8)';
-  ctx.font = `${Math.max(10, 11 * Math.min(scale, 1.2))}px sans-serif`;
-  ctx.textAlign = 'left';
-  ctx.fillText(`Rb=${(rb).toFixed(1)}`, cx + rb * scale * Math.cos(-0.3) + 4 * scale,
-                                            cy - rb * scale * Math.sin(-0.3) - 4 * scale);
-
-  // 标注：Rk（当前点K的向径）
-  ctx.fillStyle = '#fbbf24';
-  ctx.fillText(`Rk=${(rK).toFixed(1)}`, Kx + 8, Ky - 8);
-
-  // 标注：压力角 α = ψ（渐开线性质：压力角等于展开角）
-  ctx.fillStyle = '#fbbf24';
-  ctx.font = `${Math.max(9, 10 * Math.min(scale, 1.2))}px sans-serif`;
-  ctx.fillText(`α=ψ=${(alphaK * DEG).toFixed(1)}°`, (Kx + K0x) / 2 - 20, (Ky + K0y) / 2 - 8);
-
-  // 点K标记
-  ctx.fillStyle = '#fbbf24';
-  ctx.beginPath();
-  ctx.arc(Kx, Ky, 3 * scale, 0, Math.PI * 2);
-  ctx.fill();
-
-  // 基圆切点K0标记
-  ctx.fillStyle = 'rgba(251,191,36,0.6)';
-  ctx.beginPath();
-  ctx.arc(K0x, K0y, 2.5 * scale, 0, Math.PI * 2);
-  ctx.fill();
-
-  // 说明文字
-  ctx.fillStyle = 'rgba(251,191,36,0.7)';
-  ctx.font = `${Math.max(9, 10 * Math.min(scale, 1.2))}px sans-serif`;
-  ctx.textAlign = 'left';
-  ctx.fillText('渐开线形成：发生线在基圆上纯滚动', cx - 120 * scale, cy - rb * scale - 30 * scale);
-  ctx.fillText('K：渐开线上点  K0：基圆上切点', cx - 120 * scale, cy - rb * scale - 16 * scale);
-  ctx.fillText('压力角α=展开角ψ（渐开线重要性质）', cx - 120 * scale, cy - rb * scale - 2 * scale);
-
-  ctx.restore();
-}
-
 // ===== 主绘制函数 =====
 function draw() {
   const w = canvas.clientWidth;
@@ -738,7 +652,6 @@ function draw() {
   const showBase = document.getElementById('showBase').checked;
   const showAddDed = document.getElementById('showAddDed').checked;
   const showLineOfAction = document.getElementById('showLineOfAction').checked;
-  const showInvolute = document.getElementById('showInvolute').checked;
   const showPressureAngle = document.getElementById('showPressureAngle').checked;
 
   // ===== 分度圆 + 半径标注 =====
@@ -780,11 +693,6 @@ function draw() {
     if (showPressureAngle) {
       drawPressureAngle(cx1, cy1, loaInfo.pitchX, scale);
     }
-  }
-
-  // 渐开线形成过程动画
-  if (showInvolute) {
-    drawInvoluteFormation(cx1, cy1, p1.rb, scale, speed);
   }
 
   // 中心距连线
@@ -935,7 +843,6 @@ playBtn.addEventListener('click', () => {
 
 resetBtn.addEventListener('click', () => {
   theta1 = 0;
-  involuteAnimT = 0;
   z1 = 20; z2 = 30; m = 4;
   sliders.z1.value = z1; sliders.z2.value = z2; sliders.m.value = m;
   vals.z1.textContent = z1; vals.z2.textContent = z2; vals.m.textContent = m;
@@ -953,9 +860,6 @@ function animate(time) {
     const dt = lastTime ? (time - lastTime) / 1000 : 0.016;
     theta1 += speed * 1.2 * dt;
 
-    // 修复1：渐开线展开速度与齿轮转速关联
-    involuteAnimT += dt * speed * 0.4;
-    if (involuteAnimT > 1) involuteAnimT -= 1; // 循环
   }
   lastTime = time;
   draw();
