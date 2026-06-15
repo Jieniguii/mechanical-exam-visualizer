@@ -9,6 +9,9 @@
     body{background:#0f1117;color:#e4e4e7;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px}
     h1{font-size:28px;font-weight:600;margin-bottom:8px;background:linear-gradient(135deg,#6366f1,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
     p{color:#71717a;font-size:14px;margin-bottom:20px}
+    .back-btn{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#94a3b8;text-decoration:none;font-size:13px;padding:6px 14px;border-radius:6px;background:rgba(255,255,255,0.05);transition:all 0.2s}
+    .back-btn:hover{background:rgba(255,255,255,0.12);color:#6366f1}
+    .page-header{position:relative;text-align:center;padding:20px 0 12px}
     a{color:#6366f1;text-decoration:none}
     .main-container { max-width: 1000px; width: 100%; }
     .demo-section { background: #0f172a; border-radius: 12px; padding: 16px; }
@@ -29,13 +32,17 @@
     .legend .dot { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
     @media (max-width: 768px) {
       .param-row { flex-direction: column; }
+      .back-btn { position: static; display: inline-block; margin-bottom: 8px; transform: none; }
     }
   </style>
 </head>
 <body>
   <div class="main-container">
-    <h1>📐 渐开线形成过程</h1>
-    <p>直观展示一条直线在基圆上纯滚动时，直线上任一点描绘出渐开线的过程</p>
+    <div class="page-header">
+      <a href="index.html" class="back-btn">← 返回首页</a>
+      <h1>📐 渐开线形成过程</h1>
+      <p>直观展示一条直线在基圆上纯滚动时，直线上任一点描绘出渐开线的过程</p>
+    </div>
 
     <div class="demo-section">
       <canvas id="canvas"></canvas>

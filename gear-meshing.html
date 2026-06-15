@@ -18,7 +18,7 @@
     min-height: 100vh; overflow-x: hidden;
   }
   .app { max-width: 1200px; margin:0 auto; padding:16px; }
-  header { text-align:center; padding:20px 0 12px; }
+  header { text-align:center; padding:20px 0 12px; position:relative; }
   header h1 {
     font-size:22px; font-weight:600;
     background: linear-gradient(135deg, var(--accent2), var(--amber));
@@ -26,11 +26,21 @@
     background-clip: text;
   }
   header p { font-size:13px; color:var(--text2); margin-top:4px; }
+  .back-btn {
+    position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+    color: var(--text2); text-decoration: none; font-size: 13px;
+    padding: 6px 14px; border-radius: 6px; background: rgba(255,255,255,0.05);
+    transition: all 0.2s;
+  }
+  .back-btn:hover { background: rgba(255,255,255,0.12); color: var(--accent2); }
   .main-layout {
     display: grid; grid-template-columns: 1fr 320px;
     gap:16px; margin-top:12px;
   }
-  @media (max-width:768px) { .main-layout { grid-template-columns:1fr; } }
+  @media (max-width:768px) {
+    .main-layout { grid-template-columns:1fr; }
+    .back-btn { position: static; display: inline-block; margin-bottom: 8px; transform: none; }
+  }
   .canvas-card {
     background:var(--card); border:1px solid var(--border);
     border-radius:12px; overflow:hidden; position:relative;
@@ -114,6 +124,7 @@
 <body>
 <div class="app">
   <header>
+    <a href="index.html" class="back-btn">← 返回首页</a>
     <h1>渐开线齿轮啮合交互演示</h1>
     <p>调节齿数与模数，观察标准直齿圆柱齿轮的啮合传动</p>
   </header>

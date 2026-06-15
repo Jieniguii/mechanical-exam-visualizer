@@ -12,9 +12,11 @@
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; text-align: center; }
+header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; text-align: center; position: relative; }
 header h1 { font-size: 1.5rem; font-weight: 700; color: #fff; }
 header p { color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-top: 6px; }
+.back-btn { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.85); text-decoration: none; font-size: 13px; padding: 6px 14px; border-radius: 6px; background: rgba(255,255,255,0.1); transition: all 0.2s; }
+.back-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
 .main { display: flex; gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
 .canvas-wrap { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
 canvas { display: block; width: 100%; cursor: crosshair; }
@@ -55,11 +57,13 @@ select { width: 100%; padding: 6px 10px; background: var(--bg); border: 1px soli
   header h1 { font-size: 1.2rem; }
   header p { font-size: 0.85rem; }
   .canvas-wrap { min-height: 300px; }
+  .back-btn { position: static; display: inline-block; margin-bottom: 8px; transform: none; }
 }
 </style>
 </head>
 <body>
 <header>
+  <a href="index.html" class="back-btn">← 返回首页</a>
   <h1>📐 凸轮压力角动态变化</h1>
   <p>分步骤展示压力角的标注过程，直观理解压力角如何随凸轮转角变化</p>
 </header>

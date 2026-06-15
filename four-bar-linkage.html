@@ -34,6 +34,24 @@
   header {
     text-align: center;
     padding: 20px 0 12px;
+    position: relative;
+  }
+  .back-btn {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    transition: all 0.2s;
+  }
+  .back-btn:hover {
+    background: rgba(255,255,255,0.12);
+    color: var(--accent2);
   }
   header h1 {
     font-size: 22px;
@@ -57,6 +75,9 @@
   @media (max-width: 768px) {
     .main-layout {
       grid-template-columns: 1fr;
+    }
+    .back-btn {
+      position: static; display: inline-block; margin-bottom: 8px; transform: none;
     }
   }
   .canvas-card {
@@ -255,6 +276,7 @@
 <body>
 <div class="app">
   <header>
+    <a href="index.html" class="back-btn">← 返回首页</a>
     <h1>平面四杆机构交互演示</h1>
     <p>调节参数，观察机构运动 — 机械考研可视化学习</p>
   </header>
