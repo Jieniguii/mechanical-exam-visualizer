@@ -430,11 +430,13 @@ function drawFollower(contact, s, normal) {
     ctx.lineTo(guideX, tipY - 80);
     ctx.stroke();
     
-    // 接触点
-    ctx.fillStyle = contactColor;
-    ctx.beginPath();
-    ctx.arc(contact.x, contact.y, 1.25, 0, 2 * PI);
-    ctx.fill();
+    // 接触点：只在步骤①才显示
+    if (currentStep >= 1) {
+      ctx.fillStyle = contactColor;
+      ctx.beginPath();
+      ctx.arc(contact.x, contact.y, 1.25, 0, 2 * PI);
+      ctx.fill();
+    }
     
   } else if (followerType === 'roller') {
     const rr = 8;
@@ -464,11 +466,13 @@ function drawFollower(contact, s, normal) {
     ctx.lineTo(rollerCX, rollerCY - 80);
     ctx.stroke();
     
-    // 接触点
-    ctx.fillStyle = contactColor;
-    ctx.beginPath();
-    ctx.arc(contact.x, contact.y, 1.25, 0, 2 * PI);
-    ctx.fill();
+    // 接触点：只在步骤①才显示
+    if (currentStep >= 1) {
+      ctx.fillStyle = contactColor;
+      ctx.beginPath();
+      ctx.arc(contact.x, contact.y, 1.25, 0, 2 * PI);
+      ctx.fill();
+    }
     
   } else {
     // 尖底从动件：三角形尖头（▽）
@@ -490,11 +494,13 @@ function drawFollower(contact, s, normal) {
     ctx.lineTo(guideX, contact.y - 80);
     ctx.stroke();
     
-    // 接触点
-    ctx.fillStyle = contactColor;
-    ctx.beginPath();
-    ctx.arc(contact.x, contact.y, 1.25, 0, 2 * PI);
-    ctx.fill();
+    // 接触点：只在步骤①才显示
+    if (currentStep >= 1) {
+      ctx.fillStyle = contactColor;
+      ctx.beginPath();
+      ctx.arc(contact.x, contact.y, 1.25, 0, 2 * PI);
+      ctx.fill();
+    }
   }
 }
 
