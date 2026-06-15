@@ -571,17 +571,17 @@ function drawLineOfAction(cx1, cy1, cx2, cy2, p1, p2, scale, theta1Val, z1Val) {
     const cpx = pitchX + s * dx * scale;
     const cpy = cy1 + s * dy * scale;
 
-    // 啮合点实心圆
+    // 啮合点实心圆（与齿廓线宽协调）
     ctx.fillStyle = '#ef4444';
     ctx.beginPath();
-    ctx.arc(cpx, cpy, 2 * scale, 0, Math.PI * 2);
+    ctx.arc(cpx, cpy, 2, 0, Math.PI * 2);
     ctx.fill();
 
     // 光晕环
     ctx.strokeStyle = 'rgba(239, 68, 68, 0.35)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(cpx, cpy, 3.5 * scale, 0, Math.PI * 2);
+    ctx.arc(cpx, cpy, 3.5, 0, Math.PI * 2);
     ctx.stroke();
   }
 
