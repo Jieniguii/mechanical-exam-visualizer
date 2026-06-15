@@ -58,8 +58,9 @@
         <span><i style="background:#94a3b8"></i>发生线 n-n</span>
         <span><i style="background:#f97316"></i>渐开线</span>
         <span><i style="background:#a855f7"></i>向径 r<sub>k</sub></span>
-        <span><i style="background:#ef4444"></i>切线 t-t</span>
+        <span><i style="background:#ef4444"></i>速度方向 m-m</span>
         <span><i style="background:#10b981"></i>切点 N</span>
+        <span><i style="background:#f59e0b"></i>压力角 α<sub>k</sub></span>
       </div>
 
       <div class="controls">
@@ -186,15 +187,15 @@ function draw() {
   ctx.textAlign = 'left';
   ctx.fillText('A', ax + 8*dpr, ay + 5*dpr);
 
-  // ===== 4. OA 连线 =====
-  ctx.strokeStyle = 'rgba(59,130,246,0.35)';
-  ctx.lineWidth = 1.5*dpr;
-  ctx.setLineDash([4*dpr, 3*dpr]);
+  // ===== 4. r_b 连线（O→A，实线+向外箭头）=====
+  ctx.strokeStyle = '#60a5fa';
+  ctx.lineWidth = 1.8*dpr;
   ctx.beginPath();
   ctx.moveTo(ox, oy);
   ctx.lineTo(ax, ay);
   ctx.stroke();
-  ctx.setLineDash([]);
+  // 箭头指向远离圆心方向（在 A 点处）
+  drawArrow(ox, oy, ax, ay, '#60a5fa', 10*dpr);
 
   // r_b 标注
   ctx.font = `italic ${12*dpr}px sans-serif`;
@@ -234,13 +235,13 @@ function draw() {
     ctx.arc(ox, oy, rScale, 0, -tCur, true);
     ctx.stroke();
 
-    // --- 发生线 n-n（虚线，贯穿 N 和 K，两端延长）---
+    // --- 发生线 n-n（全部虚线，贯穿 N 和 K，两端延长）---
     // 方向（canvas坐标）：从 N 到 K = (R*t*sin(t), R*t*cos(t)) → 归一化 (sin(t), cos(t))
     const dirX = Math.sin(tCur);
     const dirY = Math.cos(tCur);
 
     ctx.strokeStyle = '#94a3b8';
-    ctx.lineWidth = 1.5*dpr;
+    ctx.lineWidth = 1.8*dpr;
     ctx.setLineDash([6*dpr, 4*dpr]);
     const ext = 60 * dpr;
     ctx.beginPath();
@@ -248,14 +249,6 @@ function draw() {
     ctx.lineTo(kx + dirX * ext * 0.6, ky + dirY * ext * 0.6);
     ctx.stroke();
     ctx.setLineDash([]);
-
-    // 实线部分（N 到 K）
-    ctx.strokeStyle = '#b0b8c4';
-    ctx.lineWidth = 2*dpr;
-    ctx.beginPath();
-    ctx.moveTo(nx, ny);
-    ctx.lineTo(kx, ky);
-    ctx.stroke();
 
     // n-n 标注
     ctx.font = `italic bold ${13*dpr}px sans-serif`;
@@ -278,15 +271,15 @@ function draw() {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // --- r_k 连线（O 到 K，紫色虚线）---
+    // --- r_k 连线（O 到 K，紫色实线+箭头）---
     ctx.strokeStyle = '#a855f7';
-    ctx.lineWidth = 1.5*dpr;
-    ctx.setLineDash([5*dpr, 3*dpr]);
+    ctx.lineWidth = 1.8*dpr;
     ctx.beginPath();
     ctx.moveTo(ox, oy);
     ctx.lineTo(kx, ky);
     ctx.stroke();
-    ctx.setLineDash([]);
+    // 箭头指向远离圆心方向（在 K 点处）
+    drawArrow(ox, oy, kx, ky, '#a855f7', 10*dpr);
 
     // r_k 标注
     ctx.font = `italic ${12*dpr}px sans-serif`;
@@ -300,26 +293,25 @@ function draw() {
     const rkPerpLen = Math.sqrt(rkPerpX*rkPerpX + rkPerpY*rkPerpY) || 1;
     ctx.fillText('r_k', rkMx + rkPerpX/rkPerpLen * 14*dpr, rkMy + rkPerpY/rkPerpLen * 14*dpr);
 
-    // --- 切线 t-t（过 K 点，垂直于法线）---
-    // 法线方向 (canvas) = (sin(t), cos(t))
-    // 切线方向 = (cos(t), -sin(t))
-    const tanDirX = Math.cos(tCur);
-    const tanDirY = -Math.sin(tCur);
-    const tLen = 55 * dpr;
+    // --- m-m 线（K 点速度方向 = 渐开线切线方向，垂直于 OK）---
+    // 渐开线切线方向 (canvas): (cos(t), -sin(t))
+    const mmDirX = Math.cos(tCur);
+    const mmDirY = -Math.sin(tCur);
+    const mLen = 55 * dpr;
 
     ctx.strokeStyle = '#ef4444';
     ctx.lineWidth = 2*dpr;
     ctx.beginPath();
-    ctx.moveTo(kx - tanDirX * tLen, ky - tanDirY * tLen);
-    ctx.lineTo(kx + tanDirX * tLen, ky + tanDirY * tLen);
+    ctx.moveTo(kx - mmDirX * mLen, ky - mmDirY * mLen);
+    ctx.lineTo(kx + mmDirX * mLen, ky + mmDirY * mLen);
     ctx.stroke();
 
-    // t-t 标注
+    // m-m 标注
     ctx.font = `italic bold ${13*dpr}px sans-serif`;
     ctx.fillStyle = '#ef4444';
     ctx.textAlign = 'center';
-    ctx.fillText('t', kx + tanDirX * tLen + 8*dpr * tanDirX, ky + tanDirY * tLen + 8*dpr * tanDirY);
-    ctx.fillText('t', kx - tanDirX * tLen - 8*dpr * tanDirX, ky - tanDirY * tLen - 8*dpr * tanDirY);
+    ctx.fillText('m', kx + mmDirX * (mLen + 12*dpr), ky + mmDirY * (mLen + 12*dpr));
+    ctx.fillText('m', kx - mmDirX * (mLen + 12*dpr), ky - mmDirY * (mLen + 12*dpr));
 
     // --- N 点 ---
     drawPoint(nx, ny, 4.5*dpr, '#10b981');
@@ -361,33 +353,37 @@ function draw() {
     ctx.fillText('θ_k', ox + (thetaArcR + 14*dpr) * Math.cos(thetaMid),
                        oy + (thetaArcR + 14*dpr) * Math.sin(thetaMid));
 
-    // --- α_k 标注（K 点处，法线方向与 KO 方向之间的角）---
-    // 法线方向（K→N）角度
-    const fnAngle = Math.atan2(ny - ky, nx - kx);
-    // KO 方向（K→O）角度
-    const koAngle = Math.atan2(oy - ky, ox - kx);
+    // --- α_k 标注（K 点处，m-m 线与 n-n 线所夹锐角 = 压力角）---
+    // m-m 方向（canvas坐标）：(cos(t), -sin(t))
+    // n-n 方向（canvas坐标）：(sin(t), cos(t))
+    const mmAngle = Math.atan2(mmDirY, mmDirX);  // m-m 线角度
+    const nnAngle = Math.atan2(dirY, dirX);       // n-n 线角度 (从N到K方向)
 
     const alphaArcR = 22 * dpr;
-    ctx.strokeStyle = '#ef4444';
-    ctx.lineWidth = 1.5*dpr;
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 1.8*dpr;
     ctx.beginPath();
-    // 确定弧的画法和方向
-    let a1 = fnAngle, a2 = koAngle;
-    // 确保从 a1 到 a2 画短弧
+    // 从 n-n 方向画到 m-m 方向（取锐角）
+    let a1 = nnAngle, a2 = mmAngle;
     let diff = a2 - a1;
     while (diff > PI) diff -= TAU;
     while (diff < -PI) diff += TAU;
-    if (diff > 0) {
-      ctx.arc(kx, ky, alphaArcR, a1, a2, false);
+    // 画短弧（压力角始终是锐角）
+    if (Math.abs(diff) <= PI/2) {
+      if (diff > 0) ctx.arc(kx, ky, alphaArcR, a1, a2, false);
+      else ctx.arc(kx, ky, alphaArcR, a1, a2, true);
     } else {
-      ctx.arc(kx, ky, alphaArcR, a1, a2, true);
+      // 取另一侧
+      const altDiff = diff > 0 ? diff - TAU : diff + TAU;
+      if (altDiff > 0) ctx.arc(kx, ky, alphaArcR, a1, a2, false);
+      else ctx.arc(kx, ky, alphaArcR, a1, a2, true);
     }
     ctx.stroke();
 
     // α_k 标签
     const alphaMid = a1 + diff / 2;
-    ctx.font = `${12*dpr}px sans-serif`;
-    ctx.fillStyle = '#f87171';
+    ctx.font = `${13*dpr}px sans-serif`;
+    ctx.fillStyle = '#f59e0b';
     ctx.textAlign = 'center';
     ctx.fillText('α_k', kx + (alphaArcR + 14*dpr) * Math.cos(alphaMid),
                        ky + (alphaArcR + 14*dpr) * Math.sin(alphaMid));
@@ -414,6 +410,20 @@ function drawPoint(x, y, r, color) {
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, TAU);
+  ctx.fill();
+}
+
+// 画实心箭头：在 from→to 方向上，箭头尖端在 to 点
+function drawArrow(fromX, fromY, toX, toY, color, headLen) {
+  const dx = toX - fromX;
+  const dy = toY - fromY;
+  const angle = Math.atan2(dy, dx);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(toX, toY);
+  ctx.lineTo(toX - headLen * Math.cos(angle - 0.35), toY - headLen * Math.sin(angle - 0.35));
+  ctx.lineTo(toX - headLen * Math.cos(angle + 0.35), toY - headLen * Math.sin(angle + 0.35));
+  ctx.closePath();
   ctx.fill();
 }
 
