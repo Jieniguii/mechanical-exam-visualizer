@@ -293,10 +293,14 @@ function draw() {
     const rkPerpLen = Math.sqrt(rkPerpX*rkPerpX + rkPerpY*rkPerpY) || 1;
     ctx.fillText('r_k', rkMx + rkPerpX/rkPerpLen * 14*dpr, rkMy + rkPerpY/rkPerpLen * 14*dpr);
 
-    // --- m-m 线（K 点速度方向 = 渐开线切线方向，垂直于 OK）---
-    // 渐开线切线方向 (canvas): (cos(t), -sin(t))
-    const mmDirX = Math.cos(tCur);
-    const mmDirY = -Math.sin(tCur);
+    // --- m-m 线（K 点速度方向，始终垂直于 OK 连线）---
+    // OK 方向 (canvas): (cos(t)+t*sin(t), -(sin(t)-t*cos(t)))
+    // 垂直方向（旋转90°）: (sin(t)-t*cos(t), cos(t)+t*sin(t))
+    const okDx = Math.cos(tCur) + tCur * Math.sin(tCur);
+    const okDy = -(Math.sin(tCur) - tCur * Math.cos(tCur));
+    const okLen = Math.sqrt(okDx*okDx + okDy*okDy);
+    const mmDirX = okDy / okLen;   // 垂直于 OK 的单位向量
+    const mmDirY = -okDx / okLen;
     const mLen = 55 * dpr;
 
     ctx.strokeStyle = '#ef4444';
