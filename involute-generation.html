@@ -358,29 +358,34 @@ function draw() {
                        oy + (thetaArcR + 14*dpr) * Math.sin(thetaMid));
 
     // --- α_k 标注（K 点处，m-m 线与 n-n 线所夹锐角 = 压力角）---
-    // m-m 方向（canvas坐标）：(cos(t), -sin(t))
-    // n-n 方向（canvas坐标）：(sin(t), cos(t))
-    const mmAngle = Math.atan2(mmDirY, mmDirX);  // m-m 线角度
-    const nnAngle = Math.atan2(dirY, dirX);       // n-n 线角度 (从N到K方向)
+    const nnAngle = Math.atan2(dirY, dirX);  // n-n 方向
+    
+    // m-m 有两个方向，取与 n-n 形成锐角的那个
+    const mmAngle1 = Math.atan2(mmDirY, mmDirX);
+    const mmAngle2 = Math.atan2(-mmDirY, -mmDirX);
+    
+    let diff1 = mmAngle1 - nnAngle;
+    while (diff1 > PI) diff1 -= TAU;
+    while (diff1 < -PI) diff1 += TAU;
+    
+    let diff2 = mmAngle2 - nnAngle;
+    while (diff2 > PI) diff2 -= TAU;
+    while (diff2 < -PI) diff2 += TAU;
+    
+    // 选绝对值小的（锐角）
+    const a1 = nnAngle;
+    const a2 = Math.abs(diff1) < Math.abs(diff2) ? mmAngle1 : mmAngle2;
+    const diff = Math.abs(diff1) < Math.abs(diff2) ? diff1 : diff2;
 
     const alphaArcR = 22 * dpr;
     ctx.strokeStyle = '#f59e0b';
     ctx.lineWidth = 1.8*dpr;
     ctx.beginPath();
-    // 从 n-n 方向画到 m-m 方向（取锐角）
-    let a1 = nnAngle, a2 = mmAngle;
-    let diff = a2 - a1;
-    while (diff > PI) diff -= TAU;
-    while (diff < -PI) diff += TAU;
-    // 画短弧（压力角始终是锐角）
-    if (Math.abs(diff) <= PI/2) {
-      if (diff > 0) ctx.arc(kx, ky, alphaArcR, a1, a2, false);
-      else ctx.arc(kx, ky, alphaArcR, a1, a2, true);
+    // 画短弧
+    if (diff > 0) {
+      ctx.arc(kx, ky, alphaArcR, a1, a2, false);
     } else {
-      // 取另一侧
-      const altDiff = diff > 0 ? diff - TAU : diff + TAU;
-      if (altDiff > 0) ctx.arc(kx, ky, alphaArcR, a1, a2, false);
-      else ctx.arc(kx, ky, alphaArcR, a1, a2, true);
+      ctx.arc(kx, ky, alphaArcR, a1, a2, true);
     }
     ctx.stroke();
 
