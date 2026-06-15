@@ -136,20 +136,26 @@ function drawSub(ctx, base, sub, x, y) {
   // Draw subscript character smaller and lower-right
   const savedFont = ctx.font;
   const origAlign = ctx.textAlign;
-  const fs = parseFloat(savedFont);
-  const subFont = savedFont.replace(/([\d.]+)px/, (fs * 0.6).toFixed(1) + "px");
+  // Parse font size with regex (font string may start with "italic"/"bold")
+  const fsMatch = savedFont.match(/([\d.]+)px/);
+  const fs = fsMatch ? parseFloat(fsMatch[1]) : 14;
+  const subSize = Math.max(8, Math.round(fs * 0.6));
+  const subFont = savedFont.replace(/[\d.]+px/, subSize + 'px');
   // Measure base width in original font
   const bw = ctx.measureText(base).width;
   // Switch to left-align for subscript positioning
   ctx.textAlign = 'left';
   ctx.font = subFont;
+  // Position subscript at lower-right of base character
+  let subX, subY = y + fs * 0.3;
   if (origAlign === 'center') {
-    ctx.fillText(sub, x + bw/2 - 2, y + fs * 0.25);
+    subX = x + bw / 2;       // right edge of centered base
   } else if (origAlign === 'right') {
-    ctx.fillText(sub, x + bw * 0.8, y + fs * 0.25);
+    subX = x;                 // right edge of right-aligned base
   } else {
-    ctx.fillText(sub, x + bw - 1, y + fs * 0.25);
+    subX = x + bw;            // right edge of left-aligned base
   }
+  ctx.fillText(sub, subX, subY);
   ctx.font = savedFont;
   ctx.textAlign = origAlign;
 }
