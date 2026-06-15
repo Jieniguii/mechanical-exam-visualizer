@@ -6,33 +6,39 @@
   <title>渐开线形成过程 — 机械考研可视化</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{background:#0f1117;color:#e4e4e7;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px}
-    h1{font-size:28px;font-weight:600;margin-bottom:8px;background:linear-gradient(135deg,#6366f1,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-    p{color:#71717a;font-size:14px;margin-bottom:20px}
-    .back-btn{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#94a3b8;text-decoration:none;font-size:13px;padding:6px 14px;border-radius:6px;background:rgba(255,255,255,0.05);transition:all 0.2s}
+    body{background:#0f1117;color:#e4e4e7;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px}
+    .back-btn{color:#94a3b8;text-decoration:none;font-size:13px;padding:6px 14px;border-radius:6px;background:rgba(255,255,255,0.05);transition:all 0.2s}
     .back-btn:hover{background:rgba(255,255,255,0.12);color:#6366f1}
-    .page-header{position:relative;text-align:center;padding:20px 0 12px}
-    a{color:#6366f1;text-decoration:none}
-    .main-container { max-width: 1000px; width: 100%; }
-    .demo-section { background: #0f172a; border-radius: 12px; padding: 16px; }
-    canvas { display: block; margin: 0 auto; background: #1e293b; border-radius: 8px; cursor: pointer; }
-    .controls { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
-    .controls button { padding: 8px 18px; border: none; border-radius: 6px; background: #3b82f6; color: #fff; cursor: pointer; font-size: 14px; }
-    .controls button:hover { background: #2563eb; }
-    .controls button.active { background: #f97316; }
-    .param-group { background: #1e293b; border-radius: 8px; padding: 14px; margin-top: 12px; }
-    .param-group label { color: #94a3b8; font-size: 13px; display: block; margin-bottom: 4px; }
-    .param-group input[type="range"] { width: 100%; accent-color: #3b82f6; }
-    .param-row { display: flex; gap: 16px; flex-wrap: wrap; }
-    .param-row .param-group { flex: 1; min-width: 200px; }
-    .info-box { background: #1e293b; border-left: 3px solid #3b82f6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-top: 12px; font-size: 14px; color: #cbd5e1; line-height: 1.8; }
-    .info-box strong { color: #60a5fa; }
-    .legend { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: #94a3b8; }
-    .legend span { display: flex; align-items: center; gap: 4px; }
-    .legend .dot { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
-    @media (max-width: 768px) {
-      .param-row { flex-direction: column; }
-      .back-btn { position: static; display: inline-block; margin-bottom: 8px; transform: none; }
+    .page-header{position:relative;text-align:center;padding:10px 0 12px;width:100%;max-width:960px}
+    .page-header .back-btn{position:absolute;left:0;top:50%;transform:translateY(-50%)}
+    h1{font-size:24px;font-weight:600;margin-bottom:6px;background:linear-gradient(135deg,#6366f1,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .subtitle{color:#71717a;font-size:13px;margin-bottom:10px}
+    .main-container{max-width:960px;width:100%}
+    .demo-section{background:#1a1b26;border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.06)}
+    canvas{display:block;margin:0 auto;background:#0f172a;border-radius:8px;width:100%;cursor:pointer}
+    .controls{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+    .controls button{padding:8px 18px;border:none;border-radius:6px;background:#3b82f6;color:#fff;cursor:pointer;font-size:13px;transition:all 0.15s}
+    .controls button:hover{background:#2563eb}
+    .controls button.active{background:#f97316}
+    .legend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:10px;font-size:12px;color:#94a3b8}
+    .legend span{display:flex;align-items:center;gap:4px}
+    .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+    .param-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+    .param-group{flex:1;min-width:200px;background:#0f172a;border-radius:8px;padding:10px 14px}
+    .param-group label{color:#94a3b8;font-size:12px;display:block;margin-bottom:4px}
+    .param-group input[type="range"]{width:100%;accent-color:#6366f1}
+    .data-panel{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+    .data-item{flex:1;min-width:120px;background:#0f172a;border-radius:8px;padding:10px 14px;text-align:center}
+    .data-item .val{font-size:18px;font-weight:600;color:#6366f1;font-family:'Courier New',monospace}
+    .data-item .lbl{font-size:11px;color:#71717a;margin-top:2px}
+    .info-box{background:#1a1b26;border-left:3px solid #6366f1;padding:14px 16px;border-radius:0 8px 8px 0;margin-top:12px;font-size:13px;color:#cbd5e1;line-height:1.9}
+    .info-box strong{color:#818cf8}
+    @media(max-width:768px){
+      body{padding:12px}
+      .page-header .back-btn{position:static;display:inline-block;margin-bottom:8px;transform:none}
+      .param-row{flex-direction:column}
+      .data-panel{flex-direction:column}
+      h1{font-size:20px}
     }
   </style>
 </head>
@@ -40,18 +46,20 @@
   <div class="main-container">
     <div class="page-header">
       <a href="index.html" class="back-btn">← 返回首页</a>
-      <h1>📐 渐开线形成过程</h1>
-      <p>直观展示一条直线在基圆上纯滚动时，直线上任一点描绘出渐开线的过程</p>
+      <h1>渐开线形成过程</h1>
+      <p class="subtitle">直线在基圆上纯滚动，动点 K 描绘出渐开线</p>
     </div>
 
     <div class="demo-section">
       <canvas id="canvas"></canvas>
 
       <div class="legend">
-        <span><i class="dot" style="background:#3b82f6"></i> 基圆</span>
-        <span><i class="dot" style="background:#64748b"></i> 发生线（直线）</span>
-        <span><i class="dot" style="background:#f97316"></i> 渐开线轨迹</span>
-        <span><i class="dot" style="background:#a855f7"></i> 动点 K</span>
+        <span><i style="background:#3b82f6"></i>基圆</span>
+        <span><i style="background:#94a3b8"></i>发生线 n-n</span>
+        <span><i style="background:#f97316"></i>渐开线</span>
+        <span><i style="background:#a855f7"></i>向径 r<sub>k</sub></span>
+        <span><i style="background:#ef4444"></i>切线 t-t</span>
+        <span><i style="background:#10b981"></i>切点 N</span>
       </div>
 
       <div class="controls">
@@ -66,24 +74,32 @@
           <input type="range" id="progress" min="0" max="100" value="0">
         </div>
         <div class="param-group">
-          <label>基圆半径 r<sub>b</sub>：<span id="rbVal">80</span> mm</label>
-          <input type="range" id="rbSlider" min="40" max="120" value="80">
+          <label>基圆半径 r<sub>b</sub>：<span id="rbVal">90</span> px</label>
+          <input type="range" id="rbSlider" min="50" max="140" value="90">
         </div>
+      </div>
+
+      <div class="data-panel">
+        <div class="data-item"><div class="val" id="dataT">0.00</div><div class="lbl">展开角 t (rad)</div></div>
+        <div class="data-item"><div class="val" id="dataRk">90.0</div><div class="lbl">向径 r<sub>k</sub></div></div>
+        <div class="data-item"><div class="val" id="dataAlpha">0.0°</div><div class="lbl">压力角 α<sub>k</sub></div></div>
+        <div class="data-item"><div class="val" id="dataTheta">0.0°</div><div class="lbl">展角 θ<sub>k</sub></div></div>
       </div>
     </div>
 
     <div class="info-box">
-      <strong>渐开线定义：</strong>一条直线在一个圆上作纯滚动时，直线上任一点的轨迹。<br><br>
+      <strong>渐开线定义：</strong>一条直线在一个圆上作纯滚动时，直线上任一点 K 的轨迹即为渐开线。<br><br>
       <strong>关键性质：</strong><br>
-      ① 发生线在基圆上滚过的长度 = 基圆上被滚过的弧长<br>
-      ② 发生线始终与基圆相切<br>
-      ③ 渐开线上任一点的法线切于基圆<br>
+      ① 发生线在基圆上滚过的长度 = 基圆上被滚过的弧长（NK = AN）<br>
+      ② 发生线 n-n 始终与基圆相切于 N 点，即 K 点的法线<br>
+      ③ 渐开线上任一点的法线必切于基圆<br>
       ④ 渐开线形状仅取决于基圆大小<br>
-      ⑤ 基圆内无渐开线<br><br>
-      <strong>齿轮应用：</strong>标准齿轮的齿廓就是由两条反向渐开线组成的。渐开线齿廓能保证定传动比传动。
+      ⑤ 基圆以内无渐开线<br>
+      ⑥ 压力角 α<sub>k</sub> = arctan(t)，向径 r<sub>k</sub> = r<sub>b</sub>·√(1+t²)<br><br>
+      <strong>齿轮应用：</strong>标准齿轮齿廓由两条反向渐开线组成，渐开线齿廓能保证定传动比传动。
     </div>
 
-    <p style="text-align:center;margin-top:12px;"><a href="index.html">← 返回首页</a></p>
+    <p style="text-align:center;margin-top:10px"><a href="index.html" class="back-btn">← 返回首页</a></p>
   </div>
 
 <script>
@@ -91,249 +107,320 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const PI = Math.PI, TAU = 2 * PI;
 
-// UI elements
 const btnPlay = document.getElementById('btnPlay');
 const btnPause = document.getElementById('btnPause');
 const btnReset = document.getElementById('btnReset');
 const progressSlider = document.getElementById('progress');
 const progressVal = document.getElementById('progressVal');
 const rbSlider = document.getElementById('rbSlider');
-const rbVal = document.getElementById('rbVal');
+const rbValEl = document.getElementById('rbVal');
 
-// Parameters
-let rb = 80;      // base circle radius (mm)
-let tMax = 2.5;   // max展开 angle (radians) — controls how much involute to draw
-let progress = 0; // 0 to 1
+// Data display
+const dataT = document.getElementById('dataT');
+const dataRk = document.getElementById('dataRk');
+const dataAlpha = document.getElementById('dataAlpha');
+const dataTheta = document.getElementById('dataTheta');
+
+let R = 90;        // base circle radius in px
+let tMax = 2.2;    // max展开 angle (radians)
+let progress = 0;  // 0 to 1
 let playing = false;
 let animId = null;
-let scale = 1;
-let cx, cy;       // canvas center
+let W, H, dpr, ox, oy;
 
 function resize() {
-  const w = canvas.parentElement.clientWidth - 32;
-  const h = Math.min(w * 0.7, 500);
-  canvas.width = w * devicePixelRatio;
-  canvas.height = h * devicePixelRatio;
+  dpr = window.devicePixelRatio || 1;
+  const containerW = canvas.parentElement.clientWidth - 24;
+  const w = containerW;
+  const h = Math.min(w * 0.72, 580);
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
   canvas.style.width = w + 'px';
   canvas.style.height = h + 'px';
-  scale = Math.min(w, h) / 350;
-  cx = canvas.width / 2;
-  cy = canvas.height / 2;
+  W = canvas.width;
+  H = canvas.height;
+  // O 位置：画面中心偏右下，给渐开线展开留出左上方空间
+  ox = W * 0.40;
+  oy = H * 0.70;
   draw();
 }
 
-// Involute of a circle: x = rb*(cos(t) + t*sin(t)), y = rb*(sin(t) - t*cos(t))
-function involutePoint(t, rbVal) {
-  return {
-    x: rbVal * (Math.cos(t) + t * Math.sin(t)),
-    y: rbVal * (Math.sin(t) - t * Math.cos(t))
-  };
-}
-
 function draw() {
-  const dpr = devicePixelRatio;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, W, H);
   ctx.save();
 
-  const rbS = rb * scale * dpr / 100; // scaled base circle radius in px
-  const tCur = progress * tMax;        // current展开 angle
+  const tCur = progress * tMax;
+  const rScale = R * dpr; // base circle radius in actual canvas pixels
 
-  // === 1. Base circle ===
+  // ===== 1. 基圆 =====
   ctx.strokeStyle = '#3b82f6';
   ctx.lineWidth = 2 * dpr;
-  ctx.setLineDash([4 * dpr, 3 * dpr]);
+  ctx.setLineDash([6*dpr, 4*dpr]);
   ctx.beginPath();
-  ctx.arc(cx, cy, rbS, 0, TAU);
+  ctx.arc(ox, oy, rScale, 0, TAU);
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Base circle fill (subtle)
-  ctx.fillStyle = 'rgba(59,130,246,0.06)';
+  // 基圆填充
+  ctx.fillStyle = 'rgba(59,130,246,0.04)';
   ctx.beginPath();
-  ctx.arc(cx, cy, rbS, 0, TAU);
+  ctx.arc(ox, oy, rScale, 0, TAU);
   ctx.fill();
 
-  // Center dot
+  // ===== 2. 圆心 O =====
   ctx.fillStyle = '#fff';
   ctx.beginPath();
-  ctx.arc(cx, cy, 3 * dpr, 0, TAU);
+  ctx.arc(ox, oy, 3.5*dpr, 0, TAU);
   ctx.fill();
-  ctx.font = `${12 * dpr}px sans-serif`;
-  ctx.fillStyle = '#94a3b8';
-  ctx.fillText('O', cx + 6 * dpr, cy - 6 * dpr);
+  ctx.font = `bold ${14*dpr}px sans-serif`;
+  ctx.fillStyle = '#e4e4e7';
+  ctx.textAlign = 'center';
+  ctx.fillText('O', ox - 14*dpr, oy + 5*dpr);
 
-  // Label rb
-  ctx.strokeStyle = 'rgba(59,130,246,0.5)';
-  ctx.lineWidth = 1 * dpr;
-  ctx.setLineDash([3 * dpr, 2 * dpr]);
+  // ===== 3. A 点（基圆角度 0 处，即右侧）=====
+  const ax = ox + rScale;
+  const ay = oy;
+  drawPoint(ax, ay, 4.5*dpr, '#f59e0b');
+  ctx.font = `bold ${14*dpr}px sans-serif`;
+  ctx.fillStyle = '#f59e0b';
+  ctx.textAlign = 'left';
+  ctx.fillText('A', ax + 8*dpr, ay + 5*dpr);
+
+  // ===== 4. OA 连线 =====
+  ctx.strokeStyle = 'rgba(59,130,246,0.35)';
+  ctx.lineWidth = 1.5*dpr;
+  ctx.setLineDash([4*dpr, 3*dpr]);
   ctx.beginPath();
-  ctx.moveTo(cx, cy);
-  ctx.lineTo(cx + rbS, cy);
+  ctx.moveTo(ox, oy);
+  ctx.lineTo(ax, ay);
   ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle = '#60a5fa';
-  ctx.font = `${11 * dpr}px sans-serif`;
-  ctx.fillText('r_b', cx + rbS / 2 - 8 * dpr, cy - 6 * dpr);
 
-  if (progress > 0.001) {
-    // === 2. Involute curve (trail) ===
+  // r_b 标注
+  ctx.font = `italic ${12*dpr}px sans-serif`;
+  ctx.fillStyle = '#60a5fa';
+  ctx.textAlign = 'center';
+  ctx.fillText('r_b', (ox + ax) / 2, oy - 8*dpr);
+
+  // ===== 展开部分 =====
+  if (tCur > 0.02) {
+    // --- 计算关键点 ---
+    // 切点 N（基圆上，角度 tCur）
+    const nx = ox + rScale * Math.cos(tCur);
+    const ny = oy - rScale * Math.sin(tCur);
+
+    // K 点（渐开线上）
+    const kx = ox + rScale * (Math.cos(tCur) + tCur * Math.sin(tCur));
+    const ky = oy - rScale * (Math.sin(tCur) - tCur * Math.cos(tCur));
+
+    // --- 渐开线轨迹（橙色）---
     ctx.strokeStyle = '#f97316';
-    ctx.lineWidth = 2.5 * dpr;
+    ctx.lineWidth = 2.5*dpr;
     ctx.beginPath();
-    const steps = Math.max(2, Math.floor(tCur / 0.02));
+    const steps = Math.max(20, Math.floor(tCur / 0.008));
     for (let i = 0; i <= steps; i++) {
       const t = (i / steps) * tCur;
-      const pt = involutePoint(t, rbS);
-      const sx = cx + pt.x;
-      const sy = cy - pt.y; // flip y for canvas
-      if (i === 0) ctx.moveTo(sx, sy);
-      else ctx.lineTo(sx, sy);
+      const px = ox + rScale * (Math.cos(t) + t * Math.sin(t));
+      const py = oy - rScale * (Math.sin(t) - t * Math.cos(t));
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
     }
     ctx.stroke();
 
-    // === 3. Generating line (发生线) — tangent to base circle at current position ===
-    // The generating line at展开 angle tCur:
-    // Tangent point on base circle: (rb*cos(tCur), rb*sin(tCur))
-    // The line extends from tangent point, perpendicular to radius at tangent point
-    // Length of unwound portion = rb * tCur
-    const tanAngle = tCur; // angle of tangent point on base circle
-    const tanX = cx + rbS * Math.cos(tanAngle);
-    const tanY = cy - rbS * Math.sin(tanAngle);
-    
-    // Current point K on involute
-    const ptK = involutePoint(tCur, rbS);
-    const kx = cx + ptK.x;
-    const ky = cy - ptK.y;
-
-    // The generating line goes from tangent point to K, and extends beyond
-    // Direction: from tangent point to K
-    const lineLen = rbS * tCur; // length of unwound line
-    
-    // Direction of the line (perpendicular to radius at tangent point)
-    const dirX = Math.cos(tanAngle + PI / 2); // perpendicular to radius
-    const dirY = -Math.sin(tanAngle + PI / 2); // flip y
-
-    // Actually, the tangent point is at angle tanAngle on the base circle.
-    // The generating line is tangent to the base circle at this point.
-    // It goes from the tangent point in the direction perpendicular to the radius.
-    // The K point is at the end of the unwound portion.
-
-    // Let me recalculate properly:
-    // Tangent point B on base circle at angle tCur:
-    //   Bx = rb*cos(tCur), By = rb*sin(tCur)
-    // The tangent direction (perpendicular to OB, in the direction of rolling):
-    //   dx = -sin(tCur), dy = cos(tCur) ... but we need the direction of unwinding
-    
-    // For the involute: the generating line at parameter t touches the base circle at angle t.
-    // The tangent point is (rb*cos(t), rb*sin(t)).
-    // The line extends from the tangent point to K = (rb*(cos(t)+t*sin(t)), rb*(sin(t)-t*cos(t))).
-    // Direction from tangent point to K:
-    //   K - B = (rb*t*sin(t), -rb*t*cos(t)) → direction (sin(t), -cos(t))
-    // This is perpendicular to the radius at B = (cos(t), sin(t)), which is correct (tangent).
-
-    const bDirX = Math.sin(tCur);  // direction from B to K (in math coords)
-    const bDirY = -Math.cos(tCur); // (flip y for canvas)
-
-    // Draw the full generating line (extend beyond K for visual clarity)
-    const extLen = rbS * tCur + 30 * dpr; // extend a bit
-    const lineStartX = tanX - bDirX * 15 * dpr;
-    const lineStartY = tanY - bDirY * (-15 * dpr);
-    // Actually let me just draw from tangent point through K and a bit beyond
-    
-    // Simpler: line from tangent point B to K, plus a bit of extension
-    ctx.strokeStyle = '#64748b';
-    ctx.lineWidth = 1.5 * dpr;
-    ctx.setLineDash([6 * dpr, 3 * dpr]);
+    // --- 基圆上滚过的弧（从 A 到 N，橙色细线）---
+    ctx.strokeStyle = 'rgba(249,115,22,0.4)';
+    ctx.lineWidth = 2.5*dpr;
     ctx.beginPath();
-    // Extend backward from tangent point
-    ctx.moveTo(tanX - bDirX * 20 * dpr, tanY + bDirY * 20 * dpr);
-    ctx.lineTo(kx, ky);
-    // Extend forward from K a little
-    ctx.lineTo(kx + bDirX * 15 * dpr, ky - bDirY * 15 * dpr);
+    ctx.arc(ox, oy, rScale, 0, -tCur, true);
+    ctx.stroke();
+
+    // --- 发生线 n-n（虚线，贯穿 N 和 K，两端延长）---
+    // 方向（canvas坐标）：从 N 到 K = (R*t*sin(t), R*t*cos(t)) → 归一化 (sin(t), cos(t))
+    const dirX = Math.sin(tCur);
+    const dirY = Math.cos(tCur);
+
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1.5*dpr;
+    ctx.setLineDash([6*dpr, 4*dpr]);
+    const ext = 60 * dpr;
+    ctx.beginPath();
+    ctx.moveTo(nx - dirX * ext, ny - dirY * ext);
+    ctx.lineTo(kx + dirX * ext * 0.6, ky + dirY * ext * 0.6);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Solid portion: from tangent point to K (the unwound portion)
-    ctx.strokeStyle = '#94a3b8';
-    ctx.lineWidth = 2 * dpr;
+    // 实线部分（N 到 K）
+    ctx.strokeStyle = '#b0b8c4';
+    ctx.lineWidth = 2*dpr;
     ctx.beginPath();
-    ctx.moveTo(tanX, tanY);
+    ctx.moveTo(nx, ny);
     ctx.lineTo(kx, ky);
     ctx.stroke();
 
-    // === 4. Tangent point B (on base circle) ===
-    ctx.fillStyle = '#10b981';
-    ctx.beginPath();
-    ctx.arc(tanX, tanY, 4 * dpr, 0, TAU);
-    ctx.fill();
-    ctx.fillStyle = '#10b981';
-    ctx.font = `bold ${12 * dpr}px sans-serif`;
-    ctx.fillText('N', tanX + 8 * dpr, tanY - 8 * dpr);
-
-    // === 5. Point K (on involute) ===
-    ctx.fillStyle = '#a855f7';
-    ctx.beginPath();
-    ctx.arc(kx, ky, 4 * dpr, 0, TAU);
-    ctx.fill();
-    ctx.font = `bold ${12 * dpr}px sans-serif`;
-    ctx.fillText('K', kx + 8 * dpr, ky - 6 * dpr);
-
-    // === 6. Labels ===
-    // Label: 发生线 (at midpoint of solid line)
-    const midX = (tanX + kx) / 2;
-    const midY = (tanY + ky) / 2;
+    // n-n 标注
+    ctx.font = `italic bold ${13*dpr}px sans-serif`;
     ctx.fillStyle = '#94a3b8';
-    ctx.font = `${11 * dpr}px sans-serif`;
-    ctx.fillText('发生线', midX + 10 * dpr, midY + 4 * dpr);
+    ctx.textAlign = 'center';
+    const nLabelEnd1x = nx - dirX * ext * 0.7;
+    const nLabelEnd1y = ny - dirY * ext * 0.7;
+    ctx.fillText('n', nLabelEnd1x - 10*dpr, nLabelEnd1y);
+    const nLabelEnd2x = kx + dirX * ext * 0.45;
+    const nLabelEnd2y = ky + dirY * ext * 0.45;
+    ctx.fillText('n', nLabelEnd2x + 10*dpr, nLabelEnd2y);
 
-    // Label: 渐开线 (near the curve midpoint)
-    const midT = tCur / 2;
-    const midPt = involutePoint(midT, rbS);
-    ctx.fillStyle = '#f97316';
-    ctx.font = `${12 * dpr}px sans-serif`;
-    ctx.fillText('渐开线', cx + midPt.x + 10 * dpr, cy - midPt.y);
-
-    // Show arc length = line length annotation
-    // Arc on base circle from angle 0 to tCur
-    ctx.strokeStyle = 'rgba(249,115,22,0.5)';
-    ctx.lineWidth = 2 * dpr;
+    // --- ON 连线（O 到切点 N，绿色虚线）---
+    ctx.strokeStyle = 'rgba(16,185,129,0.5)';
+    ctx.lineWidth = 1.2*dpr;
+    ctx.setLineDash([3*dpr, 3*dpr]);
     ctx.beginPath();
-    // In canvas, y is flipped, so arc goes clockwise (anticlockwise=false) from 0 to -tCur
-    ctx.arc(cx, cy, rbS, 0, -tCur, true);
+    ctx.moveTo(ox, oy);
+    ctx.lineTo(nx, ny);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // --- r_k 连线（O 到 K，紫色虚线）---
+    ctx.strokeStyle = '#a855f7';
+    ctx.lineWidth = 1.5*dpr;
+    ctx.setLineDash([5*dpr, 3*dpr]);
+    ctx.beginPath();
+    ctx.moveTo(ox, oy);
+    ctx.lineTo(kx, ky);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // r_k 标注
+    ctx.font = `italic ${12*dpr}px sans-serif`;
+    ctx.fillStyle = '#c084fc';
+    ctx.textAlign = 'center';
+    const rkMx = (ox + kx) / 2;
+    const rkMy = (oy + ky) / 2;
+    // 偏移标注位置，避免和线重叠
+    const rkPerpX = -(ky - oy);
+    const rkPerpY = (kx - ox);
+    const rkPerpLen = Math.sqrt(rkPerpX*rkPerpX + rkPerpY*rkPerpY) || 1;
+    ctx.fillText('r_k', rkMx + rkPerpX/rkPerpLen * 14*dpr, rkMy + rkPerpY/rkPerpLen * 14*dpr);
+
+    // --- 切线 t-t（过 K 点，垂直于法线）---
+    // 法线方向 (canvas) = (sin(t), cos(t))
+    // 切线方向 = (cos(t), -sin(t))
+    const tanDirX = Math.cos(tCur);
+    const tanDirY = -Math.sin(tCur);
+    const tLen = 55 * dpr;
+
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 2*dpr;
+    ctx.beginPath();
+    ctx.moveTo(kx - tanDirX * tLen, ky - tanDirY * tLen);
+    ctx.lineTo(kx + tanDirX * tLen, ky + tanDirY * tLen);
     ctx.stroke();
 
-    // Label arc length = NK
-    if (tCur > 0.3) {
-      const arcMidAngle = -tCur / 2;
-      const arcLabelR = rbS + 14 * dpr;
-      ctx.fillStyle = '#f97316';
-      ctx.font = `${10 * dpr}px sans-serif`;
-      ctx.fillText('弧长 = NK', cx + Math.cos(arcMidAngle) * arcLabelR, cy + Math.sin(arcMidAngle) * arcLabelR);
-    }
+    // t-t 标注
+    ctx.font = `italic bold ${13*dpr}px sans-serif`;
+    ctx.fillStyle = '#ef4444';
+    ctx.textAlign = 'center';
+    ctx.fillText('t', kx + tanDirX * tLen + 8*dpr * tanDirX, ky + tanDirY * tLen + 8*dpr * tanDirY);
+    ctx.fillText('t', kx - tanDirX * tLen - 8*dpr * tanDirX, ky - tanDirY * tLen - 8*dpr * tanDirY);
 
-    // Show angle tCur
-    if (tCur > 0.2) {
-      ctx.strokeStyle = 'rgba(168,85,247,0.6)';
-      ctx.lineWidth = 1 * dpr;
-      ctx.beginPath();
-      ctx.arc(cx, cy, rbS * 0.3, 0, -tCur, true);
-      ctx.stroke();
-      ctx.fillStyle = '#a855f7';
-      ctx.font = `${10 * dpr}px sans-serif`;
-      const angLabelR = rbS * 0.3 + 12 * dpr;
-      const angMid = -tCur / 2;
-      ctx.fillText('θ', cx + Math.cos(angMid) * angLabelR, cy + Math.sin(angMid) * angLabelR);
-    }
+    // --- N 点 ---
+    drawPoint(nx, ny, 4.5*dpr, '#10b981');
+    ctx.font = `bold ${14*dpr}px sans-serif`;
+    ctx.fillStyle = '#10b981';
+    ctx.textAlign = 'right';
+    ctx.fillText('N', nx - 8*dpr, ny - 6*dpr);
 
+    // --- K 点 ---
+    drawPoint(kx, ky, 5*dpr, '#a855f7');
+    ctx.font = `bold ${14*dpr}px sans-serif`;
+    ctx.fillStyle = '#c084fc';
+    ctx.textAlign = 'left';
+    ctx.fillText('K', kx + 10*dpr, ky - 6*dpr);
+
+    // --- θ_k 标注（O 点处，OA 到 OK 之间的角）---
+    // OA 方向 = 0 (canvas右方)
+    // OK 方向
+    const okAngle = Math.atan2(ky - oy, kx - ox); // canvas坐标中，向上为负
+    const thetaArcR = 28 * dpr;
+
+    ctx.strokeStyle = '#a855f7';
+    ctx.lineWidth = 1.5*dpr;
+    ctx.beginPath();
+    // 画从 0 到 okAngle 的弧
+    if (okAngle < 0) {
+      // OK 在 OA 上方（canvas中y为负=上方），顺时针画弧
+      ctx.arc(ox, oy, thetaArcR, okAngle, 0, false);
+    } else {
+      ctx.arc(ox, oy, thetaArcR, 0, okAngle, false);
+    }
+    ctx.stroke();
+
+    // θ_k 标签
+    const thetaMid = okAngle / 2;
+    ctx.font = `${12*dpr}px sans-serif`;
+    ctx.fillStyle = '#c084fc';
+    ctx.textAlign = 'center';
+    ctx.fillText('θ_k', ox + (thetaArcR + 14*dpr) * Math.cos(thetaMid),
+                       oy + (thetaArcR + 14*dpr) * Math.sin(thetaMid));
+
+    // --- α_k 标注（K 点处，法线方向与 KO 方向之间的角）---
+    // 法线方向（K→N）角度
+    const fnAngle = Math.atan2(ny - ky, nx - kx);
+    // KO 方向（K→O）角度
+    const koAngle = Math.atan2(oy - ky, ox - kx);
+
+    const alphaArcR = 22 * dpr;
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 1.5*dpr;
+    ctx.beginPath();
+    // 确定弧的画法和方向
+    let a1 = fnAngle, a2 = koAngle;
+    // 确保从 a1 到 a2 画短弧
+    let diff = a2 - a1;
+    while (diff > PI) diff -= TAU;
+    while (diff < -PI) diff += TAU;
+    if (diff > 0) {
+      ctx.arc(kx, ky, alphaArcR, a1, a2, false);
+    } else {
+      ctx.arc(kx, ky, alphaArcR, a1, a2, true);
+    }
+    ctx.stroke();
+
+    // α_k 标签
+    const alphaMid = a1 + diff / 2;
+    ctx.font = `${12*dpr}px sans-serif`;
+    ctx.fillStyle = '#f87171';
+    ctx.textAlign = 'center';
+    ctx.fillText('α_k', kx + (alphaArcR + 14*dpr) * Math.cos(alphaMid),
+                       ky + (alphaArcR + 14*dpr) * Math.sin(alphaMid));
+
+    // --- 更新数据面板 ---
+    const rk = R * Math.sqrt(1 + tCur * tCur);
+    const alphaK = Math.atan(tCur) * 180 / PI;
+    const thetaK = (tCur - Math.atan(tCur)) * 180 / PI;
+    dataT.textContent = tCur.toFixed(2);
+    dataRk.textContent = rk.toFixed(1);
+    dataAlpha.textContent = alphaK.toFixed(1) + '°';
+    dataTheta.textContent = thetaK.toFixed(1) + '°';
+  } else {
+    dataT.textContent = '0.00';
+    dataRk.textContent = R.toFixed(1);
+    dataAlpha.textContent = '0.0°';
+    dataTheta.textContent = '0.0°';
   }
 
   ctx.restore();
 }
 
+function drawPoint(x, y, r, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, TAU);
+  ctx.fill();
+}
+
 // Animation
 function animate() {
   if (!playing) return;
-  progress += 0.003;
+  progress += 0.002;
   if (progress > 1) {
     progress = 1;
     playing = false;
@@ -345,7 +432,6 @@ function animate() {
   if (playing) animId = requestAnimationFrame(animate);
 }
 
-// Events
 btnPlay.addEventListener('click', () => {
   if (progress >= 1) progress = 0;
   playing = true;
@@ -374,14 +460,15 @@ progressSlider.addEventListener('input', () => {
 });
 
 rbSlider.addEventListener('input', () => {
-  rb = parseInt(rbSlider.value);
-  rbVal.textContent = rb;
+  R = parseInt(rbSlider.value);
+  rbValEl.textContent = R;
   draw();
 });
 
-// Init
 window.addEventListener('resize', () => {
   cancelAnimationFrame(animId);
+  playing = false;
+  btnPlay.classList.remove('active');
   requestAnimationFrame(resize);
 });
 resize();
