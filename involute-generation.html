@@ -129,6 +129,31 @@ let playing = false;
 let animId = null;
 let W, H, dpr, ox, oy;
 
+// Helper: draw text with subscript (for labels like rₖ, θₖ, αₖ)
+function drawSub(ctx, base, sub, x, y) {
+  // Draw base character with current settings
+  ctx.fillText(base, x, y);
+  // Draw subscript character smaller and lower-right
+  const savedFont = ctx.font;
+  const origAlign = ctx.textAlign;
+  const fs = parseFloat(savedFont);
+  const subFont = savedFont.replace(/([\d.]+)px/, (fs * 0.6).toFixed(1) + "px");
+  // Measure base width in original font
+  const bw = ctx.measureText(base).width;
+  // Switch to left-align for subscript positioning
+  ctx.textAlign = 'left';
+  ctx.font = subFont;
+  if (origAlign === 'center') {
+    ctx.fillText(sub, x + bw/2 - 2, y + fs * 0.25);
+  } else if (origAlign === 'right') {
+    ctx.fillText(sub, x + bw * 0.8, y + fs * 0.25);
+  } else {
+    ctx.fillText(sub, x + bw - 1, y + fs * 0.25);
+  }
+  ctx.font = savedFont;
+  ctx.textAlign = origAlign;
+}
+
 function resize() {
   dpr = window.devicePixelRatio || 1;
   const containerW = canvas.parentElement.clientWidth - 24;
@@ -201,7 +226,7 @@ function draw() {
   ctx.font = `italic ${12*dpr}px sans-serif`;
   ctx.fillStyle = '#60a5fa';
   ctx.textAlign = 'center';
-  ctx.fillText('r_b', (ox + ax) / 2, oy - 8*dpr);
+  drawSub(ctx, 'r', 'b', (ox + ax) / 2, oy - 8*dpr);
 
   // ===== 展开部分 =====
   if (tCur > 0.02) {
@@ -291,7 +316,7 @@ function draw() {
     const rkPerpX = -(ky - oy);
     const rkPerpY = (kx - ox);
     const rkPerpLen = Math.sqrt(rkPerpX*rkPerpX + rkPerpY*rkPerpY) || 1;
-    ctx.fillText('r_k', rkMx + rkPerpX/rkPerpLen * 14*dpr, rkMy + rkPerpY/rkPerpLen * 14*dpr);
+    drawSub(ctx, 'r', 'k', rkMx + rkPerpX/rkPerpLen * 14*dpr, rkMy + rkPerpY/rkPerpLen * 14*dpr);
 
     // --- m-m 线（K 点速度方向，始终垂直于 OK 连线）---
     // OK 方向 (canvas): (cos(t)+t*sin(t), -(sin(t)-t*cos(t)))
@@ -354,8 +379,8 @@ function draw() {
     ctx.font = `${12*dpr}px sans-serif`;
     ctx.fillStyle = '#c084fc';
     ctx.textAlign = 'center';
-    ctx.fillText('θ_k', ox + (thetaArcR + 14*dpr) * Math.cos(thetaMid),
-                       oy + (thetaArcR + 14*dpr) * Math.sin(thetaMid));
+    drawSub(ctx, 'θ', 'k', ox + (thetaArcR + 14*dpr) * Math.cos(thetaMid),
+                oy + (thetaArcR + 14*dpr) * Math.sin(thetaMid));
 
     // --- α_k 标注（K 点处，m-m 线与 n-n 线所夹锐角 = 压力角）---
     const nnAngle = Math.atan2(dirY, dirX);  // n-n 方向
@@ -394,8 +419,8 @@ function draw() {
     ctx.font = `${13*dpr}px sans-serif`;
     ctx.fillStyle = '#f59e0b';
     ctx.textAlign = 'center';
-    ctx.fillText('α_k', kx + (alphaArcR + 14*dpr) * Math.cos(alphaMid),
-                       ky + (alphaArcR + 14*dpr) * Math.sin(alphaMid));
+    drawSub(ctx, 'α', 'k', kx + (alphaArcR + 14*dpr) * Math.cos(alphaMid),
+                ky + (alphaArcR + 14*dpr) * Math.sin(alphaMid));
 
     // --- 更新数据面板 ---
     const rk = R * Math.sqrt(1 + tCur * tCur);
