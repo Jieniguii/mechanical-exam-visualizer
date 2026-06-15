@@ -452,6 +452,7 @@ function animate() {
 }
 
 btnPlay.addEventListener('click', () => {
+  cancelAnimationFrame(animId);
   if (progress >= 1) progress = 0;
   playing = true;
   btnPlay.classList.add('active');
