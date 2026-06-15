@@ -531,24 +531,6 @@ function drawLineOfAction(cx1, cy1, cx2, cy2, p1, p2, scale, theta1Val, z1Val) {
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // 标记 B1、B2 端点
-  ctx.fillStyle = 'rgba(248,113,113,0.7)';
-  ctx.beginPath();
-  ctx.arc(pitchX + sB1 * dx * scale, cy1 + sB1 * dy * scale, 2 * scale, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(pitchX + sB2 * dx * scale, cy1 + sB2 * dy * scale, 2 * scale, 0, Math.PI * 2);
-  ctx.fill();
-
-  // 节点 P
-  ctx.fillStyle = '#f87171';
-  ctx.beginPath();
-  ctx.arc(pitchX, cy1, 2 * scale, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.font = '11px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('P', pitchX, cy1 - 8 * scale);
-
   // ===== 啮合点（接触点）严谨计算 =====
   // 原理：啮合点沿实际啮合线 B1→B2 移动
   // 齿轮转过一个基圆齿距，啮合点走完一个 pb
