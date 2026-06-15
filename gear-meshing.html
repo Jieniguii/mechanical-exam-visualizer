@@ -485,7 +485,7 @@ function drawLineOfAction(cx1, cy1, cx2, cy2, p1, p2, scale, theta1Val, z1Val) {
   const pitchX = cx1 + (p1.r / a) * (cx2 - cx1);
 
   const centerAngle = Math.atan2(cy2 - cy1, cx2 - cx1);
-  const loaAngle = centerAngle - (Math.PI / 2 - ALPHA);
+  const loaAngle = centerAngle + (Math.PI / 2 - ALPHA);
 
   const dx = Math.cos(loaAngle);
   const dy = Math.sin(loaAngle);
@@ -592,23 +592,24 @@ function drawPressureAngle(cx1, cy1, pitchX, scale) {
   ctx.strokeStyle = 'rgba(251,191,36,0.7)';
   ctx.lineWidth = 1.5;
 
-  // 公切线（在节点P处水平）
+  // 公切线（在节点P处垂直于连心线O1O2）
   const tangentLen = 30 * scale;
   ctx.setLineDash([3, 3]);
   ctx.beginPath();
-  ctx.moveTo(pitchX - tangentLen, cy1);
-  ctx.lineTo(pitchX + tangentLen, cy1);
+  ctx.moveTo(pitchX, cy1 - tangentLen);
+  ctx.lineTo(pitchX, cy1 + tangentLen);
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // 压力角圆弧
+  // 压力角圆弧：啮合线与公切线（垂直）的夹角 α
+  // 啮合线方向角 = π/2 - α（从水平算起），公切线方向角 = π/2
   const arcR = 25 * scale;
   ctx.beginPath();
-  ctx.arc(pitchX, cy1, arcR, -ALPHA, 0);
+  ctx.arc(pitchX, cy1, arcR, Math.PI / 2 - ALPHA, Math.PI / 2);
   ctx.stroke();
 
-  // Alpha 标注
-  const labelAngle = -ALPHA / 2;
+  // Alpha 标注（在弧的中间位置）
+  const labelAngle = Math.PI / 2 - ALPHA / 2;
   ctx.fillStyle = '#fbbf24';
   ctx.font = '11px sans-serif';
   ctx.textAlign = 'center';
