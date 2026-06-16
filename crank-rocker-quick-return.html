@@ -255,30 +255,32 @@
             geo.limit1 = null;
             geo.limit2 = null;
             
-            // 极位1：曲柄与连杆拉直共线
-            const BD1 = params.r2 + params.r3;
-            const cosTheta1 = (params.r1 * params.r1 + params.r4 * params.r4 - BD1 * BD1) / (2 * params.r1 * params.r4);
-            if (Math.abs(cosTheta1) <= 1) {
-                const angle1 = Math.acos(cosTheta1);
+            // 极位1：曲柄与连杆拉直共线，AC1 = r1 + r2
+            const AC1 = params.r1 + params.r2;
+            const C1 = findCfromAC(A, D, AC1, params.r3);
+            if (C1) {
+                // B1 在 AC1 线上，距 A 为 r1
+                const dir1 = Math.atan2(C1.y - A.y, C1.x - A.x);
                 const B1 = {
-                    x: A.x + params.r1 * Math.cos(angle1),
-                    y: A.y - params.r1 * Math.sin(angle1)
+                    x: A.x + params.r1 * Math.cos(dir1),
+                    y: A.y + params.r1 * Math.sin(dir1)
                 };
-                const C1 = solveC(B1, D);
-                if (C1) geo.limit1 = { angle: angle1, B: B1, C: C1 };
+                const angle1 = Math.atan2(-(B1.y - A.y), B1.x - A.x);
+                geo.limit1 = { angle: angle1, B: B1, C: C1 };
             }
             
-            // 极位2：曲柄与连杆折叠共线
-            const BD2 = Math.abs(params.r2 - params.r3);
-            const cosTheta2 = (params.r1 * params.r1 + params.r4 * params.r4 - BD2 * BD2) / (2 * params.r1 * params.r4);
-            if (Math.abs(cosTheta2) <= 1) {
-                const angle2 = Math.acos(cosTheta2);
+            // 极位2：曲柄与连杆折叠共线，AC2 = |r2 - r1|
+            const AC2 = Math.abs(params.r2 - params.r1);
+            const C2 = findCfromAC(A, D, AC2, params.r3);
+            if (C2) {
+                // B2 在 AC2 延长线上，距 A 为 r1
+                const dir2 = Math.atan2(C2.y - A.y, C2.x - A.x);
                 const B2 = {
-                    x: A.x + params.r1 * Math.cos(-angle2),
-                    y: A.y - params.r1 * Math.sin(-angle2)
+                    x: A.x + params.r1 * Math.cos(dir2),
+                    y: A.y + params.r1 * Math.sin(dir2)
                 };
-                const C2 = solveC(B2, D);
-                if (C2) geo.limit2 = { angle: -angle2, B: B2, C: C2 };
+                const angle2 = Math.atan2(-(B2.y - A.y), B2.x - A.x);
+                geo.limit2 = { angle: angle2, B: B2, C: C2 };
             }
             
             // 计算极位夹角 θ
@@ -287,6 +289,28 @@
                 const a2 = Math.atan2(-(geo.limit2.C.y - D.y), geo.limit2.C.x - D.x);
                 geo.theta = Math.abs(a1 - a2);
             }
+        }
+        
+        // 已知 AC 距离和 DC=r3，求 C 点坐标
+        function findCfromAC(A, D, acDist, r3) {
+            const dx = D.x - A.x;
+            const dy = D.y - A.y;
+            const ad = Math.sqrt(dx * dx + dy * dy);
+            
+            // 在三角形 ADC 中用余弦定理求角 DAC
+            const cosDAC = (acDist * acDist + ad * ad - r3 * r3) / (2 * acDist * ad);
+            if (Math.abs(cosDAC) > 1) return null;
+            
+            const angleDAC = Math.acos(cosDAC);
+            const angleAD = Math.atan2(dy, dx);
+            
+            // 取上方的解（负号是因为 canvas y 轴向下）
+            const angleAC = angleAD - angleDAC;
+            
+            return {
+                x: A.x + acDist * Math.cos(angleAC),
+                y: A.y + acDist * Math.sin(angleAC)
+            };
         }
         
         function solveFourBar(theta) {
