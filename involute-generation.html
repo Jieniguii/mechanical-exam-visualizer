@@ -45,7 +45,7 @@
 <body>
   <div class="main-container">
     <div class="page-header">
-      <a href="ch5-gear.html" class="back-btn">← 返回章节</a>
+      <a href="index.html" class="back-btn">← 返回首页</a>
       <h1>渐开线形成过程</h1>
       <p class="subtitle">直线在基圆上纯滚动，动点 K 描绘出渐开线</p>
     </div>
@@ -100,7 +100,7 @@
       <strong>齿轮应用：</strong>标准齿轮齿廓由两条反向渐开线组成，渐开线齿廓能保证定传动比传动。
     </div>
 
-    <p style="text-align:center;margin-top:10px"><a href="ch5-gear.html" class="back-btn">← 返回章节</a></p>
+    <p style="text-align:center;margin-top:10px"><a href="index.html" class="back-btn">← 返回首页</a></p>
   </div>
 
 <script>
@@ -128,37 +128,6 @@ let progress = 0;  // 0 to 1
 let playing = false;
 let animId = null;
 let W, H, dpr, ox, oy;
-
-// Helper: draw text with subscript (for labels like rₖ, θₖ, αₖ)
-function drawSub(ctx, base, sub, x, y) {
-  // Draw base character with current settings
-  ctx.fillText(base, x, y);
-  // Draw subscript character smaller and lower-right
-  const savedFont = ctx.font;
-  const origAlign = ctx.textAlign;
-  // Parse font size with regex (font string may start with "italic"/"bold")
-  const fsMatch = savedFont.match(/([\d.]+)px/);
-  const fs = fsMatch ? parseFloat(fsMatch[1]) : 14;
-  const subSize = Math.max(8, Math.round(fs * 0.6));
-  const subFont = savedFont.replace(/[\d.]+px/, subSize + 'px');
-  // Measure base width in original font
-  const bw = ctx.measureText(base).width;
-  // Switch to left-align for subscript positioning
-  ctx.textAlign = 'left';
-  ctx.font = subFont;
-  // Position subscript at lower-right of base character
-  let subX, subY = y + fs * 0.3;
-  if (origAlign === 'center') {
-    subX = x + bw / 2;       // right edge of centered base
-  } else if (origAlign === 'right') {
-    subX = x;                 // right edge of right-aligned base
-  } else {
-    subX = x + bw;            // right edge of left-aligned base
-  }
-  ctx.fillText(sub, subX, subY);
-  ctx.font = savedFont;
-  ctx.textAlign = origAlign;
-}
 
 function resize() {
   dpr = window.devicePixelRatio || 1;
@@ -232,7 +201,7 @@ function draw() {
   ctx.font = `italic ${12*dpr}px sans-serif`;
   ctx.fillStyle = '#60a5fa';
   ctx.textAlign = 'center';
-  drawSub(ctx, 'r', 'b', (ox + ax) / 2, oy - 8*dpr);
+  ctx.fillText('r_b', (ox + ax) / 2, oy - 8*dpr);
 
   // ===== 展开部分 =====
   if (tCur > 0.02) {
@@ -322,7 +291,7 @@ function draw() {
     const rkPerpX = -(ky - oy);
     const rkPerpY = (kx - ox);
     const rkPerpLen = Math.sqrt(rkPerpX*rkPerpX + rkPerpY*rkPerpY) || 1;
-    drawSub(ctx, 'r', 'k', rkMx + rkPerpX/rkPerpLen * 14*dpr, rkMy + rkPerpY/rkPerpLen * 14*dpr);
+    ctx.fillText('r_k', rkMx + rkPerpX/rkPerpLen * 14*dpr, rkMy + rkPerpY/rkPerpLen * 14*dpr);
 
     // --- m-m 线（K 点速度方向，始终垂直于 OK 连线）---
     // OK 方向 (canvas): (cos(t)+t*sin(t), -(sin(t)-t*cos(t)))
@@ -385,8 +354,8 @@ function draw() {
     ctx.font = `${12*dpr}px sans-serif`;
     ctx.fillStyle = '#c084fc';
     ctx.textAlign = 'center';
-    drawSub(ctx, 'θ', 'k', ox + (thetaArcR + 14*dpr) * Math.cos(thetaMid),
-                oy + (thetaArcR + 14*dpr) * Math.sin(thetaMid));
+    ctx.fillText('θ_k', ox + (thetaArcR + 14*dpr) * Math.cos(thetaMid),
+                       oy + (thetaArcR + 14*dpr) * Math.sin(thetaMid));
 
     // --- α_k 标注（K 点处，m-m 线与 n-n 线所夹锐角 = 压力角）---
     const nnAngle = Math.atan2(dirY, dirX);  // n-n 方向
@@ -425,8 +394,8 @@ function draw() {
     ctx.font = `${13*dpr}px sans-serif`;
     ctx.fillStyle = '#f59e0b';
     ctx.textAlign = 'center';
-    drawSub(ctx, 'α', 'k', kx + (alphaArcR + 14*dpr) * Math.cos(alphaMid),
-                ky + (alphaArcR + 14*dpr) * Math.sin(alphaMid));
+    ctx.fillText('α_k', kx + (alphaArcR + 14*dpr) * Math.cos(alphaMid),
+                       ky + (alphaArcR + 14*dpr) * Math.sin(alphaMid));
 
     // --- 更新数据面板 ---
     const rk = R * Math.sqrt(1 + tCur * tCur);
@@ -483,7 +452,6 @@ function animate() {
 }
 
 btnPlay.addEventListener('click', () => {
-  cancelAnimationFrame(animId);
   if (progress >= 1) progress = 0;
   playing = true;
   btnPlay.classList.add('active');
