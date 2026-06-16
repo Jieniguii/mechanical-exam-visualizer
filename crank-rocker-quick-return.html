@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>曲柄摇杆急回运动对比</title>
+    <style>
+        :root {
+            --body-color: #1a1a1a;
+            --ground-color: #64748b;
+            --trace-color: #a855f7;
+            --limit-color: #f97316;
+            --angle-color: #3b82f6;
+            --text-color: #334155;
+            --bg-color: #f8fafc;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .header h1 {
+            font-size: 1.4rem;
+            color: var(--body-color);
+            margin-bottom: 4px;
+        }
+        .header p {
+            font-size: 0.85rem;
+            color: var(--ground-color);
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 16px;
+            max-width: 900px;
+            width: 100%;
+        }
+        .canvas-wrapper {
+            position: relative;
+            width: 100%;
+            padding-bottom: 75%;
+            margin-bottom: 16px;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .control-group label {
+            font-size: 0.85rem;
+            color: var(--text-color);
+        }
+        .control-group input[type="range"] {
+            width: 100px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: var(--angle-color);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        .btn-secondary {
+            background: #e2e8f0;
+            color: var(--text-color);
+        }
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            padding: 12px;
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        .info-item {
+            text-align: center;
+        }
+        .info-item .label {
+            font-size: 0.75rem;
+            color: var(--ground-color);
+            margin-bottom: 2px;
+        }
+        .info-item .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--body-color);
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 12px;
+            padding: 8px;
+            background: #f8fafc;
+            border-radius: 6px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+        }
+        .legend-item .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .back-btn {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            text-decoration: none;
+            color: var(--text-color);
+            font-size: 0.85rem;
+        }
+        .back-btn:hover {
+            background: #f1f5f9;
+        }
+        @media (max-width: 600px) {
+            .header h1 { font-size: 1.2rem; }
+            .controls { flex-direction: column; }
+            .control-group input[type="range"] { width: 80px; }
+        }
+    </style>
+</head>
+<body>
+    <a href="chapter3-linkage.html" class="back-btn">← 返回章节</a>
+    
+    <div class="header">
+        <h1>曲柄摇杆急回运动对比</h1>
+        <p>演示急回特性：极位夹角θ与行程速比系数K的关系</p>
+    </div>
+    
+    <div class="container">
+        <div class="canvas-wrapper">
+            <canvas id="canvas"></canvas>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-primary" id="playBtn">▶ 播放动画</button>
+            <button class="btn btn-secondary" id="resetBtn">重置</button>
+            <div class="control-group">
+                <label>曲柄长度 r₁:</label>
+                <input type="range" id="crankSlider" min="30" max="80" value="50">
+                <span id="crankValue">50</span>
+            </div>
+            <div class="control-group">
+                <label>摇杆长度 r₃:</label>
+                <input type="range" id="rockerSlider" min="80" max="150" value="120">
+                <span id="rockerValue">120</span>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-item">
+                <div class="label">极位夹角 θ</div>
+                <div class="value" id="thetaValue">0°</div>
+            </div>
+            <div class="info-item">
+                <div class="label">行程速比系数 K</div>
+                <div class="value" id="kValue">1.00</div>
+            </div>
+            <div class="info-item">
+                <div class="label">当前角度 φ</div>
+                <div class="value" id="angleValue">0°</div>
+            </div>
+            <div class="info-item">
+                <div class="label">摇杆角位移 ψ</div>
+                <div class="value" id="psiValue">0°</div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="dot" style="background: #1a1a1a;"></div>
+                <span>机构杆件</span>
+            </div>
+            <div class="legend-item">
+                <div class="dot" style="background: #64748b;"></div>
+                <span>机架/地面</span>
+            </div>
+            <div class="legend-item">
+                <div class="dot" style="background: #a855f7;"></div>
+                <span>运动轨迹</span>
+            </div>
+            <div class="legend-item">
+                <div class="dot" style="background: #f97316;"></div>
+                <span>极限位置</span>
+            </div>
+            <div class="legend-item">
+                <div class="dot" style="background: #3b82f6;"></div>
+                <span>角度标注</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 参数
+        let params = {
+            r1: 50,      // 曲柄长度
+            r2: 150,     // 连杆长度
+            r3: 120,     // 摇杆长度
+            r4: 160,     // 机架长度
+            speed: 0.02  // 动画速度
+        };
+        
+        // 状态
+        let state = {
+            angle: 0,          // 曲柄转角
+            isPlaying: false,
+            animationId: null,
+            limitAngles: [],   // 两个极限位置角度
+            rockerAngle: 0,    // 摇杆角度
+            rockerTrace: []    // 摇杆端点轨迹
+        };
+        
+        // 固定铰链位置
+        let A = { x: 0, y: 0 };  // 曲柄铰链
+        let D = { x: 0, y: 0 };  // 摇杆铰链
+        
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            
+            // 设置固定铰链位置
+            const cx = rect.width / 2;
+            const cy = rect.height / 2;
+            A = { x: cx - params.r4 / 2, y: cy + 30 };
+            D = { x: cx + params.r4 / 2, y: cy + 30 };
+        }
+        
+        // 求解四杆机构位置
+        function solveFourBar(theta) {
+            const B = {
+                x: A.x + params.r1 * Math.cos(theta),
+                y: A.y - params.r1 * Math.sin(theta)
+            };
+            
+            // 求C点：BD距离
+            const dx = D.x - B.x;
+            const dy = D.y - B.y;
+            const bd = Math.sqrt(dx * dx + dy * dy);
+            
+            // 三角形BCD
+            const cosAlpha = (params.r2 * params.r2 + bd * bd - params.r3 * params.r3) / (2 * params.r2 * bd);
+            if (Math.abs(cosAlpha) > 1) return null; // 无法装配
+            
+            const alpha = Math.acos(cosAlpha);
+            const beta = Math.atan2(dy, dx);
+            
+            // C点位置（取上方解）
+            const C = {
+                x: B.x + params.r2 * Math.cos(beta - alpha),
+                y: B.y + params.r2 * Math.sin(beta - alpha)
+            };
+            
+            // 摇杆角度
+            const rockerAngle = Math.atan2(-(C.y - D.y), C.x - D.x);
+            
+            return { B, C, rockerAngle };
+        }
+        
+        // 求极限位置（摇杆角速度为零时）
+        function findLimitAngles() {
+            const limits = [];
+            // 极位1：曲柄与连杆共线（拉直）
+            const BD1 = params.r2 + params.r3;
+            const cosTheta1 = (params.r1 * params.r1 + params.r4 * params.r4 - BD1 * BD1) / (2 * params.r1 * params.r4);
+            if (Math.abs(cosTheta1) <= 1) {
+                limits.push(Math.acos(cosTheta1));
+            }
+            // 极位2：曲柄与连杆共线（折叠）
+            const BD2 = Math.abs(params.r2 - params.r3);
+            const cosTheta2 = (params.r1 * params.r1 + params.r4 * params.r4 - BD2 * BD2) / (2 * params.r1 * params.r4);
+            if (Math.abs(cosTheta2) <= 1) {
+                limits.push(-Math.acos(cosTheta2));
+            }
+            return limits.sort((a, b) => a - b);
+        }
+        
+        // 绘制地面符号
+        function drawGround(x, y) {
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x - 15, y);
+            ctx.lineTo(x + 15, y);
+            ctx.stroke();
+            
+            // 阴影线
+            for (let i = -12; i <= 12; i += 6) {
+                ctx.beginPath();
+                ctx.moveTo(x + i, y);
+                ctx.lineTo(x + i - 5, y + 8);
+                ctx.stroke();
+            }
+        }
+        
+        // 绘制铰链
+        function drawJoint(x, y, fixed = false) {
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, Math.PI * 2);
+            ctx.fillStyle = fixed ? '#64748b' : '#1a1a1a';
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        }
+        
+        // 绘制杆件
+        function drawLink(x1, y1, x2, y2, color = '#1a1a1a', width = 2.5) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.stroke();
+        }
+        
+        // 绘制角度弧线
+        function drawAngleArc(cx, cy, radius, startAngle, endAngle, color = '#3b82f6', label = '') {
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, -startAngle, -endAngle, endAngle > startAngle);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            
+            if (label) {
+                const midAngle = (startAngle + endAngle) / 2;
+                const lx = cx + (radius + 12) * Math.cos(midAngle);
+                const ly = cy - (radius + 12) * Math.sin(midAngle);
+                ctx.fillStyle = color;
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, lx, ly);
+            }
+        }
+        
+        // 绘制极限位置
+        function drawLimitPositions() {
+            const limits = state.limitAngles;
+            if (limits.length < 2) return;
+            
+            limits.forEach((angle, i) => {
+                const result = solveFourBar(angle);
+                if (!result) return;
+                
+                // 摇杆极限位置（虚线）
+                ctx.setLineDash([4, 4]);
+                drawLink(D.x, D.y, result.C.x, result.C.y, '#f97316', 1.5);
+                ctx.setLineDash([]);
+                
+                // 标注
+                const labelX = result.C.x + 15 * Math.cos(result.rockerAngle);
+                const labelY = result.C.y - 15 * Math.sin(result.rockerAngle);
+                ctx.fillStyle = '#f97316';
+                ctx.font = '11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`C${i === 0 ? '₁' : '₂'}`, labelX, labelY);
+            });
+            
+            // 绘制极位夹角θ
+            const r1Result = solveFourBar(limits[0]);
+            const r2Result = solveFourBar(limits[1]);
+            if (r1Result && r2Result) {
+                const angle1 = Math.atan2(-(r1Result.C.y - D.y), r1Result.C.x - D.x);
+                const angle2 = Math.atan2(-(r2Result.C.y - D.y), r2Result.C.x - D.x);
+                drawAngleArc(D.x, D.y, 35, Math.min(angle1, angle2), Math.max(angle1, angle2), '#3b82f6', 'ψ');
+            }
+        }
+        
+        // 主绘制函数
+        function draw() {
+            const rect = canvas.getBoundingClientRect();
+            ctx.clearRect(0, 0, rect.width, rect.height);
+            
+            // 绘制地面
+            drawGround(A.x, A.y + 5);
+            drawGround(D.x, D.y + 5);
+            
+            // 绘制极限位置
+            drawLimitPositions();
+            
+            // 绘制摇杆轨迹
+            if (state.rockerTrace.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(state.rockerTrace[0].x, state.rockerTrace[0].y);
+                for (let i = 1; i < state.rockerTrace.length; i++) {
+                    ctx.lineTo(state.rockerTrace[i].x, state.rockerTrace[i].y);
+                }
+                ctx.strokeStyle = '#a855f7';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([3, 3]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            // 求解当前位置
+            const result = solveFourBar(state.angle);
+            if (!result) return;
+            
+            const { B, C, rockerAngle } = result;
+            
+            // 绘制机架AD
+            drawLink(A.x, A.y, D.x, D.y, '#64748b', 3);
+            
+            // 绘制曲柄AB
+            drawLink(A.x, A.y, B.x, B.y, '#1a1a1a', 2.5);
+            
+            // 绘制连杆BC
+            drawLink(B.x, B.y, C.x, C.y, '#1a1a1a', 2.5);
+            
+            // 绘制摇杆DC
+            drawLink(D.x, D.y, C.x, C.y, '#1a1a1a', 2.5);
+            
+            // 绘制铰链
+            drawJoint(A.x, A.y, true);
+            drawJoint(D.x, D.y, true);
+            drawJoint(B.x, B.y);
+            drawJoint(C.x, C.y);
+            
+            // 标注
+            ctx.fillStyle = '#334155';
+            ctx.font = '13px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('A', A.x, A.y + 18);
+            ctx.fillText('D', D.x, D.y + 18);
+            ctx.fillText('B', B.x, B.y - 12);
+            ctx.fillText('C', C.x, C.y - 12);
+            
+            // 绘制曲柄转角
+            if (state.angle !== 0) {
+                drawAngleArc(A.x, A.y, 25, 0, state.angle, '#3b82f6', 'φ');
+            }
+            
+            // 更新信息显示
+            updateInfoPanel(result);
+        }
+        
+        // 更新信息面板
+        function updateInfoPanel(result) {
+            const limits = state.limitAngles;
+            let theta = 0;
+            if (limits.length >= 2) {
+                const r1 = solveFourBar(limits[0]);
+                const r2 = solveFourBar(limits[1]);
+                if (r1 && r2) {
+                    const a1 = Math.atan2(-(r1.C.y - D.y), r1.C.x - D.x);
+                    const a2 = Math.atan2(-(r2.C.y - D.y), r2.C.x - D.x);
+                    theta = Math.abs(a1 - a2) * 180 / Math.PI;
+                }
+            }
+            
+            const K = theta > 0 ? (180 + theta) / (180 - theta) : 1;
+            
+            document.getElementById('thetaValue').textContent = theta.toFixed(1) + '°';
+            document.getElementById('kValue').textContent = K.toFixed(2);
+            document.getElementById('angleValue').textContent = (state.angle * 180 / Math.PI % 360).toFixed(0) + '°';
+            document.getElementById('psiValue').textContent = (result.rockerAngle * 180 / Math.PI).toFixed(1) + '°';
+        }
+        
+        // 动画循环
+        function animate() {
+            if (!state.isPlaying) return;
+            
+            state.angle += params.speed;
+            if (state.angle > Math.PI * 2) {
+                state.angle = 0;
+                state.rockerTrace = [];
+            }
+            
+            const result = solveFourBar(state.angle);
+            if (result) {
+                state.rockerTrace.push(result.C);
+            }
+            
+            draw();
+            state.animationId = requestAnimationFrame(animate);
+        }
+        
+        // 事件绑定
+        document.getElementById('playBtn').addEventListener('click', () => {
+            state.isPlaying = !state.isPlaying;
+            document.getElementById('playBtn').textContent = state.isPlaying ? '⏸ 暂停' : '▶ 播放动画';
+            if (state.isPlaying) animate();
+            else cancelAnimationFrame(state.animationId);
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            state.angle = 0;
+            state.rockerTrace = [];
+            state.isPlaying = false;
+            document.getElementById('playBtn').textContent = '▶ 播放动画';
+            cancelAnimationFrame(state.animationId);
+            draw();
+        });
+        
+        document.getElementById('crankSlider').addEventListener('input', (e) => {
+            params.r1 = parseInt(e.target.value);
+            document.getElementById('crankValue').textContent = params.r1;
+            state.limitAngles = findLimitAngles();
+            state.rockerTrace = [];
+            draw();
+        });
+        
+        document.getElementById('rockerSlider').addEventListener('input', (e) => {
+            params.r3 = parseInt(e.target.value);
+            document.getElementById('rockerValue').textContent = params.r3;
+            state.limitAngles = findLimitAngles();
+            state.rockerTrace = [];
+            draw();
+        });
+        
+        // 初始化
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            draw();
+        });
+        
+        resizeCanvas();
+        state.limitAngles = findLimitAngles();
+        draw();
+    </script>
+</body>
+</html>
