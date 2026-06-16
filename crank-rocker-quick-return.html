@@ -697,6 +697,19 @@
         updateInfoPanel();
         updateStatus();
         draw();
+        
+        // DEBUG: 显示计算状态
+        const dbg = document.createElement('div');
+        dbg.style.cssText = 'position:fixed;bottom:10px;right:10px;background:#1a1d27;border:1px solid #333;padding:8px 12px;font-size:11px;color:#aaa;border-radius:6px;z-index:999;font-family:monospace;max-width:320px;line-height:1.6;';
+        dbg.innerHTML = `
+            <b style="color:#f97316;">DEBUG v3.2</b><br>
+            limit1: ${geo.limit1 ? '✅' : '❌'} ${geo.limit1 ? `B(${geo.limit1.B.x.toFixed(0)},${geo.limit1.B.y.toFixed(0)}) C(${geo.limit1.C.x.toFixed(0)},${geo.limit1.C.y.toFixed(0)})` : ''}<br>
+            limit2: ${geo.limit2 ? '✅' : '❌'} ${geo.limit2 ? `B(${geo.limit2.B.x.toFixed(0)},${geo.limit2.B.y.toFixed(0)}) C(${geo.limit2.C.x.toFixed(0)},${geo.limit2.C.y.toFixed(0)})` : ''}<br>
+            theta: ${(geo.theta*180/Math.PI).toFixed(1)}°<br>
+            canvas: ${canvas.width}x${canvas.height}<br>
+            A(${geo.A.x.toFixed(0)},${geo.A.y.toFixed(0)}) D(${geo.D.x.toFixed(0)},${geo.D.y.toFixed(0)})
+        `;
+        document.body.appendChild(dbg);
     </script>
 </body>
 </html>
