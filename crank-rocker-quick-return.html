@@ -149,7 +149,7 @@
     <a href="ch3-linkage.html" class="back-btn">← 返回章节</a>
     
     <div class="header">
-        <h1>曲柄摇杆急回运动对比 <span style="font-size:12px;background:#1e293b;color:#f97316;padding:2px 8px;border-radius:10px;vertical-align:middle;font-weight:bold;">v4.0</span></h1>
+        <h1>曲柄摇杆急回运动对比 <span style="font-size:12px;background:#1e293b;color:#f97316;padding:2px 8px;border-radius:10px;vertical-align:middle;font-weight:bold;">v4.1</span></h1>
         <p>直观展示工作行程（慢）与空回行程（快）的差异</p>
     </div>
     
@@ -219,6 +219,8 @@
             theta: 0
         };
         
+        let isPush = true; // 当前是否处于推程
+        
         function resizeCanvas() {
             const rect = canvas.getBoundingClientRect();
             canvas.width = rect.width * window.devicePixelRatio;
@@ -269,15 +271,15 @@
                 geo.limit1 = { angle: angle1, B: B1, C: C1 };
             }
             
-            // 极位2：曲柄与连杆折叠共线，AC2 = |r2 - r1|
-            const AC2 = Math.abs(params.r2 - params.r1);
+            // 极位2：曲柄与连杆折叠共线，AC2 = r2 - r1
+            const AC2 = params.r2 - params.r1;
             const C2 = findCfromAC(A, D, AC2, params.r3);
             if (C2) {
-                // B2 在 AC2 延长线上，距 A 为 r1
+                // B2 在 A 远离 C2 的一侧（折叠时 B 在 A 的对面）
                 const dir2 = Math.atan2(C2.y - A.y, C2.x - A.x);
                 const B2 = {
-                    x: A.x + params.r1 * Math.cos(dir2),
-                    y: A.y + params.r1 * Math.sin(dir2)
+                    x: A.x - params.r1 * Math.cos(dir2),
+                    y: A.y - params.r1 * Math.sin(dir2)
                 };
                 const angle2 = Math.atan2(-(B2.y - A.y), B2.x - A.x);
                 geo.limit2 = { angle: angle2, B: B2, C: C2 };
@@ -324,6 +326,14 @@
             return { B, C };
         }
         
+        function updatePhase() {
+            if (!geo.limit1) return;
+            const mathAngle = -angle;
+            let rel = mathAngle - geo.limit1.angle;
+            rel = ((rel % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+            isPush = rel < (Math.PI + geo.theta);
+        }
+        
         function draw() {
             const rect = canvas.getBoundingClientRect();
             ctx.clearRect(0, 0, rect.width, rect.height);
@@ -338,6 +348,21 @@
             ctx.lineWidth = 1;
             ctx.stroke();
             ctx.setLineDash([]);
+            
+            // ① C₁-C₂ 虚线圆弧（摇杆末端运动轨迹）
+            if (geo.limit1 && geo.limit2 && geo.limit1.C && geo.limit2.C) {
+                const phi1 = Math.atan2(geo.limit1.C.y - D.y, geo.limit1.C.x - D.x);
+                const phi2 = Math.atan2(geo.limit2.C.y - D.y, geo.limit2.C.x - D.x);
+                const arcR = params.r3;
+                ctx.beginPath();
+                // canvas坐标系中逆时针 = C1到C2上方路径
+                ctx.arc(D.x, D.y, arcR, phi1, phi2, true);
+                ctx.setLineDash([5, 4]);
+                ctx.strokeStyle = '#a78bfa';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
             
             // DC₁ 虚线（黄色）
             if (geo.limit1 && geo.limit1.C) {
@@ -395,6 +420,28 @@
                 ctx.fillText('B₂', geo.limit2.B.x - 20, geo.limit2.B.y - 8);
             }
             
+            // ③ AB₁ 和 AB₂ 虚线连接
+            if (geo.limit1 && geo.limit1.B) {
+                ctx.beginPath();
+                ctx.setLineDash([4, 4]);
+                ctx.moveTo(A.x, A.y);
+                ctx.lineTo(geo.limit1.B.x, geo.limit1.B.y);
+                ctx.strokeStyle = 'rgba(251,191,36,0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            if (geo.limit2 && geo.limit2.B) {
+                ctx.beginPath();
+                ctx.setLineDash([4, 4]);
+                ctx.moveTo(A.x, A.y);
+                ctx.lineTo(geo.limit2.B.x, geo.limit2.B.y);
+                ctx.strokeStyle = 'rgba(249,115,22,0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
             // 极位夹角 θ（在D点处）
             if (geo.limit1 && geo.limit2 && geo.limit1.C && geo.limit2.C) {
                 const a1 = Math.atan2(-(geo.limit1.C.y - D.y), geo.limit1.C.x - D.x);
@@ -415,6 +462,87 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText('θ', lx, ly);
+            }
+            
+            // ④ 摇杆圆弧上的推程/回程箭头
+            if (geo.limit1 && geo.limit2 && geo.limit1.C && geo.limit2.C) {
+                const phi1 = Math.atan2(geo.limit1.C.y - D.y, geo.limit1.C.x - D.x);
+                const phi2 = Math.atan2(geo.limit2.C.y - D.y, geo.limit2.C.x - D.x);
+                const arrowR = params.r3 * 0.55; // 在摇杆长度约一半处画箭头
+                
+                // 弧段中点角度（C1→C2 的中点，取逆时针方向的中点）
+                let delta = phi2 - phi1;
+                if (delta > 0) delta -= 2 * Math.PI; // 确保逆时针方向为负增量
+                const midPhi = phi1 + delta / 2;
+                const mx = D.x + arrowR * Math.cos(midPhi);
+                const my = D.y + arrowR * Math.sin(midPhi);
+                
+                // 箭头方向：切线方向
+                // 推程(C1→C2逆时针): canvas切线 = (sin(midPhi), -cos(midPhi))
+                // 回程(C2→C1顺时针): canvas切线 = (-sin(midPhi), cos(midPhi))
+                const arrowSize = 8;
+                
+                if (isPush) {
+                    // 推程箭头（蓝色，C1→C2方向）
+                    const tx = Math.sin(midPhi);
+                    const ty = -Math.cos(midPhi);
+                    const baseX = mx - arrowSize * tx;
+                    const baseY = my - arrowSize * ty;
+                    
+                    // 画推程弧段
+                    ctx.beginPath();
+                    ctx.arc(D.x, D.y, arrowR, phi1, phi2, true);
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    // 箭头
+                    ctx.beginPath();
+                    ctx.moveTo(mx, my);
+                    ctx.lineTo(baseX - arrowSize * 0.5 * (-ty), baseY - arrowSize * 0.5 * tx);
+                    ctx.lineTo(baseX + arrowSize * 0.5 * (-ty), baseY + arrowSize * 0.5 * tx);
+                    ctx.closePath();
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.fill();
+                    
+                    // "推" 标签
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    const labelR = arrowR + 16;
+                    ctx.fillText('推', D.x + labelR * Math.cos(midPhi), D.y + labelR * Math.sin(midPhi));
+                } else {
+                    // 回程箭头（绿色，C2→C1方向）
+                    const tx = -Math.sin(midPhi);
+                    const ty = Math.cos(midPhi);
+                    const baseX = mx - arrowSize * tx;
+                    const baseY = my - arrowSize * ty;
+                    
+                    // 画回程弧段
+                    ctx.beginPath();
+                    ctx.arc(D.x, D.y, arrowR, phi2, phi1, false);
+                    ctx.strokeStyle = '#34d399';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    // 箭头
+                    ctx.beginPath();
+                    ctx.moveTo(mx, my);
+                    ctx.lineTo(baseX - arrowSize * 0.5 * (-ty), baseY - arrowSize * 0.5 * tx);
+                    ctx.lineTo(baseX + arrowSize * 0.5 * (-ty), baseY + arrowSize * 0.5 * tx);
+                    ctx.closePath();
+                    ctx.fillStyle = '#34d399';
+                    ctx.fill();
+                    
+                    // "回" 标签
+                    ctx.fillStyle = '#34d399';
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    const labelR = arrowR + 16;
+                    ctx.fillText('回', D.x + labelR * Math.cos(midPhi), D.y + labelR * Math.sin(midPhi));
+                }
             }
             
             // 绘制机构
@@ -489,6 +617,7 @@
         function animate() {
             if (!isPlaying) return;
             angle += params.speed;
+            updatePhase();
             draw();
             animationId = requestAnimationFrame(animate);
         }
@@ -529,6 +658,7 @@
             document.getElementById('crankValue').textContent = params.r1;
             calculateLimits();
             updateInfoPanel();
+            updatePhase();
             draw();
         });
         
@@ -537,6 +667,7 @@
             document.getElementById('rockerValue').textContent = params.r3;
             calculateLimits();
             updateInfoPanel();
+            updatePhase();
             draw();
         });
         
@@ -547,9 +678,10 @@
         
         resizeCanvas();
         updateInfoPanel();
+        updatePhase();
         draw();
         
-        console.log('v4.0 loaded');
+        console.log('v4.1 loaded');
         console.log('limit1:', geo.limit1);
         console.log('limit2:', geo.limit2);
         console.log('theta:', geo.theta * 180 / Math.PI);
