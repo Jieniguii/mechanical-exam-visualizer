@@ -104,6 +104,8 @@
         .btn-primary:hover { background: #4f46e5; }
         .btn-secondary { background: var(--border); color: var(--text); }
         .btn-secondary:hover { background: #3a3d4d; }
+        .btn-accent { background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.3); }
+        .btn-accent:hover { background: rgba(249,115,22,0.25); }
         .info-panel {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -149,7 +151,7 @@
     <a href="ch3-linkage.html" class="back-btn">← 返回章节</a>
     
     <div class="header">
-        <h1>曲柄摇杆急回运动对比 <span style="font-size:12px;background:#1e293b;color:#f97316;padding:2px 8px;border-radius:10px;vertical-align:middle;font-weight:bold;">v5.3</span></h1>
+        <h1>曲柄摇杆急回运动对比 <span style="font-size:12px;background:#1e293b;color:#f97316;padding:2px 8px;border-radius:10px;vertical-align:middle;font-weight:bold;">v5.4</span></h1>
         <p>直观展示工作行程（慢）与空回行程（快）的差异</p>
     </div>
     
@@ -161,6 +163,13 @@
         <div class="controls">
             <button class="btn btn-primary" id="playBtn">▶ 播放</button>
             <button class="btn btn-secondary" id="resetBtn">重置</button>
+            <button class="btn btn-accent" id="limit1Btn">极位₁</button>
+            <button class="btn btn-accent" id="limit2Btn">极位₂</button>
+            <div class="control-group">
+                <label>曲柄速度:</label>
+                <input type="range" id="speedSlider" min="1" max="30" value="8">
+                <span class="value" id="speedValue">1.0x</span>
+            </div>
             <div class="control-group">
                 <label>曲柄 r₁:</label>
                 <input type="range" id="crankSlider" min="35" max="70" value="50">
@@ -210,7 +219,7 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         
-        let params = { r1: 50, r2: 160, r3: 110, r4: 170, speed: 0.008 };
+        let params = { r1: 50, r2: 160, r3: 110, r4: 170, speedFactor: 1.0 };
         let angle = 0;
         let isPlaying = false;
         let animationId = null;
@@ -798,7 +807,7 @@
         
         function animate() {
             if (!isPlaying) return;
-            angle += params.speed;
+            angle += 0.008 * params.speedFactor;
             updatePhase();
             draw();
             animationId = requestAnimationFrame(animate);
@@ -837,6 +846,33 @@
             draw();
         });
         
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            params.speedFactor = parseInt(e.target.value) / 8;
+            document.getElementById('speedValue').textContent = params.speedFactor.toFixed(1) + 'x';
+        });
+        
+        document.getElementById('limit1Btn').addEventListener('click', () => {
+            if (geo.limit1) {
+                isPlaying = false;
+                cancelAnimationFrame(animationId);
+                document.getElementById('playBtn').textContent = '▶ 播放';
+                angle = geo.limit1.angle;
+                updatePhase();
+                draw();
+            }
+        });
+        
+        document.getElementById('limit2Btn').addEventListener('click', () => {
+            if (geo.limit2) {
+                isPlaying = false;
+                cancelAnimationFrame(animationId);
+                document.getElementById('playBtn').textContent = '▶ 播放';
+                angle = geo.limit2.angle;
+                updatePhase();
+                draw();
+            }
+        });
+        
         document.getElementById('crankSlider').addEventListener('input', (e) => {
             params.r1 = parseInt(e.target.value);
             document.getElementById('crankValue').textContent = params.r1;
@@ -865,7 +901,7 @@
         updatePhase();
         draw();
         
-        console.log('v5.3 loaded');
+        console.log('v5.4 loaded');
         console.log('limit1:', geo.limit1);
         console.log('limit2:', geo.limit2);
         console.log('theta:', geo.theta * 180 / Math.PI);
