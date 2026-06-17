@@ -290,15 +290,17 @@
                 geo.limit2 = { angle: angle2, B: B2, C: C2 };
             }
             
-            // 计算极位夹角 θ（AB₂反向延长线与AB₁的锐角）和摆角 ψ（∠C₁DC₂）
+            // 计算极位夹角 θ 和摆角 ψ
             if (geo.limit1 && geo.limit2) {
-                // 极位夹角 θ = AB₂反向延长线与AB₁之间的锐角
+                // 极位夹角 θ：曲柄两个极限位置所夹的锐角
                 if (geo.limit1.B && geo.limit2.B) {
-                    const extAngle2 = geo.limit2.angle + Math.PI; // AB₂反向延长线方向
-                    let thetaVal = Math.abs(geo.limit1.angle - extAngle2);
-                    while (thetaVal > Math.PI) thetaVal -= 2 * Math.PI;
-                    thetaVal = Math.abs(thetaVal);
-                    // 确保是锐角：如果 > π/2，取补角
+                    // 计算 ∠B₁AB₂ 的短弧角度
+                    let diff = geo.limit1.angle - geo.limit2.angle;
+                    while (diff > Math.PI) diff -= 2 * Math.PI;
+                    while (diff < -Math.PI) diff += 2 * Math.PI;
+                    
+                    // θ 是锐角：如果短弧是钝角，取补角
+                    let thetaVal = Math.abs(diff);
                     if (thetaVal > Math.PI / 2) {
                         thetaVal = Math.PI - thetaVal;
                     }
@@ -601,28 +603,31 @@
                 ctx.setLineDash([]);
             }
             
-            // 极位夹角 θ（在A点处，AB₂反向延长线与AB₁的锐角）
+            // 极位夹角 θ（在A点处）
             if (geo.limit1 && geo.limit2 && geo.theta > 0.01) {
                 const extAngle2 = geo.limit2.angle + Math.PI; // B₂'方向（数学角度）
-                const b1a = geo.limit1.angle; // B₁方向（数学角度）
+                const b2a = geo.limit2.angle; // B₂方向
+                const b1a = geo.limit1.angle; // B₁方向
                 
-                // diff = b1a - extAngle2，归一化到 [-π, π]
-                let diff = b1a - extAngle2;
+                // diff = b1a - b2a，归一化到 [-π, π]
+                let diff = b1a - b2a;
                 while (diff > Math.PI) diff -= 2 * Math.PI;
                 while (diff < -Math.PI) diff += 2 * Math.PI;
                 
-                // 如果 |diff| > π/2，说明短弧方向是钝角
-                // 锐角在另一侧：从 extAngle2 向 -diff 方向画 θ
-                const acuteSign = Math.abs(diff) > Math.PI / 2 ? (diff > 0 ? -1 : 1) : (diff > 0 ? 1 : -1);
+                // 如果 |diff| > π/2，∠B₁AB₂ 是钝角，θ 画在 B₂' 一侧
+                // 如果 |diff| <= π/2，∠B₁AB₂ 是锐角，θ 画在 B₂ 一侧
+                const useB2Prime = Math.abs(diff) > Math.PI / 2;
+                const startAngle = useB2Prime ? extAngle2 : b2a;
+                const sign = diff > 0 ? 1 : -1;
                 
                 ctx.beginPath();
-                ctx.arc(A.x, A.y, 25, -extAngle2, -(extAngle2 + acuteSign * geo.theta), acuteSign < 0);
+                ctx.arc(A.x, A.y, 25, -startAngle, -(startAngle + sign * geo.theta), diff < 0);
                 ctx.strokeStyle = '#f97316';
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 
                 // θ 标签位置（弧段中点）
-                const midA = extAngle2 + acuteSign * geo.theta / 2;
+                const midA = startAngle + sign * geo.theta / 2;
                 const lx2 = A.x + 40 * Math.cos(midA);
                 const ly2 = A.y - 40 * Math.sin(midA);
                 ctx.fillStyle = '#f97316';
