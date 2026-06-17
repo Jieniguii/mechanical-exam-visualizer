@@ -149,7 +149,7 @@
     <a href="ch3-linkage.html" class="back-btn">← 返回章节</a>
     
     <div class="header">
-        <h1>曲柄摇杆急回运动对比 <span style="font-size:12px;background:#1e293b;color:#f97316;padding:2px 8px;border-radius:10px;vertical-align:middle;font-weight:bold;">v5.1</span></h1>
+        <h1>曲柄摇杆急回运动对比 <span style="font-size:12px;background:#1e293b;color:#f97316;padding:2px 8px;border-radius:10px;vertical-align:middle;font-weight:bold;">v5.2</span></h1>
         <p>直观展示工作行程（慢）与空回行程（快）的差异</p>
     </div>
     
@@ -403,12 +403,14 @@
                 
                 if (d12 > Math.PI) {
                     // limit1→limit2 是推程（角度大=180°+θ）
-                    // φ₁ 弧段：limit1 到 limit2（蓝色）
+                    // φ₁ 弧段：limit1 到 limit2（蓝色虚线）
                     ctx.beginPath();
+                    ctx.setLineDash([4, 3]);
                     ctx.arc(A.x, A.y, r, -geo.limit1.angle, -geo.limit2.angle, true);
-                    ctx.strokeStyle = 'rgba(59,130,246,0.5)';
-                    ctx.lineWidth = 5;
+                    ctx.strokeStyle = 'rgba(59,130,246,0.6)';
+                    ctx.lineWidth = 1.5;
                     ctx.stroke();
+                    ctx.setLineDash([]);
                     
                     const phi1Mid = geo.limit1.angle + d12 / 2;
                     const phi1X = A.x + textR * Math.cos(phi1Mid);
@@ -419,12 +421,14 @@
                     ctx.textBaseline = 'middle';
                     ctx.fillText('φ₁', phi1X, phi1Y);
                     
-                    // φ₂ 弧段：limit2 到 limit1（绿色）
+                    // φ₂ 弧段：limit2 到 limit1（绿色虚线）
                     ctx.beginPath();
+                    ctx.setLineDash([4, 3]);
                     ctx.arc(A.x, A.y, r, -geo.limit2.angle, -geo.limit1.angle, true);
-                    ctx.strokeStyle = 'rgba(52,211,153,0.5)';
-                    ctx.lineWidth = 5;
+                    ctx.strokeStyle = 'rgba(52,211,153,0.6)';
+                    ctx.lineWidth = 1.5;
                     ctx.stroke();
+                    ctx.setLineDash([]);
                     
                     const d21 = 2 * Math.PI - d12;
                     const phi2Mid = geo.limit2.angle + d21 / 2;
@@ -437,12 +441,14 @@
                     ctx.fillText('φ₂', phi2X, phi2Y);
                 } else {
                     // limit1→limit2 是回程（角度小=180°-θ）
-                    // φ₂ 弧段：limit1 到 limit2（绿色）
+                    // φ₂ 弧段：limit1 到 limit2（绿色虚线）
                     ctx.beginPath();
+                    ctx.setLineDash([4, 3]);
                     ctx.arc(A.x, A.y, r, -geo.limit1.angle, -geo.limit2.angle, true);
-                    ctx.strokeStyle = 'rgba(52,211,153,0.5)';
-                    ctx.lineWidth = 5;
+                    ctx.strokeStyle = 'rgba(52,211,153,0.6)';
+                    ctx.lineWidth = 1.5;
                     ctx.stroke();
+                    ctx.setLineDash([]);
                     
                     const phi2Mid = geo.limit1.angle + d12 / 2;
                     const phi2X = A.x + textR * Math.cos(phi2Mid);
@@ -453,12 +459,14 @@
                     ctx.textBaseline = 'middle';
                     ctx.fillText('φ₂', phi2X, phi2Y);
                     
-                    // φ₁ 弧段：limit2 到 limit1（蓝色）
+                    // φ₁ 弧段：limit2 到 limit1（蓝色虚线）
                     ctx.beginPath();
+                    ctx.setLineDash([4, 3]);
                     ctx.arc(A.x, A.y, r, -geo.limit2.angle, -geo.limit1.angle, true);
-                    ctx.strokeStyle = 'rgba(59,130,246,0.5)';
-                    ctx.lineWidth = 5;
+                    ctx.strokeStyle = 'rgba(59,130,246,0.6)';
+                    ctx.lineWidth = 1.5;
                     ctx.stroke();
+                    ctx.setLineDash([]);
                     
                     const d21 = 2 * Math.PI - d12;
                     const phi1Mid = geo.limit2.angle + d21 / 2;
@@ -857,7 +865,7 @@
         updatePhase();
         draw();
         
-        console.log('v5.1 loaded');
+        console.log('v5.2 loaded');
         console.log('limit1:', geo.limit1);
         console.log('limit2:', geo.limit2);
         console.log('theta:', geo.theta * 180 / Math.PI);
