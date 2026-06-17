@@ -606,6 +606,11 @@
                 while (diff > Math.PI) diff -= 2 * Math.PI;
                 while (diff < -Math.PI) diff += 2 * Math.PI;
                 
+                // 如果|diff| > π/2，说明短弧是钝角，应该取补角方向（锐角）
+                if (Math.abs(diff) > Math.PI / 2) {
+                    diff = diff > 0 ? diff - Math.PI : diff + Math.PI;
+                }
+                
                 ctx.beginPath();
                 ctx.arc(A.x, A.y, 25, -extAngle2, -b1a, diff < 0);
                 ctx.strokeStyle = '#f97316';
