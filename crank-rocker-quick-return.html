@@ -149,7 +149,7 @@
     <a href="ch3-linkage.html" class="back-btn">← 返回章节</a>
     
     <div class="header">
-        <h1>曲柄摇杆急回运动对比 <span style="font-size:12px;background:#1e293b;color:#f97316;padding:2px 8px;border-radius:10px;vertical-align:middle;font-weight:bold;">v5.2</span></h1>
+        <h1>曲柄摇杆急回运动对比 <span style="font-size:12px;background:#1e293b;color:#f97316;padding:2px 8px;border-radius:10px;vertical-align:middle;font-weight:bold;">v5.3</span></h1>
         <p>直观展示工作行程（慢）与空回行程（快）的差异</p>
     </div>
     
@@ -389,8 +389,8 @@
             
             // φ₁/φ₂ 弧段（在曲柄圆内部）
             if (geo.limit1 && geo.limit2) {
-                const r = params.r1 * 0.5; // 曲柄圆内部半径
-                const textR = params.r1 * 0.35; // 标签半径（更靠内）
+                const r = params.r1 * 0.7; // 曲柄圆内部半径（比θ弧r=25大一圈，避免重叠）
+                const textR = params.r1 * 0.55; // 标签半径
                 
                 // limit.angle 是canvas角度（atan2(-dy,dx)），ctx.arc 用数学角度取负即可
                 // canvas arc(x,y,r,start,end,ccw): start/end是数学角度取负 = canvas角度
@@ -865,7 +865,7 @@
         updatePhase();
         draw();
         
-        console.log('v5.2 loaded');
+        console.log('v5.3 loaded');
         console.log('limit1:', geo.limit1);
         console.log('limit2:', geo.limit2);
         console.log('theta:', geo.theta * 180 / Math.PI);
