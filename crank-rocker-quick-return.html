@@ -296,7 +296,12 @@
                 if (geo.limit1.B && geo.limit2.B) {
                     const extAngle2 = geo.limit2.angle + Math.PI; // AB₂反向延长线方向
                     let thetaVal = Math.abs(geo.limit1.angle - extAngle2);
-                    if (thetaVal > Math.PI) thetaVal = 2 * Math.PI - thetaVal;
+                    while (thetaVal > Math.PI) thetaVal -= 2 * Math.PI;
+                    thetaVal = Math.abs(thetaVal);
+                    // 确保是锐角：如果 > π/2，取补角
+                    if (thetaVal > Math.PI / 2) {
+                        thetaVal = Math.PI - thetaVal;
+                    }
                     geo.theta = thetaVal;
                 }
                 // 摆角 ψ = ∠C₁DC₂
@@ -597,28 +602,27 @@
             }
             
             // 极位夹角 θ（在A点处，AB₂反向延长线与AB₁的锐角）
-            if (geo.limit1 && geo.limit2) {
-                const extAngle2 = geo.limit2.angle + Math.PI; // AB₂反向延长线方向
-                const b1a = geo.limit1.angle;
+            if (geo.limit1 && geo.limit2 && geo.theta > 0.01) {
+                const extAngle2 = geo.limit2.angle + Math.PI; // B₂'方向（数学角度）
+                const b1a = geo.limit1.angle; // B₁方向（数学角度）
                 
-                // 计算短弧方向
+                // diff = b1a - extAngle2，归一化到 [-π, π]
                 let diff = b1a - extAngle2;
                 while (diff > Math.PI) diff -= 2 * Math.PI;
                 while (diff < -Math.PI) diff += 2 * Math.PI;
                 
-                // 如果|diff| > π/2，说明短弧是钝角，应该取补角方向（锐角）
-                if (Math.abs(diff) > Math.PI / 2) {
-                    diff = diff > 0 ? diff - Math.PI : diff + Math.PI;
-                }
+                // 如果 |diff| > π/2，说明短弧方向是钝角
+                // 锐角在另一侧：从 extAngle2 向 -diff 方向画 θ
+                const acuteSign = Math.abs(diff) > Math.PI / 2 ? (diff > 0 ? -1 : 1) : (diff > 0 ? 1 : -1);
                 
                 ctx.beginPath();
-                ctx.arc(A.x, A.y, 25, -extAngle2, -b1a, diff < 0);
+                ctx.arc(A.x, A.y, 25, -extAngle2, -(extAngle2 + acuteSign * geo.theta), acuteSign < 0);
                 ctx.strokeStyle = '#f97316';
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 
                 // θ 标签位置（弧段中点）
-                const midA = extAngle2 + diff / 2;
+                const midA = extAngle2 + acuteSign * geo.theta / 2;
                 const lx2 = A.x + 40 * Math.cos(midA);
                 const ly2 = A.y - 40 * Math.sin(midA);
                 ctx.fillStyle = '#f97316';
