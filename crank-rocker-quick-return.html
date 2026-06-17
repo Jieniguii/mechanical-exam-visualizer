@@ -583,6 +583,19 @@
                 ctx.fillText('ψ', lx, ly);
             }
             
+            // AB₂ 反向延长虚线（到圆的另一边 B₂'，不标注）
+            if (geo.limit2 && geo.limit2.B) {
+                const extAngle2 = geo.limit2.angle + Math.PI; // 反向延长方向
+                ctx.beginPath();
+                ctx.setLineDash([3, 3]);
+                ctx.moveTo(A.x, A.y);
+                ctx.lineTo(A.x + params.r1 * Math.cos(extAngle2), A.y - params.r1 * Math.sin(extAngle2));
+                ctx.strokeStyle = 'rgba(249,115,22,0.3)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
             // 极位夹角 θ（在A点处，AB₂反向延长线与AB₁的锐角）
             if (geo.limit1 && geo.limit2) {
                 const extAngle2 = geo.limit2.angle + Math.PI; // AB₂反向延长线方向
