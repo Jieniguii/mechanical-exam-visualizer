@@ -149,7 +149,7 @@
     <a href="ch3-linkage.html" class="back-btn">← 返回章节</a>
     
     <div class="header">
-        <h1>曲柄摇杆急回运动对比 <span style="font-size:12px;background:#1e293b;color:#f97316;padding:2px 8px;border-radius:10px;vertical-align:middle;font-weight:bold;">v4.9</span></h1>
+        <h1>曲柄摇杆急回运动对比 <span style="font-size:12px;background:#1e293b;color:#f97316;padding:2px 8px;border-radius:10px;vertical-align:middle;font-weight:bold;">v5.0</span></h1>
         <p>直观展示工作行程（慢）与空回行程（快）的差异</p>
     </div>
     
@@ -601,27 +601,27 @@
             }
             
             // 极位夹角 θ = ∠B₂'AB₁（始终是锐角）
-            // ctx.arc 使用标准数学角度（0=右，逆时针为正）
-            // geo.limit.angle 是canvas角度（atan2(-dy,dx)，顺时针为正），取负转为数学角度
+            // geo.limit.angle 是数学角度，取负得画布角度给 ctx.arc
             if (geo.limit1 && geo.limit2 && geo.theta > 0.01) {
-                const b2pMath = -(geo.limit2.angle + Math.PI); // B₂' 数学角度
-                const b1Math = -geo.limit1.angle;               // B₁  数学角度
+                const cB2p = -(geo.limit2.angle + Math.PI); // B₂' 画布角度
+                const cB1 = -geo.limit1.angle;               // B₁  画布角度
                 
-                // 从 B₂' 到 B₁ 的短弧（数学角度空间）
-                let shortArc = b1Math - b2pMath;
-                while (shortArc > Math.PI) shortArc -= 2 * Math.PI;
-                while (shortArc < -Math.PI) shortArc += 2 * Math.PI;
+                // 从 B₂' 到 B₁ 的短弧（画布角度空间）
+                let cDiff = cB1 - cB2p;
+                while (cDiff > Math.PI) cDiff -= 2 * Math.PI;
+                while (cDiff < -Math.PI) cDiff += 2 * Math.PI;
                 
-                const endMath = b2pMath + shortArc; // = b1Math
-                
+                // cDiff>0: B₁在B₂'顺时针方向→画顺时针(ccw=false)
+                // cDiff<0: B₁在B₂'逆时针方向→画逆时针(ccw=true)
                 ctx.beginPath();
-                ctx.arc(A.x, A.y, 25, b2pMath, endMath, shortArc > 0);
+                ctx.arc(A.x, A.y, 25, cB2p, cB1, cDiff < 0);
                 ctx.strokeStyle = '#f97316';
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 
-                // θ 标签位置（弧段中点）
-                const midMath = b2pMath + shortArc / 2;
+                // θ 标签（弧段中点，转回数学角度定位）
+                const cMid = cB2p + cDiff / 2;
+                const midMath = -cMid;
                 const lx2 = A.x + 40 * Math.cos(midMath);
                 const ly2 = A.y - 40 * Math.sin(midMath);
                 ctx.fillStyle = '#f97316';
@@ -855,7 +855,7 @@
         updatePhase();
         draw();
         
-        console.log('v4.9 loaded');
+        console.log('v5.0 loaded');
         console.log('limit1:', geo.limit1);
         console.log('limit2:', geo.limit2);
         console.log('theta:', geo.theta * 180 / Math.PI);
