@@ -1,496 +1,283 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>渐开线形成过程 — 机械考研可视化</title>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{background:#0f1117;color:#e4e4e7;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px}
-    .back-btn{color:#94a3b8;text-decoration:none;font-size:13px;padding:6px 14px;border-radius:6px;background:rgba(255,255,255,0.05);transition:all 0.2s}
-    .back-btn:hover{background:rgba(255,255,255,0.12);color:#6366f1}
-    .page-header{position:relative;text-align:center;padding:10px 0 12px;width:100%;max-width:960px}
-    .page-header .back-btn{position:absolute;left:0;top:50%;transform:translateY(-50%)}
-    h1{font-size:24px;font-weight:600;margin-bottom:6px;background:linear-gradient(135deg,#6366f1,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-    .subtitle{color:#71717a;font-size:13px;margin-bottom:10px}
-    .main-container{max-width:960px;width:100%}
-    .demo-section{background:#1a1b26;border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.06)}
-    canvas{display:block;margin:0 auto;background:#0f172a;border-radius:8px;width:100%;cursor:pointer}
-    .controls{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
-    .controls button{padding:8px 18px;border:none;border-radius:6px;background:#3b82f6;color:#fff;cursor:pointer;font-size:13px;transition:all 0.15s}
-    .controls button:hover{background:#2563eb}
-    .controls button.active{background:#f97316}
-    .legend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:10px;font-size:12px;color:#94a3b8}
-    .legend span{display:flex;align-items:center;gap:4px}
-    .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
-    .param-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
-    .param-group{flex:1;min-width:200px;background:#0f172a;border-radius:8px;padding:10px 14px}
-    .param-group label{color:#94a3b8;font-size:12px;display:block;margin-bottom:4px}
-    .param-group input[type="range"]{width:100%;accent-color:#6366f1}
-    .data-panel{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
-    .data-item{flex:1;min-width:120px;background:#0f172a;border-radius:8px;padding:10px 14px;text-align:center}
-    .data-item .val{font-size:18px;font-weight:600;color:#6366f1;font-family:'Courier New',monospace}
-    .data-item .lbl{font-size:11px;color:#71717a;margin-top:2px}
-    .info-box{background:#1a1b26;border-left:3px solid #6366f1;padding:14px 16px;border-radius:0 8px 8px 0;margin-top:12px;font-size:13px;color:#cbd5e1;line-height:1.9}
-    .info-box strong{color:#818cf8}
-    @media(max-width:768px){
-      body{padding:12px}
-      .page-header .back-btn{position:static;display:inline-block;margin-bottom:8px;transform:none}
-      .param-row{flex-direction:column}
-      .data-panel{flex-direction:column}
-      h1{font-size:20px}
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>渐开线形成过程 — 机械考研可视化</title>
+<link rel="stylesheet" href="mech.css">
 </head>
 <body>
-  <div class="main-container">
-    <div class="page-header">
-      <a href="index.html" class="back-btn">← 返回首页</a>
-      <h1>渐开线形成过程</h1>
-      <p class="subtitle">直线在基圆上纯滚动，动点 K 描绘出渐开线</p>
-    </div>
+<a href="ch5-gear.html" class="back-btn">← 返回章节</a>
 
-    <div class="demo-section">
-      <canvas id="canvas"></canvas>
+<div class="header">
+  <h1>渐开线形成过程 <span class="version-badge">v2.0</span></h1>
+  <p>直线在基圆上纯滚动，动点 K 描绘出渐开线</p>
+</div>
 
-      <div class="legend">
-        <span><i style="background:#3b82f6"></i>基圆</span>
-        <span><i style="background:#94a3b8"></i>发生线 n-n</span>
-        <span><i style="background:#f97316"></i>渐开线</span>
-        <span><i style="background:#a855f7"></i>向径 r<sub>k</sub></span>
-        <span><i style="background:#ef4444"></i>速度方向 m-m</span>
-        <span><i style="background:#10b981"></i>切点 N</span>
-        <span><i style="background:#f59e0b"></i>压力角 α<sub>k</sub></span>
-      </div>
-
-      <div class="controls">
-        <button id="btnPlay">▶ 播放</button>
-        <button id="btnPause">⏸ 暂停</button>
-        <button id="btnReset">⏹ 重置</button>
-      </div>
-
-      <div class="param-row">
-        <div class="param-group">
-          <label>展开进度：<span id="progressVal">0%</span></label>
-          <input type="range" id="progress" min="0" max="100" value="0">
-        </div>
-        <div class="param-group">
-          <label>基圆半径 r<sub>b</sub>：<span id="rbVal">90</span> px</label>
-          <input type="range" id="rbSlider" min="50" max="140" value="90">
-        </div>
-      </div>
-
-      <div class="data-panel">
-        <div class="data-item"><div class="val" id="dataT">0.00</div><div class="lbl">展开角 t (rad)</div></div>
-        <div class="data-item"><div class="val" id="dataRk">90.0</div><div class="lbl">向径 r<sub>k</sub></div></div>
-        <div class="data-item"><div class="val" id="dataAlpha">0.0°</div><div class="lbl">压力角 α<sub>k</sub></div></div>
-        <div class="data-item"><div class="val" id="dataTheta">0.0°</div><div class="lbl">展角 θ<sub>k</sub></div></div>
-      </div>
-    </div>
-
-    <div class="info-box">
-      <strong>渐开线定义：</strong>一条直线在一个圆上作纯滚动时，直线上任一点 K 的轨迹即为渐开线。<br><br>
-      <strong>关键性质：</strong><br>
-      ① 发生线在基圆上滚过的长度 = 基圆上被滚过的弧长（NK = AN）<br>
-      ② 发生线 n-n 始终与基圆相切于 N 点，即 K 点的法线<br>
-      ③ 渐开线上任一点的法线必切于基圆<br>
-      ④ 渐开线形状仅取决于基圆大小<br>
-      ⑤ 基圆以内无渐开线<br>
-      ⑥ 压力角 α<sub>k</sub> = arctan(t)，向径 r<sub>k</sub> = r<sub>b</sub>·√(1+t²)<br><br>
-      <strong>齿轮应用：</strong>标准齿轮齿廓由两条反向渐开线组成，渐开线齿廓能保证定传动比传动。
-    </div>
-
-    <p style="text-align:center;margin-top:10px"><a href="index.html" class="back-btn">← 返回首页</a></p>
+<div class="container">
+  <div class="canvas-wrapper">
+    <canvas id="canvas"></canvas>
   </div>
+  <div class="controls" id="controls"></div>
+  <div id="dataPanel"></div>
+  <div id="legend"></div>
+  <div class="tip" id="tipText"></div>
+</div>
 
+<script src="mech.js"></script>
 <script>
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
 const PI = Math.PI, TAU = 2 * PI;
+const DEG = 180 / PI;
 
-const btnPlay = document.getElementById('btnPlay');
-const btnPause = document.getElementById('btnPause');
-const btnReset = document.getElementById('btnReset');
-const progressSlider = document.getElementById('progress');
-const progressVal = document.getElementById('progressVal');
-const rbSlider = document.getElementById('rbSlider');
-const rbValEl = document.getElementById('rbVal');
+// ===== 模块状态 =====
+let R = 90;           // 基圆半径
+const tMax = 2.2;     // 最大展开角
+let progress = 0;     // 0~1
+let ox, oy;           // 圆心位置（canvas坐标）
 
-// Data display
-const dataT = document.getElementById('dataT');
-const dataRk = document.getElementById('dataRk');
-const dataAlpha = document.getElementById('dataAlpha');
-const dataTheta = document.getElementById('dataTheta');
+// ===== Canvas + 动画 =====
+const { ctx, getDimensions, canvas } = Mech.setupCanvas(document.getElementById('canvas'));
+const anim = Mech.createAnimator(
+  dt => {
+    progress += 0.15 * dt;
+    if (progress > 1) { progress = 1; anim.pause(); playBtn.textContent = '▶ 播放'; }
+    progSlider.set(progress * 100);
+  },
+  () => draw()
+);
 
-let R = 90;        // base circle radius in px
-let tMax = 2.2;    // max展开 angle (radians)
-let progress = 0;  // 0 to 1
-let playing = false;
-let animId = null;
-let W, H, dpr, ox, oy;
-
-function resize() {
-  dpr = window.devicePixelRatio || 1;
-  const containerW = canvas.parentElement.clientWidth - 24;
-  const w = containerW;
-  const h = Math.min(w * 0.72, 580);
-  canvas.width = w * dpr;
-  canvas.height = h * dpr;
-  canvas.style.width = w + 'px';
-  canvas.style.height = h + 'px';
-  W = canvas.width;
-  H = canvas.height;
-  // O 位置：画面中心偏右下，给渐开线展开留出左上方空间
-  ox = W * 0.40;
-  oy = H * 0.70;
-  draw();
+// ===== 绘制 =====
+function getLayout() {
+  const { w, h } = getDimensions();
+  ox = w * 0.40;
+  oy = h * 0.70;
+  return { w, h };
 }
 
 function draw() {
-  ctx.clearRect(0, 0, W, H);
-  ctx.save();
-
+  const { w, h } = getLayout();
+  ctx.clearRect(0, 0, w, h);
+  const C = Mech.colors;
   const tCur = progress * tMax;
-  const rScale = R * dpr; // base circle radius in actual canvas pixels
 
-  // ===== 1. 基圆 =====
-  ctx.strokeStyle = '#3b82f6';
-  ctx.lineWidth = 2 * dpr;
-  ctx.setLineDash([6*dpr, 4*dpr]);
-  ctx.beginPath();
-  ctx.arc(ox, oy, rScale, 0, TAU);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  // ===== 基圆（虚线+淡填充）=====
+  Mech.draw.circle(ctx, ox, oy, R, { color: C.accent, width: 2, dash: [6, 4], fill: 'rgba(99,102,241,0.04)' });
 
-  // 基圆填充
-  ctx.fillStyle = 'rgba(59,130,246,0.04)';
-  ctx.beginPath();
-  ctx.arc(ox, oy, rScale, 0, TAU);
-  ctx.fill();
+  // ===== 圆心 O =====
+  Mech.draw.point(ctx, ox, oy, { color: '#fff', r: 3.5 });
+  Mech.draw.text(ctx, 'O', ox - 14, oy + 5, { color: C.text });
 
-  // ===== 2. 圆心 O =====
-  ctx.fillStyle = '#fff';
-  ctx.beginPath();
-  ctx.arc(ox, oy, 3.5*dpr, 0, TAU);
-  ctx.fill();
-  ctx.font = `bold ${14*dpr}px sans-serif`;
-  ctx.fillStyle = '#e4e4e7';
-  ctx.textAlign = 'center';
-  ctx.fillText('O', ox - 14*dpr, oy + 5*dpr);
+  // ===== A 点（基圆角度0处，右侧）=====
+  const ax = ox + R, ay = oy;
+  Mech.draw.point(ctx, ax, ay, { color: C.warning, r: 4.5 });
+  Mech.draw.text(ctx, 'A', ax + 8, ay + 5, { color: C.warning, align: 'left' });
 
-  // ===== 3. A 点（基圆角度 0 处，即右侧）=====
-  const ax = ox + rScale;
-  const ay = oy;
-  drawPoint(ax, ay, 4.5*dpr, '#f59e0b');
-  ctx.font = `bold ${14*dpr}px sans-serif`;
-  ctx.fillStyle = '#f59e0b';
-  ctx.textAlign = 'left';
-  ctx.fillText('A', ax + 8*dpr, ay + 5*dpr);
-
-  // ===== 4. r_b 连线（O→A，实线+向外箭头）=====
+  // ===== r_b 连线（O→A，实线+箭头）=====
   ctx.strokeStyle = '#60a5fa';
-  ctx.lineWidth = 1.8*dpr;
+  ctx.lineWidth = 1.8;
   ctx.beginPath();
-  ctx.moveTo(ox, oy);
-  ctx.lineTo(ax, ay);
-  ctx.stroke();
-  // 箭头指向远离圆心方向（在 A 点处）
-  drawArrow(ox, oy, ax, ay, '#60a5fa', 10*dpr);
-
-  // r_b 标注
-  ctx.font = `italic ${12*dpr}px sans-serif`;
-  ctx.fillStyle = '#60a5fa';
-  ctx.textAlign = 'center';
-  ctx.fillText('r_b', (ox + ax) / 2, oy - 8*dpr);
+  ctx.moveTo(ox, oy); ctx.lineTo(ax, ay); ctx.stroke();
+  Mech.draw.arrow(ctx, ox, oy, ax, ay, { color: '#60a5fa', size: 10 });
+  Mech.draw.text(ctx, 'r_b', (ox + ax) / 2, oy - 8, { color: '#60a5fa', font: 'italic 12px sans-serif' });
 
   // ===== 展开部分 =====
   if (tCur > 0.02) {
-    // --- 计算关键点 ---
-    // 切点 N（基圆上，角度 tCur）
-    const nx = ox + rScale * Math.cos(tCur);
-    const ny = oy - rScale * Math.sin(tCur);
-
+    // 切点 N（基圆上）
+    const nx = ox + R * Math.cos(tCur);
+    const ny = oy - R * Math.sin(tCur);
     // K 点（渐开线上）
-    const kx = ox + rScale * (Math.cos(tCur) + tCur * Math.sin(tCur));
-    const ky = oy - rScale * (Math.sin(tCur) - tCur * Math.cos(tCur));
+    const kx = ox + R * (Math.cos(tCur) + tCur * Math.sin(tCur));
+    const ky = oy - R * (Math.sin(tCur) - tCur * Math.cos(tCur));
 
     // --- 渐开线轨迹（橙色）---
-    ctx.strokeStyle = '#f97316';
-    ctx.lineWidth = 2.5*dpr;
+    ctx.strokeStyle = C.orange;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
     const steps = Math.max(20, Math.floor(tCur / 0.008));
     for (let i = 0; i <= steps; i++) {
       const t = (i / steps) * tCur;
-      const px = ox + rScale * (Math.cos(t) + t * Math.sin(t));
-      const py = oy - rScale * (Math.sin(t) - t * Math.cos(t));
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
+      const px = ox + R * (Math.cos(t) + t * Math.sin(t));
+      const py = oy - R * (Math.sin(t) - t * Math.cos(t));
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
     }
     ctx.stroke();
 
-    // --- 基圆上滚过的弧（从 A 到 N，橙色细线）---
+    // --- 基圆上滚过的弧（A→N，橙色细线）---
     ctx.strokeStyle = 'rgba(249,115,22,0.4)';
-    ctx.lineWidth = 2.5*dpr;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.arc(ox, oy, rScale, 0, -tCur, true);
+    ctx.arc(ox, oy, R, 0, -tCur, true);
     ctx.stroke();
 
-    // --- 发生线 n-n（全部虚线，贯穿 N 和 K，两端延长）---
-    // 方向（canvas坐标）：从 N 到 K = (R*t*sin(t), R*t*cos(t)) → 归一化 (sin(t), cos(t))
-    const dirX = Math.sin(tCur);
-    const dirY = Math.cos(tCur);
-
-    ctx.strokeStyle = '#94a3b8';
-    ctx.lineWidth = 1.8*dpr;
-    ctx.setLineDash([6*dpr, 4*dpr]);
-    const ext = 60 * dpr;
-    ctx.beginPath();
-    ctx.moveTo(nx - dirX * ext, ny - dirY * ext);
-    ctx.lineTo(kx + dirX * ext * 0.6, ky + dirY * ext * 0.6);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
+    // --- 发生线 n-n（虚线，贯穿 N 和 K）---
+    const dirX = Math.sin(tCur), dirY = Math.cos(tCur);
+    const ext = 60;
+    Mech.draw.dashedLine(ctx,
+      nx - dirX * ext, ny - dirY * ext,
+      kx + dirX * ext * 0.6, ky + dirY * ext * 0.6,
+      { color: C.textDim, width: 1.8, dash: [6, 4] });
     // n-n 标注
-    ctx.font = `italic bold ${13*dpr}px sans-serif`;
-    ctx.fillStyle = '#94a3b8';
-    ctx.textAlign = 'center';
-    const nLabelEnd1x = nx - dirX * ext * 0.7;
-    const nLabelEnd1y = ny - dirY * ext * 0.7;
-    ctx.fillText('n', nLabelEnd1x - 10*dpr, nLabelEnd1y);
-    const nLabelEnd2x = kx + dirX * ext * 0.45;
-    const nLabelEnd2y = ky + dirY * ext * 0.45;
-    ctx.fillText('n', nLabelEnd2x + 10*dpr, nLabelEnd2y);
+    Mech.draw.text(ctx, 'n', nx - dirX * ext * 0.7 - 10, ny - dirY * ext * 0.7,
+      { color: C.textDim, font: 'italic bold 13px sans-serif' });
+    Mech.draw.text(ctx, 'n', kx + dirX * ext * 0.45 + 10, ky + dirY * ext * 0.45,
+      { color: C.textDim, font: 'italic bold 13px sans-serif' });
 
-    // --- ON 连线（O 到切点 N，绿色虚线）---
-    ctx.strokeStyle = 'rgba(16,185,129,0.5)';
-    ctx.lineWidth = 1.2*dpr;
-    ctx.setLineDash([3*dpr, 3*dpr]);
+    // --- ON 连线（绿色虚线）---
+    Mech.draw.dashedLine(ctx, ox, oy, nx, ny, { color: 'rgba(52,211,153,0.5)', width: 1.2, dash: [3, 3] });
+
+    // --- r_k 连线（O→K，紫色实线+箭头）---
+    ctx.strokeStyle = C.purple;
+    ctx.lineWidth = 1.8;
     ctx.beginPath();
-    ctx.moveTo(ox, oy);
-    ctx.lineTo(nx, ny);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    ctx.moveTo(ox, oy); ctx.lineTo(kx, ky); ctx.stroke();
+    Mech.draw.arrow(ctx, ox, oy, kx, ky, { color: C.purple, size: 10 });
+    // r_k 标注（偏移避免与线重叠）
+    const rkMx = (ox + kx) / 2, rkMy = (oy + ky) / 2;
+    const rkPerpX = -(ky - oy), rkPerpY = (kx - ox);
+    const rkPerpLen = Math.sqrt(rkPerpX * rkPerpX + rkPerpY * rkPerpY) || 1;
+    Mech.draw.text(ctx, 'r_k',
+      rkMx + rkPerpX / rkPerpLen * 14, rkMy + rkPerpY / rkPerpLen * 14,
+      { color: '#c084fc', font: 'italic 12px sans-serif' });
 
-    // --- r_k 连线（O 到 K，紫色实线+箭头）---
-    ctx.strokeStyle = '#a855f7';
-    ctx.lineWidth = 1.8*dpr;
-    ctx.beginPath();
-    ctx.moveTo(ox, oy);
-    ctx.lineTo(kx, ky);
-    ctx.stroke();
-    // 箭头指向远离圆心方向（在 K 点处）
-    drawArrow(ox, oy, kx, ky, '#a855f7', 10*dpr);
-
-    // r_k 标注
-    ctx.font = `italic ${12*dpr}px sans-serif`;
-    ctx.fillStyle = '#c084fc';
-    ctx.textAlign = 'center';
-    const rkMx = (ox + kx) / 2;
-    const rkMy = (oy + ky) / 2;
-    // 偏移标注位置，避免和线重叠
-    const rkPerpX = -(ky - oy);
-    const rkPerpY = (kx - ox);
-    const rkPerpLen = Math.sqrt(rkPerpX*rkPerpX + rkPerpY*rkPerpY) || 1;
-    ctx.fillText('r_k', rkMx + rkPerpX/rkPerpLen * 14*dpr, rkMy + rkPerpY/rkPerpLen * 14*dpr);
-
-    // --- m-m 线（K 点速度方向，始终垂直于 OK 连线）---
-    // OK 方向 (canvas): (cos(t)+t*sin(t), -(sin(t)-t*cos(t)))
-    // 垂直方向（旋转90°）: (sin(t)-t*cos(t), cos(t)+t*sin(t))
+    // --- m-m 线（K点速度方向，红色，垂直于OK）---
     const okDx = Math.cos(tCur) + tCur * Math.sin(tCur);
     const okDy = -(Math.sin(tCur) - tCur * Math.cos(tCur));
-    const okLen = Math.sqrt(okDx*okDx + okDy*okDy);
-    const mmDirX = okDy / okLen;   // 垂直于 OK 的单位向量
-    const mmDirY = -okDx / okLen;
-    const mLen = 55 * dpr;
-
+    const okLen = Math.sqrt(okDx * okDx + okDy * okDy);
+    const mmDirX = okDy / okLen, mmDirY = -okDx / okLen;
+    const mLen = 55;
     ctx.strokeStyle = '#ef4444';
-    ctx.lineWidth = 2*dpr;
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(kx - mmDirX * mLen, ky - mmDirY * mLen);
     ctx.lineTo(kx + mmDirX * mLen, ky + mmDirY * mLen);
     ctx.stroke();
-
-    // m-m 标注
-    ctx.font = `italic bold ${13*dpr}px sans-serif`;
-    ctx.fillStyle = '#ef4444';
-    ctx.textAlign = 'center';
-    ctx.fillText('m', kx + mmDirX * (mLen + 12*dpr), ky + mmDirY * (mLen + 12*dpr));
-    ctx.fillText('m', kx - mmDirX * (mLen + 12*dpr), ky - mmDirY * (mLen + 12*dpr));
+    Mech.draw.text(ctx, 'm', kx + mmDirX * (mLen + 12), ky + mmDirY * (mLen + 12),
+      { color: '#ef4444', font: 'italic bold 13px sans-serif' });
+    Mech.draw.text(ctx, 'm', kx - mmDirX * (mLen + 12), ky - mmDirY * (mLen + 12),
+      { color: '#ef4444', font: 'italic bold 13px sans-serif' });
 
     // --- N 点 ---
-    drawPoint(nx, ny, 4.5*dpr, '#10b981');
-    ctx.font = `bold ${14*dpr}px sans-serif`;
-    ctx.fillStyle = '#10b981';
-    ctx.textAlign = 'right';
-    ctx.fillText('N', nx - 8*dpr, ny - 6*dpr);
+    Mech.draw.point(ctx, nx, ny, { color: C.return, r: 4.5 });
+    Mech.draw.text(ctx, 'N', nx - 8, ny - 6, { color: C.return, align: 'right' });
 
     // --- K 点 ---
-    drawPoint(kx, ky, 5*dpr, '#a855f7');
-    ctx.font = `bold ${14*dpr}px sans-serif`;
-    ctx.fillStyle = '#c084fc';
-    ctx.textAlign = 'left';
-    ctx.fillText('K', kx + 10*dpr, ky - 6*dpr);
+    Mech.draw.point(ctx, kx, ky, { color: C.purple, r: 5 });
+    Mech.draw.text(ctx, 'K', kx + 10, ky - 6, { color: '#c084fc', align: 'left' });
 
-    // --- θ_k 标注（O 点处，OA 到 OK 之间的角）---
-    // OA 方向 = 0 (canvas右方)
-    // OK 方向
-    const okAngle = Math.atan2(ky - oy, kx - ox); // canvas坐标中，向上为负
-    const thetaArcR = 28 * dpr;
-
-    ctx.strokeStyle = '#a855f7';
-    ctx.lineWidth = 1.5*dpr;
-    ctx.beginPath();
-    // 画从 0 到 okAngle 的弧
+    // --- θ_k 弧（O点处，OA→OK）---
+    const okAngle = Math.atan2(ky - oy, kx - ox);
+    const thetaArcR = 28;
     if (okAngle < 0) {
-      // OK 在 OA 上方（canvas中y为负=上方），顺时针画弧
-      ctx.arc(ox, oy, thetaArcR, okAngle, 0, false);
+      Mech.draw.arc(ctx, ox, oy, thetaArcR, okAngle, 0, false, { color: C.purple, width: 1.5 });
     } else {
-      ctx.arc(ox, oy, thetaArcR, 0, okAngle, false);
+      Mech.draw.arc(ctx, ox, oy, thetaArcR, 0, okAngle, false, { color: C.purple, width: 1.5 });
     }
-    ctx.stroke();
-
-    // θ_k 标签
     const thetaMid = okAngle / 2;
-    ctx.font = `${12*dpr}px sans-serif`;
-    ctx.fillStyle = '#c084fc';
-    ctx.textAlign = 'center';
-    ctx.fillText('θ_k', ox + (thetaArcR + 14*dpr) * Math.cos(thetaMid),
-                       oy + (thetaArcR + 14*dpr) * Math.sin(thetaMid));
+    Mech.draw.text(ctx, 'θ_k',
+      ox + (thetaArcR + 14) * Math.cos(thetaMid), oy + (thetaArcR + 14) * Math.sin(thetaMid),
+      { color: '#c084fc', font: '12px sans-serif' });
 
-    // --- α_k 标注（K 点处，m-m 线与 n-n 线所夹锐角 = 压力角）---
-    const nnAngle = Math.atan2(dirY, dirX);  // n-n 方向
-    
-    // m-m 有两个方向，取与 n-n 形成锐角的那个
+    // --- α_k 弧（K点处，n-n与m-m夹角 = 压力角）---
+    const nnAngle = Math.atan2(dirY, dirX);
     const mmAngle1 = Math.atan2(mmDirY, mmDirX);
     const mmAngle2 = Math.atan2(-mmDirY, -mmDirX);
-    
     let diff1 = mmAngle1 - nnAngle;
     while (diff1 > PI) diff1 -= TAU;
     while (diff1 < -PI) diff1 += TAU;
-    
     let diff2 = mmAngle2 - nnAngle;
     while (diff2 > PI) diff2 -= TAU;
     while (diff2 < -PI) diff2 += TAU;
-    
-    // 选绝对值小的（锐角）
     const a1 = nnAngle;
     const a2 = Math.abs(diff1) < Math.abs(diff2) ? mmAngle1 : mmAngle2;
     const diff = Math.abs(diff1) < Math.abs(diff2) ? diff1 : diff2;
-
-    const alphaArcR = 22 * dpr;
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 1.8*dpr;
-    ctx.beginPath();
-    // 画短弧
+    const alphaArcR = 22;
     if (diff > 0) {
-      ctx.arc(kx, ky, alphaArcR, a1, a2, false);
+      Mech.draw.arc(ctx, kx, ky, alphaArcR, a1, a2, false, { color: C.warning, width: 1.8 });
     } else {
-      ctx.arc(kx, ky, alphaArcR, a1, a2, true);
+      Mech.draw.arc(ctx, kx, ky, alphaArcR, a1, a2, true, { color: C.warning, width: 1.8 });
     }
-    ctx.stroke();
-
-    // α_k 标签
     const alphaMid = a1 + diff / 2;
-    ctx.font = `${13*dpr}px sans-serif`;
-    ctx.fillStyle = '#f59e0b';
-    ctx.textAlign = 'center';
-    ctx.fillText('α_k', kx + (alphaArcR + 14*dpr) * Math.cos(alphaMid),
-                       ky + (alphaArcR + 14*dpr) * Math.sin(alphaMid));
+    Mech.draw.text(ctx, 'α_k',
+      kx + (alphaArcR + 14) * Math.cos(alphaMid), ky + (alphaArcR + 14) * Math.sin(alphaMid),
+      { color: C.warning, font: '13px sans-serif' });
 
     // --- 更新数据面板 ---
     const rk = R * Math.sqrt(1 + tCur * tCur);
-    const alphaK = Math.atan(tCur) * 180 / PI;
-    const thetaK = (tCur - Math.atan(tCur)) * 180 / PI;
-    dataT.textContent = tCur.toFixed(2);
-    dataRk.textContent = rk.toFixed(1);
-    dataAlpha.textContent = alphaK.toFixed(1) + '°';
-    dataTheta.textContent = thetaK.toFixed(1) + '°';
+    const alphaK = Math.atan(tCur) * DEG;
+    const thetaK = (tCur - Math.atan(tCur)) * DEG;
+    dataRefs.t.textContent = tCur.toFixed(2);
+    dataRefs.rk.textContent = rk.toFixed(1);
+    dataRefs.alpha.textContent = alphaK.toFixed(1) + '°';
+    dataRefs.theta.textContent = thetaK.toFixed(1) + '°';
   } else {
-    dataT.textContent = '0.00';
-    dataRk.textContent = R.toFixed(1);
-    dataAlpha.textContent = '0.0°';
-    dataTheta.textContent = '0.0°';
+    dataRefs.t.textContent = '0.00';
+    dataRefs.rk.textContent = R.toFixed(1);
+    dataRefs.alpha.textContent = '0.0°';
+    dataRefs.theta.textContent = '0.0°';
   }
-
-  ctx.restore();
 }
 
-function drawPoint(x, y, r, color) {
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, TAU);
-  ctx.fill();
-}
+// ===== UI 构建 =====
+const controls = document.getElementById('controls');
 
-// 画实心箭头：在 from→to 方向上，箭头尖端在 to 点
-function drawArrow(fromX, fromY, toX, toY, color, headLen) {
-  const dx = toX - fromX;
-  const dy = toY - fromY;
-  const angle = Math.atan2(dy, dx);
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(toX, toY);
-  ctx.lineTo(toX - headLen * Math.cos(angle - 0.35), toY - headLen * Math.sin(angle - 0.35));
-  ctx.lineTo(toX - headLen * Math.cos(angle + 0.35), toY - headLen * Math.sin(angle + 0.35));
-  ctx.closePath();
-  ctx.fill();
-}
-
-// Animation
-function animate() {
-  if (!playing) return;
-  progress += 0.002;
-  if (progress > 1) {
-    progress = 1;
-    playing = false;
-    btnPlay.classList.remove('active');
+const playBtn = Mech.ui.button(controls, {
+  text: '▶ 播放', variant: 'primary',
+  onClick: () => {
+    if (anim.isPlaying()) { anim.pause(); playBtn.textContent = '▶ 播放'; }
+    else {
+      if (progress >= 1) { progress = 0; }
+      anim.play(); playBtn.textContent = '⏸ 暂停';
+    }
   }
-  progressSlider.value = Math.round(progress * 100);
-  progressVal.textContent = Math.round(progress * 100) + '%';
-  draw();
-  if (playing) animId = requestAnimationFrame(animate);
-}
-
-btnPlay.addEventListener('click', () => {
-  if (progress >= 1) progress = 0;
-  playing = true;
-  btnPlay.classList.add('active');
-  animate();
 });
 
-btnPause.addEventListener('click', () => {
-  playing = false;
-  btnPlay.classList.remove('active');
+const progSlider = Mech.ui.slider(controls, {
+  label: '展开进度', min: 0, max: 100, value: 0,
+  format: v => Math.round(v) + '%',
+  onChange: v => { progress = v / 100; anim.pause(); playBtn.textContent = '▶ 播放'; draw(); }
 });
 
-btnReset.addEventListener('click', () => {
-  playing = false;
-  progress = 0;
-  progressSlider.value = 0;
-  progressVal.textContent = '0%';
-  btnPlay.classList.remove('active');
-  draw();
+Mech.ui.slider(controls, {
+  label: '基圆半径 r_b', min: 50, max: 140, value: 90,
+  onChange: v => { R = v; draw(); }
 });
 
-progressSlider.addEventListener('input', () => {
-  progress = parseInt(progressSlider.value) / 100;
-  progressVal.textContent = progressSlider.value + '%';
-  draw();
-});
+// 数据面板
+const dataRefs = Mech.ui.infoPanel(document.getElementById('dataPanel'), [
+  { id: 't', label: '展开角 t (rad)', initial: '0.00' },
+  { id: 'rk', label: '向径 r_k', initial: '90.0' },
+  { id: 'alpha', label: '压力角 α_k', initial: '0.0°' },
+  { id: 'theta', label: '展角 θ_k', initial: '0.0°' },
+]);
 
-rbSlider.addEventListener('input', () => {
-  R = parseInt(rbSlider.value);
-  rbValEl.textContent = R;
-  draw();
-});
+// 图例
+Mech.ui.legend(document.getElementById('legend'), [
+  { color: Mech.colors.accent, label: '基圆' },
+  { color: Mech.colors.textDim, label: '发生线 n-n' },
+  { color: Mech.colors.orange, label: '渐开线' },
+  { color: Mech.colors.purple, label: '向径 r_k' },
+  { color: '#ef4444', label: '速度方向 m-m' },
+  { color: Mech.colors.return, label: '切点 N' },
+  { color: Mech.colors.warning, label: '压力角 α_k' },
+]);
 
-window.addEventListener('resize', () => {
-  cancelAnimationFrame(animId);
-  playing = false;
-  btnPlay.classList.remove('active');
-  requestAnimationFrame(resize);
-});
-resize();
+// 知识点提示
+document.getElementById('tipText').innerHTML =
+  '<strong style="color:#818cf8">渐开线定义：</strong>一条直线在一个圆上作纯滚动时，直线上任一点 K 的轨迹即为渐开线。<br><br>' +
+  '<strong style="color:#818cf8">关键性质：</strong><br>' +
+  '① 发生线在基圆上滚过的长度 = 基圆上被滚过的弧长（NK = AN）<br>' +
+  '② 发生线 n-n 始终与基圆相切于 N 点，即 K 点的法线<br>' +
+  '③ 渐开线上任一点的法线必切于基圆<br>' +
+  '④ 渐开线形状仅取决于基圆大小<br>' +
+  '⑤ 基圆以内无渐开线<br>' +
+  '⑥ 压力角 α_k = arctan(t)，向径 r_k = r_b·√(1+t²)<br><br>' +
+  '<strong style="color:#818cf8">齿轮应用：</strong>标准齿轮齿廓由两条反向渐开线组成，渐开线齿廓能保证定传动比传动。';
+
+// ===== 启动 =====
+window.addEventListener('resize', () => draw());
+draw();
+console.log('v2.0 loaded (refactored with mech.css + mech.js)');
 </script>
 </body>
 </html>

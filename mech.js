@@ -207,6 +207,32 @@ const Mech = {
       ctx.fillStyle = color;
       ctx.fill();
     },
+
+    // 圆（空心/填充）
+    circle(ctx, cx, cy, r, opts = {}) {
+      const { color = '#71717a', width = 1.5, dash = [], fill = null } = opts;
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.max(r, 0.1), 0, Math.PI * 2);
+      if (dash.length) ctx.setLineDash(dash);
+      if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.stroke();
+      if (dash.length) ctx.setLineDash([]);
+    },
+
+    // 箭头（从 from→to 方向，箭头尖端在 to 点）
+    arrow(ctx, fromX, fromY, toX, toY, opts = {}) {
+      const { color = '#71717a', size = 10 } = opts;
+      const angle = Math.atan2(toY - fromY, toX - fromX);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(toX, toY);
+      ctx.lineTo(toX - size * Math.cos(angle - 0.35), toY - size * Math.sin(angle - 0.35));
+      ctx.lineTo(toX - size * Math.cos(angle + 0.35), toY - size * Math.sin(angle + 0.35));
+      ctx.closePath();
+      ctx.fill();
+    },
   },
 
   // === UI 构建器 ===
