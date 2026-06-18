@@ -216,8 +216,9 @@ function drawFollower(contact, s, normal, guideX, scale) {
     if (currentStep >= 1) { Mech.draw.point(ctx, contact.x, contact.y, { color: contactColor, r: 1.5 }); }
   } else if (followerType === 'roller') {
     const rr = 8;
-    const rollerCX = contact.x + normal.x * rr * scale;
-    const rollerCY = contact.y + normal.y * rr * scale;
+    const rollerCX = guideX;
+    const dy = Math.sqrt(Math.max(0, (rr * scale) ** 2 - (guideX - contact.x) ** 2));
+    const rollerCY = contact.y - dy;
     ctx.strokeStyle = followerColor; ctx.lineWidth = 2.5;
     ctx.beginPath(); ctx.arc(rollerCX, rollerCY, rr * scale, 0, 2 * PI); ctx.stroke();
     ctx.lineWidth = 1.5;
