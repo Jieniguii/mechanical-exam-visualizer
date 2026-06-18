@@ -354,3 +354,42 @@ canvas {
   color: #f87171;
   margin-left: 6px;
 }
+/* ===== 步骤导航（凸轮压力角等模块）===== */
+.step-list { display: flex; flex-direction: column; gap: 8px; }
+.step-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border: 1px solid var(--border);
+  border-radius: 8px; background: var(--bg-dark);
+  cursor: pointer; transition: all 0.2s;
+  color: var(--text); font-size: 0.88rem;
+}
+.step-btn:hover { border-color: var(--accent); background: rgba(99,102,241,0.1); }
+.step-btn.active { border-color: var(--accent); background: rgba(99,102,241,0.15); }
+.step-btn.done { border-color: var(--success); background: rgba(52,211,153,0.1); }
+.step-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--border); color: var(--text-dim);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.8rem; flex-shrink: 0;
+}
+.step-btn.active .step-num { background: var(--accent); color: #fff; }
+.step-btn.done .step-num { background: var(--success); color: #fff; }
+.step-text { flex: 1; }
+.step-desc { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+.select-group {
+  width: 100%; padding: 6px 10px;
+  background: var(--bg-dark); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+.angle-display {
+  text-align: center; padding: 12px;
+  background: var(--bg-dark); border-radius: 8px;
+  margin-bottom: 10px;
+}
+.angle-display .angle-value {
+  font-size: 2rem; font-weight: 700; color: var(--orange);
+}
+.angle-display .angle-label {
+  font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;
+}
