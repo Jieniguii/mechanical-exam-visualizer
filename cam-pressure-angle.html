@@ -316,16 +316,16 @@ function drawStepBadge(x, y, text, color) {
 }
 
 function drawAlphaChart(w, h) {
-  const chartW = 200, chartH = 110;
-  const chartX = w - chartW - 20, chartY = h - chartH - 20;
+  const chartW = 160, chartH = 85;
+  const chartX = w - chartW - 16, chartY = h - chartH - 16;
   ctx.save();
   ctx.fillStyle = 'rgba(26,29,39,0.92)';
   ctx.strokeStyle = 'rgba(37,40,51,0.8)';
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.roundRect(chartX, chartY, chartW, chartH, 8); ctx.fill(); ctx.stroke();
 
-  Mech.draw.text(ctx, 'α(δ) 压力角变化曲线', chartX + 10, chartY + 16,
-    { color: '#94a3b8', font: '10px sans-serif', align: 'left' });
+  Mech.draw.text(ctx, 'α(δ) 压力角变化曲线', chartX + 8, chartY + 14,
+    { color: '#94a3b8', font: '9px sans-serif', align: 'left' });
 
   let maxAlpha = 0;
   const alphas = [];
@@ -352,16 +352,16 @@ function drawAlphaChart(w, h) {
   }
   ctx.stroke();
 
-  const curX = chartX + 10 + (delta / 360) * (chartW - 25);
+  const curX = chartX + 8 + (delta / 360) * (chartW - 20);
   const curA = calcPressureAngle(delta);
-  const curY = chartY + chartH - 15 - (curA / maxAlpha) * (chartH - 35);
-  Mech.draw.point(ctx, curX, curY, { color: '#a855f7', r: 4 });
-  Mech.draw.dashedLine(ctx, curX, chartY + 22, curX, chartY + chartH - 15,
+  const curY = chartY + chartH - 12 - (curA / maxAlpha) * (chartH - 28);
+  Mech.draw.point(ctx, curX, curY, { color: '#a855f7', r: 3 });
+  Mech.draw.dashedLine(ctx, curX, chartY + 20, curX, chartY + chartH - 12,
     { color: 'rgba(168,85,247,0.3)', width: 0.5, dash: [3, 3] });
 
-  Mech.draw.text(ctx, '0°', chartX + 5, chartY + chartH - 4, { color: '#64748b', font: '9px sans-serif', align: 'left' });
-  Mech.draw.text(ctx, '360°', chartX + chartW - 30, chartY + chartH - 4, { color: '#64748b', font: '9px sans-serif', align: 'left' });
-  Mech.draw.text(ctx, maxAlpha.toFixed(0) + '°', chartX + chartW - 28, chartY + 26, { color: '#64748b', font: '9px sans-serif', align: 'left' });
+  Mech.draw.text(ctx, '0°', chartX + 4, chartY + chartH - 3, { color: '#64748b', font: '8px sans-serif', align: 'left' });
+  Mech.draw.text(ctx, '360°', chartX + chartW - 24, chartY + chartH - 3, { color: '#64748b', font: '8px sans-serif', align: 'left' });
+  Mech.draw.text(ctx, maxAlpha.toFixed(0) + '°', chartX + chartW - 22, chartY + 22, { color: '#64748b', font: '8px sans-serif', align: 'left' });
   ctx.restore();
 }
 
