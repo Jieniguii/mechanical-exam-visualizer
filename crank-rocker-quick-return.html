@@ -250,8 +250,8 @@
         if (!result) return;
         const { B, C: Cpt } = result;
 
-        // 机架 + 铰支座
-        Mech.draw.link(ctx, A.x, A.y, D.x, D.y, { color: C.hinge, width: 2 });
+        // 机架（虚线）+ 铰支座
+        Mech.draw.dashedLine(ctx, A.x, A.y, D.x, D.y, { color: C.hinge, width: 2, dash: [6, 4] });
         Mech.draw.hingedSupport(ctx, A.x, A.y);
         Mech.draw.hingedSupport(ctx, D.x, D.y);
 

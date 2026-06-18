@@ -234,7 +234,8 @@ function draw() {
     else { roleA_label = '摇杆'; roleC_label = '摇杆'; }
 
     // 杆件（带标签）
-    Mech.draw.link(ctx, Ax, Ay, Dx, Dy, { color: C.hinge, width: 3, label: `d=${params.d} 机架` });
+    Mech.draw.dashedLine(ctx, Ax, Ay, Dx, Dy, { color: C.hinge, width: 2, dash: [6, 4] });
+    Mech.draw.text(ctx, `d=${params.d} 机架`, (Ax + Dx) / 2, (Ay + Dy) / 2 + 18, { color: C.hinge, font: '12px sans-serif' });
     Mech.draw.link(ctx, Ax, Ay, Bxp, Byp, { color: C.accent, width: 4, label: `a=${params.a} ${roleA_label}` });
     Mech.draw.link(ctx, Bxp, Byp, Cxp, Cyp, { color: C.return, width: 4, label: `b=${params.b} 连杆` });
     Mech.draw.link(ctx, Dx, Dy, Cxp, Cyp, { color: C.warning, width: 4, label: `c=${params.c} ${roleC_label}` });
