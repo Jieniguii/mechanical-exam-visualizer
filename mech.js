@@ -68,15 +68,43 @@ const Mech = {
 
   // === 绘图元件 ===
   draw: {
-    // 实心杆件
+    // 实心杆件（支持标签）
     link(ctx, x1, y1, x2, y2, opts = {}) {
-      const { color = '#e4e4e7', width = 2.5 } = opts;
+      const { color = '#e4e4e7', width = 2.5, label, labelOffset = 14 } = opts;
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
       ctx.strokeStyle = color;
       ctx.lineWidth = width;
+      ctx.lineCap = 'round';
       ctx.stroke();
+      if (label) {
+        const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+        const dx = x2 - x1, dy = y2 - y1;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len > 0) {
+          const nx = -dy / len * labelOffset, ny = dx / len * labelOffset;
+          ctx.fillStyle = color;
+          ctx.font = '11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(label, mx + nx, my + ny);
+        }
+      }
+    },
+
+    // 网格
+    grid(ctx, cx, cy, w, h, scale, opts = {}) {
+      const { color = 'rgba(255,255,255,0.03)', step = 40 } = opts;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      const s = step * scale;
+      for (let x = cx % s; x < w; x += s) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = cy % s; y < h; y += s) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
     },
 
     // 铰链点（活动）
@@ -239,6 +267,41 @@ const Mech = {
         leg.appendChild(div);
       });
       parent.appendChild(leg);
+      return leg;
+    },
+
+    // 侧边栏面板（带标题）
+    panel(parent, title) {
+      const p = document.createElement('div');
+      p.className = 'panel';
+      p.innerHTML = `<div class="panel-title">${title}</div>`;
+      parent.appendChild(p);
+      return p;
+    },
+
+    // 侧边栏滑块（垂直布局，带标签和数值显示）
+    sidebarSlider(parent, config) {
+      const { label, min, max, value, step = 1, onChange, format } = config;
+      const group = document.createElement('div');
+      group.className = 'slider-group';
+      const fmt = format || (v => v);
+      group.innerHTML = `
+        <div class="slider-header">
+          <span class="slider-label">${label}</span>
+          <span class="slider-value">${fmt(value)}</span>
+        </div>
+        <input type="range" min="${min}" max="${max}" value="${value}" step="${step}">
+      `;
+      parent.appendChild(group);
+      const input = group.querySelector('input');
+      const valSpan = group.querySelector('.slider-value');
+      const labelSpan = group.querySelector('.slider-label');
+      input.addEventListener('input', e => {
+        const v = parseFloat(e.target.value);
+        valSpan.textContent = fmt(v);
+        if (onChange) onChange(v);
+      });
+      return { input, valSpan, labelSpan, set(v) { input.value = v; valSpan.textContent = fmt(v); } };
     },
   },
 };
