@@ -327,7 +327,7 @@ const Mech = {
         valSpan.textContent = fmt(v);
         if (onChange) onChange(v);
       });
-      return { input, valSpan, labelSpan, set(v) { input.value = v; valSpan.textContent = fmt(v); } };
+      return { input, valSpan, labelSpan, el: group, set(v) { input.value = v; valSpan.textContent = fmt(v); } };
     },
 
     // 复选框开关

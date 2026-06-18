@@ -1,209 +1,63 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>凸轮反转法交互演示 — 机械考研可视化</title>
-<style>
-:root {
-  --bg: #0f1117;
-  --card: #1a1d27;
-  --border: #2a2d3a;
-  --text: #e4e4e7;
-  --text2: #9ca3af;
-  --accent: #6366f1;
-  --accent2: #818cf8;
-  --green: #34d399;
-  --red: #f87171;
-  --amber: #fbbf24;
-  --blue: #60a5fa;
-}
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column}
-header{text-align:center;padding:12px 16px 8px;position:relative}
-header h1{font-size:22px;font-weight:600;background:linear-gradient(135deg,var(--accent2),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-header p{font-size:13px;color:var(--text2);margin-top:2px}
-.back-btn{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--text2);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:6px;background:rgba(255,255,255,0.05);transition:all 0.2s}
-.back-btn:hover{background:rgba(255,255,255,0.12);color:var(--accent2)}
-.container{display:flex;flex:1;overflow:hidden}
-.canvas-wrap{flex:1;position:relative;min-width:0}
-canvas{display:block;width:100%;height:100%}
-.panel{width:320px;overflow-y:auto;padding:14px;background:var(--bg);border-left:1px solid var(--border);flex-shrink:0}
-.panel::-webkit-scrollbar{width:4px}
-.panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-.section{margin-bottom:14px;padding:12px;background:var(--card);border-radius:12px;border:1px solid var(--border)}
-.section-title{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
-.mode-toggle{display:flex;gap:6px}
-.mode-btn{flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);cursor:pointer;font-size:13px;transition:all .2s}
-.mode-btn.active{background:rgba(99,102,241,0.15);border-color:var(--accent);color:var(--accent2);font-weight:500}
-.badge{display:inline-block;padding:3px 10px;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);border-radius:20px;color:var(--amber);font-size:11px}
-.type-tabs{display:flex;gap:4px;flex-wrap:wrap}
-.type-btn{padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text2);cursor:pointer;font-size:12px;transition:all .2s}
-.type-btn.active{background:rgba(52,211,153,0.12);border-color:var(--green);color:var(--green);font-weight:500}
-.param-group{margin-bottom:8px}
-.param-group.hidden{display:none}
-.slider-row{display:flex;align-items:center;gap:8px;margin-bottom:2px}
-.slider-label{font-size:13px;color:var(--text2);min-width:72px;flex-shrink:0}
-.slider-val{font-size:13px;color:var(--text);min-width:40px;text-align:right;flex-shrink:0}
-input[type=range]{flex:1;-webkit-appearance:none;height:4px;background:var(--border);border-radius:3px;outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--accent);border-radius:50%;cursor:pointer}
-input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--accent);border-radius:50%;cursor:pointer;border:none}
-.check-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:12px;color:var(--text2);cursor:pointer}
-.check-row input{accent-color:var(--accent)}
-.check-row.disabled{opacity:0.3;pointer-events:none}
-.controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.ctrl-btn{width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.ctrl-btn:hover{background:rgba(255,255,255,0.05)}
-.ctrl-btn.playing{background:rgba(99,102,241,0.15);border-color:var(--accent);color:var(--accent2)}
-.speed-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)}
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.info-item{padding:6px 8px;background:rgba(99,102,241,0.06);border-radius:8px;border:1px solid var(--border)}
-.info-item .label{font-size:10px;color:var(--text2);margin-bottom:2px}
-.info-item .value{font-size:13px;font-weight:500;color:var(--text)}
-.info-item .value.warn{color:var(--red)}
-.tip{margin-top:8px;padding:10px;background:rgba(99,102,241,0.06);border-radius:8px;font-size:11px;color:var(--text2);line-height:1.5}
-.phase-row{display:flex;gap:4px;margin-top:6px}
-.phase-tag{padding:2px 6px;border-radius:4px;font-size:10px;font-weight:500}
-.phase-rise{background:rgba(99,102,241,0.15);color:var(--accent2)}
-.phase-dwell-far{background:rgba(52,211,153,0.15);color:var(--green)}
-.phase-return{background:rgba(251,191,36,0.15);color:var(--amber)}
-.phase-dwell-near{background:rgba(113,113,122,0.15);color:var(--text2)}
-@media(max-width:768px){
-.container{flex-direction:column}
-.canvas-wrap{height:55vh}
-.panel{width:100%;height:45vh;border-left:none;border-top:1px solid #1e2028}
-.back-btn{position:static;display:inline-block;margin-bottom:8px;transform:none}
-}
-</style>
+<link rel="stylesheet" href="mech.css">
 </head>
 <body>
-<header>
-  <a href="ch4-cam.html" class="back-btn">← 返回章节</a>
-  <h1>凸轮反转法交互演示</h1>
+<a href="ch4-cam.html" class="back-btn">← 返回章节</a>
+
+<div class="header">
+  <h1>凸轮反转法交互演示 <span class="version-badge">v2.0</span></h1>
   <p>盘形凸轮机构廓线设计 · 反转法原理 · 四种从动件对比</p>
-</header>
-<div class="container">
-<div class="canvas-wrap"><canvas id="c"></canvas></div>
-<div class="panel">
-<div class="section">
-<div class="mode-toggle">
-<button class="mode-btn active" onclick="setMode('inversion')">反转法</button>
-<button class="mode-btn" onclick="setMode('actual')">实际运动</button>
 </div>
+
+<div class="app">
+  <div class="main-layout">
+    <div>
+      <div class="canvas-card">
+        <div class="canvas-wrapper">
+          <canvas id="canvas"></canvas>
+        </div>
+        <div class="canvas-toolbar" id="toolbar"></div>
+      </div>
+    </div>
+    <div class="sidebar" id="sidebar"></div>
+  </div>
 </div>
-<div class="section">
-<div class="section-title">运动规律</div>
-<div class="badge">简谐运动 (SHM)</div>
-</div>
-<div class="section">
-<div class="section-title">从动件类型</div>
-<div class="type-tabs">
-<button class="type-btn active" onclick="setType('pointed')">尖底</button>
-<button class="type-btn" onclick="setType('roller')">滚子</button>
-<button class="type-btn" onclick="setType('oscillating')">摆动</button>
-<button class="type-btn" onclick="setType('flat')">平底</button>
-</div>
-</div>
-<div class="section" id="paramsSection">
-<div class="section-title">参数设置</div>
-<div class="param-group" id="pgR0"><div class="slider-row"><span class="slider-label">基圆半径 r₀</span><input type="range" id="slR0" min="20" max="80" value="40"><span class="slider-val" id="valR0">40</span></div></div>
-<div class="param-group" id="pgH"><div class="slider-row"><span class="slider-label">行程 h</span><input type="range" id="slH" min="5" max="50" value="25"><span class="slider-val" id="valH">25</span></div></div>
-<div class="param-group hidden" id="pgPsi"><div class="slider-row"><span class="slider-label">摆角 ψ</span><input type="range" id="slPsi" min="10" max="60" value="18"><span class="slider-val" id="valPsi">18°</span></div></div>
-<div class="param-group" id="pgE"><div class="slider-row"><span class="slider-label">偏距 e</span><input type="range" id="slE" min="0" max="35" value="0"><span class="slider-val" id="valE">0</span></div></div>
-<div class="param-group hidden" id="pgRr"><div class="slider-row"><span class="slider-label">滚子半径 rr</span><input type="range" id="slRr" min="3" max="20" value="5"><span class="slider-val" id="valRr">5</span></div></div>
-<div class="param-group hidden" id="pgL"><div class="slider-row"><span class="slider-label">摆臂长度 l</span><input type="range" id="slL" min="40" max="140" value="80"><span class="slider-val" id="valL">80</span></div></div>
-</div>
-<div class="section">
-<div class="section-title">运动角分配</div>
-<div class="param-group"><div class="slider-row"><span class="slider-label">推程角 δ₁</span><input type="range" id="slP1" min="30" max="180" value="120"><span class="slider-val" id="valP1">120°</span></div></div>
-<div class="param-group"><div class="slider-row"><span class="slider-label">远休止角 δ₂</span><input type="range" id="slP2" min="0" max="180" value="60"><span class="slider-val" id="valP2">60°</span></div></div>
-<div class="param-group"><div class="slider-row"><span class="slider-label">回程角 δ₃</span><input type="range" id="slP3" min="30" max="180" value="120"><span class="slider-val" id="valP3">120°</span></div></div>
-<div class="param-group"><div class="slider-row"><span class="slider-label">近休止角 δ₄</span><span class="slider-val" id="valP4" style="flex:1;text-align:center">60°</span></div></div>
-<div class="phase-row"><span class="phase-tag phase-rise">推程</span><span class="phase-tag phase-dwell-far">远休</span><span class="phase-tag phase-return">回程</span><span class="phase-tag phase-dwell-near">近休</span></div>
-</div>
-<div class="section">
-<div class="section-title">显示选项</div>
-<label class="check-row"><input type="checkbox" id="chkBase" checked> 基圆</label>
-<label class="check-row"><input type="checkbox" id="chkTheory" checked> 理论廓线</label>
-<label class="check-row" id="chkActualRow"><input type="checkbox" id="chkActual" checked> 实际廓线</label>
-<label class="check-row" id="chkOffsetRow"><input type="checkbox" id="chkOffset"> 偏距圆</label>
-<label class="check-row"><input type="checkbox" id="chkPressure" checked> 压力角</label>
-<label class="check-row"><input type="checkbox" id="chkPhase" checked> 运动区间</label>
-<label class="check-row"><input type="checkbox" id="chkSD" checked> s-δ位移图</label>
-</div>
-<div class="section">
-<div class="section-title">播放控制</div>
-<div class="controls">
-<button class="ctrl-btn playing" id="btnPlay" onclick="togglePlay()">&#9654;</button>
-<button class="ctrl-btn" onclick="stepAngle(-10)">&#9664;</button>
-<button class="ctrl-btn" onclick="stepAngle(10)">&#9654;</button>
-<div class="speed-row"><span>速度</span><input type="range" id="slSpeed" min="0.1" max="3" step="0.1" value="1" style="width:60px"><span id="valSpeed">1.0x</span></div>
-</div>
-<div class="param-group" style="margin-top:10px">
-<div class="slider-row"><span class="slider-label">角度 δ</span><input type="range" id="slAngle" min="0" max="360" value="0" step="0.5"><span class="slider-val" id="valAngle">0°</span></div>
-</div>
-</div>
-<div class="section">
-<div class="section-title">实时信息</div>
-<div class="info-grid">
-<div class="info-item"><div class="label">当前角度 δ</div><div class="value" id="infoDelta">0°</div></div>
-<div class="info-item"><div class="label" id="infoDispLabel">位移 s</div><div class="value" id="infoDisp">0</div></div>
-<div class="info-item"><div class="label">压力角 α</div><div class="value" id="infoAlpha">0°</div></div>
-<div class="info-item"><div class="label">当前阶段</div><div class="value" id="infoPhase">近休止</div></div>
-</div>
-<div class="tip" id="tipText">反转法：给整个凸轮机构加一个与凸轮角速度大小相等、方向相反的转动（-ω），凸轮顺时针转动时，从动件导路绕凸轮中心逆时针反转。从动件尖端的运动轨迹即为凸轮的理论廓线。</div>
-</div>
-</div>
-</div>
+
+<script src="mech.js"></script>
 <script>
 const DEG = Math.PI / 180;
 const PI = Math.PI;
 
-// ===== State =====
+// ===== 模块状态 =====
 let mode = 'inversion';
 let followerType = 'pointed';
 let r0 = 40, h = 25, e = 0, rr = 8, psiMax = 18, armLen = 80;
 let p1 = 120, p2 = 60, p3 = 120, p4 = 60;
 let delta = 0;
-let playing = true;
 let speed = 1;
 let traceUpTo = 0;
-let showBase=true,showTheory=true,showActual=true,showPressure=true,showPhase=true,showSD=true,showOffset=false;
 let flatHalfWidth = 35;
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-let W, H, cx, cy, scale;
+const show = { base: true, theory: true, actual: true, offset: false, pressure: true, phase: true, sd: true };
 
-function resize() {
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.parentElement.getBoundingClientRect();
-  W = rect.width; H = rect.height;
-  canvas.width = W * dpr; canvas.height = H * dpr;
-  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  computeLayout();
-}
+// ===== Canvas + 动画 =====
+const { ctx, getDimensions, canvas } = Mech.setupCanvas(document.getElementById('canvas'));
+let cx, cy, scale;
 
-function computeLayout() {
-  const maxR = getMaxRadius() + 20;
-  const avail = Math.min(W * 0.42, H * 0.42);
-  scale = avail / Math.max(maxR, 1);
-  cx = W * 0.46;
-  cy = H * 0.44;
-}
+const anim = Mech.createAnimator(
+  dt => {
+    delta += speed * 0.8 * dt;
+    if (delta > PI * 2) delta -= PI * 2;
+  },
+  () => draw()
+);
 
-function updatePhases() {
-  p1 = +document.getElementById('slP1').value;
-  p2 = +document.getElementById('slP2').value;
-  p3 = +document.getElementById('slP3').value;
-  p4 = Math.max(0, 360 - p1 - p2 - p3);
-  document.getElementById('valP1').textContent = p1 + '°';
-  document.getElementById('valP2').textContent = p2 + '°';
-  document.getElementById('valP3').textContent = p3 + '°';
-  document.getElementById('valP4').textContent = p4 + '°';
-}
-
-// ===== Displacement (SHM) =====
+// ===== 运动规律（SHM，模块特有）=====
 function getS(dDeg) {
   const d = ((dDeg % 360) + 360) % 360;
   if (d <= p1 && p1 > 0) return (h / 2) * (1 - Math.cos(PI * d / p1));
@@ -211,7 +65,6 @@ function getS(dDeg) {
   if (d <= p1 + p2 + p3 && p3 > 0) return (h / 2) * (1 + Math.cos(PI * (d - p1 - p2) / p3));
   return 0;
 }
-
 function getDs(dDeg) {
   const d = ((dDeg % 360) + 360) % 360;
   if (d <= p1 && p1 > 0) return (h * PI / (2 * p1)) * Math.sin(PI * d / p1);
@@ -219,7 +72,6 @@ function getDs(dDeg) {
   if (d <= p1 + p2 + p3 && p3 > 0) return -(h * PI / (2 * p3)) * Math.sin(PI * (d - p1 - p2) / p3);
   return 0;
 }
-
 function getPsi(dDeg) {
   const d = ((dDeg % 360) + 360) % 360;
   const max = psiMax * DEG;
@@ -228,7 +80,6 @@ function getPsi(dDeg) {
   if (d <= p1 + p2 + p3 && p3 > 0) return (max / 2) * (1 + Math.cos(PI * (d - p1 - p2) / p3));
   return 0;
 }
-
 function getPhase(dDeg) {
   const d = ((dDeg % 360) + 360) % 360;
   if (d <= p1) return '推程';
@@ -237,16 +88,10 @@ function getPhase(dDeg) {
   return '近休止';
 }
 
-// ===== Profile (CCW parameterization in math coords) =====
-// δ increases CCW; at δ=0 follower is up (+y), at δ=90° CCW follower is LEFT (-x)
-// In canvas: CCW in math → CCW in canvas (y-flip preserves rotation direction)
-// Actual mode: cam rotates CW (ctx.rotate(+delta)), contact at reference (top) uses δ=delta
-// Inversion mode: guide rotates CCW (ctx.rotate(-degNow*DEG)), matches profile direction
+// ===== 廓线计算（CCW参数化，模块特有）=====
 function getProfilePoint(dDeg) {
-  const s = getS(dDeg);
-  const ds = getDs(dDeg);
-  const rad = dDeg * DEG;
-  const sinD = Math.sin(rad), cosD = Math.cos(rad);
+  const s = getS(dDeg), ds = getDs(dDeg);
+  const rad = dDeg * DEG, sinD = Math.sin(rad), cosD = Math.cos(rad);
   switch (followerType) {
     case 'pointed': {
       const s0 = (e > 0) ? Math.sqrt(Math.max(0, r0 * r0 - e * e)) : r0;
@@ -254,25 +99,18 @@ function getProfilePoint(dDeg) {
       return { x: -total * sinD + e * cosD, y: total * cosD + e * sinD, s: total, ds };
     }
     case 'roller': {
-      // 滚子从动件：r0 是基圆半径（实际廓线最小向径），理论廓线 s0 = r0 + rr
       const s0 = (e > 0) ? Math.sqrt(Math.max(0, (r0 + rr) * (r0 + rr) - e * e)) : r0 + rr;
       const total = s0 + s;
       return { x: -total * sinD + e * cosD, y: total * cosD + e * sinD, s: total, ds };
     }
     case 'flat': {
       const total = r0 + s;
-      // ds is per-degree, need per-radian for profile formula
       const dsRad = ds * (180 / PI);
       return { x: -total * sinD - dsRad * cosD, y: total * cosD - dsRad * sinD, s: total, ds: dsRad };
     }
     case 'oscillating': {
-      const psi = getPsi(dDeg);
-      const L = r0 + armLen;
-      return {
-        x: -L * sinD + armLen * Math.sin(psi + rad),
-        y: L * cosD - armLen * Math.cos(psi + rad),
-        s: psi, ds: 0
-      };
+      const psi = getPsi(dDeg), L = r0 + armLen;
+      return { x: -L * sinD + armLen * Math.sin(psi + rad), y: L * cosD - armLen * Math.cos(psi + rad), s: psi, ds: 0 };
     }
   }
 }
@@ -298,15 +136,13 @@ function computeActualProfile(theoPts) {
   if (followerType !== 'roller') return [];
   const pts = [];
   for (let i = 0; i < theoPts.length; i++) {
-    const prev = theoPts[(i - 1 + 360) % 360];
-    const next = theoPts[(i + 1) % 360];
-    const curr = theoPts[i];
+    const prev = theoPts[(i - 1 + 360) % 360], next = theoPts[(i + 1) % 360], curr = theoPts[i];
     const tx = next.x - prev.x, ty = next.y - prev.y;
     const len = Math.sqrt(tx * tx + ty * ty);
     if (len < 0.01) { pts.push({ x: curr.x, y: curr.y }); continue; }
     const nx = ty / len, ny = -tx / len;
     const midR = Math.sqrt(curr.x * curr.x + curr.y * curr.y);
-    const outerR = Math.sqrt((curr.x + nx * 5) * (curr.x + nx * 5) + (curr.y + ny * 5) * (curr.y + ny * 5));
+    const outerR = Math.sqrt((curr.x + nx * 5) ** 2 + (curr.y + ny * 5) ** 2);
     const sign = outerR > midR ? 1 : -1;
     pts.push({ x: curr.x - sign * nx * rr, y: curr.y - sign * ny * rr });
   }
@@ -314,26 +150,21 @@ function computeActualProfile(theoPts) {
 }
 
 function getPressureAngle(dDeg) {
-  // 平底从动件：压力角恒为 0°（平底面法线始终与运动方向一致）
   if (followerType === 'flat') return 0;
   const curr = getProfilePoint(dDeg);
-  const next = getProfilePoint(dDeg + 0.5);
-  const prev = getProfilePoint(dDeg - 0.5);
+  const next = getProfilePoint(dDeg + 0.5), prev = getProfilePoint(dDeg - 0.5);
   const tx = next.x - prev.x, ty = next.y - prev.y;
   const tLen = Math.sqrt(tx * tx + ty * ty);
   if (tLen < 0.001) return 0;
   let nx = ty / tLen, ny = -tx / tLen;
   const midR = Math.sqrt(curr.x * curr.x + curr.y * curr.y);
-  const outerR = Math.sqrt((curr.x + nx * 2) * (curr.x + nx * 2) + (curr.y + ny * 2) * (curr.y + ny * 2));
+  const outerR = Math.sqrt((curr.x + nx * 2) ** 2 + (curr.y + ny * 2) ** 2);
   if (outerR < midR) { nx = -nx; ny = -ny; }
   let vx, vy;
   if (followerType === 'oscillating') {
-    const psi = getPsi(dDeg);
-    const L = r0 + armLen;
-    const rad = dDeg * DEG;
+    const psi = getPsi(dDeg), L = r0 + armLen, rad = dDeg * DEG;
     const ax = -L * Math.sin(rad), ay = L * Math.cos(rad);
-    const bx = curr.x, by = curr.y;
-    const armDx = bx - ax, armDy = by - ay;
+    const armDx = curr.x - ax, armDy = curr.y - ay;
     const al2 = Math.sqrt(armDx * armDx + armDy * armDy);
     if (al2 < 0.01) return 0;
     vx = -armDy / al2; vy = armDx / al2;
@@ -341,92 +172,68 @@ function getPressureAngle(dDeg) {
     const rad = dDeg * DEG;
     vx = -Math.sin(rad); vy = Math.cos(rad);
   }
-  const dot = nx * vx + ny * vy;
-  const cross = nx * vy - ny * vx;
+  const dot = nx * vx + ny * vy, cross = nx * vy - ny * vx;
   let angle = Math.abs(Math.atan2(cross, dot));
   if (angle > PI / 2) angle = PI - angle;
   return angle;
 }
 
-// ===== Roller contact point =====
-// Contact point = point on actual profile (cam surface) at current angle.
-// In math coords (y-up), actualProfile[i] = cam surface point at angle i.
-// The roller wraps around the cam: roller center = profile[i], contact = actualProfile[i].
 function getRollerContactMath(degNow, actualProfile) {
   const idx = ((Math.round(degNow) % 360) + 360) % 360;
   const ap = actualProfile[idx];
-  if (!ap) return { x: 0, y: 0 };
-  return { x: ap.x, y: ap.y };
+  return ap || { x: 0, y: 0 };
 }
 
-
-// ===== Drawing helpers =====
-function toCanvas(mx, my) {
-  return { x: cx + mx * scale, y: cy - my * scale };
+// ===== 布局 =====
+function computeLayout() {
+  const { w, h } = getDimensions();
+  const maxR = getMaxRadius() + 20;
+  const avail = Math.min(w * 0.42, h * 0.42);
+  scale = avail / Math.max(maxR, 1);
+  cx = w * 0.46; cy = h * 0.44;
 }
 
+// ===== 绘制辅助（模块特有）=====
 function drawCircleShape(x, y, r, stroke, dash) {
-  ctx.beginPath();
-  ctx.arc(x, y, Math.max(r, 0.1), 0, PI * 2);
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = 1;
-  if (dash) ctx.setLineDash(dash);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(x, y, Math.max(r, 0.1), 0, PI * 2);
+  ctx.strokeStyle = stroke; ctx.lineWidth = 1;
+  if (dash) ctx.setLineDash(dash); ctx.stroke(); ctx.setLineDash([]);
 }
 
 function drawProfilePath(points, angle, options) {
-  ctx.save();
-  ctx.translate(cx, cy);
-  if (angle) ctx.rotate(angle);
+  ctx.save(); ctx.translate(cx, cy); if (angle) ctx.rotate(angle);
   ctx.beginPath();
   for (let i = 0; i <= points.length; i++) {
     const p = points[i % points.length];
-    if (i === 0) ctx.moveTo(p.x * scale, -p.y * scale);
-    else ctx.lineTo(p.x * scale, -p.y * scale);
+    if (i === 0) ctx.moveTo(p.x * scale, -p.y * scale); else ctx.lineTo(p.x * scale, -p.y * scale);
   }
   ctx.closePath();
   if (options.fill) { ctx.fillStyle = options.fill; ctx.fill(); }
   if (options.stroke) {
-    ctx.strokeStyle = options.stroke;
-    ctx.lineWidth = options.lineWidth || 2;
-    if (options.dash) ctx.setLineDash(options.dash);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    ctx.strokeStyle = options.stroke; ctx.lineWidth = options.lineWidth || 2;
+    if (options.dash) ctx.setLineDash(options.dash); ctx.stroke(); ctx.setLineDash([]);
   }
   ctx.restore();
 }
 
 function drawPartialProfile(points, upToDeg, revealedColor, bgColor, camFill) {
   const n = Math.ceil(upToDeg) % 360;
-  ctx.save();
-  ctx.translate(cx, cy);
-  // Full outline (faint fill + SOLID stroke) — 凸轮轮廓为实线
+  ctx.save(); ctx.translate(cx, cy);
   ctx.beginPath();
   for (let i = 0; i <= points.length; i++) {
     const p = points[i % points.length];
-    if (i === 0) ctx.moveTo(p.x * scale, -p.y * scale);
-    else ctx.lineTo(p.x * scale, -p.y * scale);
+    if (i === 0) ctx.moveTo(p.x * scale, -p.y * scale); else ctx.lineTo(p.x * scale, -p.y * scale);
   }
   ctx.closePath();
-  ctx.fillStyle = camFill || 'rgba(71,85,105,0.35)';
-  ctx.fill();
-  // 凸轮轮廓：实线（用户要求）
-  ctx.strokeStyle = bgColor || 'rgba(148,163,184,0.4)';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([]);
-  ctx.stroke();
-  // Revealed (bright solid) — only if revealedColor is provided (not null)
+  ctx.fillStyle = camFill || 'rgba(71,85,105,0.35)'; ctx.fill();
+  ctx.strokeStyle = bgColor || 'rgba(148,163,184,0.4)'; ctx.lineWidth = 1.5; ctx.setLineDash([]); ctx.stroke();
   if (n >= 1 && revealedColor) {
     ctx.beginPath();
     for (let i = 0; i <= n; i++) {
       const p = points[i];
-      if (i === 0) ctx.moveTo(p.x * scale, -p.y * scale);
-      else ctx.lineTo(p.x * scale, -p.y * scale);
+      if (i === 0) ctx.moveTo(p.x * scale, -p.y * scale); else ctx.lineTo(p.x * scale, -p.y * scale);
     }
-    ctx.strokeStyle = revealedColor || '#fbbf24';
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
+    ctx.strokeStyle = revealedColor; ctx.lineWidth = 2.5; ctx.stroke();
   }
   ctx.restore();
 }
@@ -448,40 +255,26 @@ function drawRotationArrow(x, y, r, ccw) {
   ctx.fillStyle = 'rgba(228,228,231,0.7)';
   ctx.beginPath(); ctx.moveTo(tx, ty);
   ctx.lineTo(x+(r+sp)*Math.cos(bA), y+(r+sp)*Math.sin(bA));
-  ctx.lineTo(x+(r-sp)*Math.cos(bA), y+(r-sp)*Math.sin(bA));
+  ctx.lineTo(x+(r-sp)*Math.cos(bA), y-(r-sp)*Math.sin(bA)); // fix: y+ → y-(r-sp)
   ctx.closePath(); ctx.fill();
 }
 
-// ===== Draw guide block (机架小方块) =====
 function drawGuideBlock(x, y, w, h) {
-  // Filled block
-  ctx.fillStyle = '#2d3344';
-  ctx.fillRect(x - w/2, y, w, h);
-  ctx.strokeStyle = '#52525b'; ctx.lineWidth = 1;
-  ctx.strokeRect(x - w/2, y, w, h);
-  // Hatching (机架斜线)
-  ctx.save(); ctx.beginPath();
-  ctx.rect(x - w/2, y, w, h); ctx.clip();
+  ctx.fillStyle = '#2d3344'; ctx.fillRect(x - w/2, y, w, h);
+  ctx.strokeStyle = '#52525b'; ctx.lineWidth = 1; ctx.strokeRect(x - w/2, y, w, h);
+  ctx.save(); ctx.beginPath(); ctx.rect(x - w/2, y, w, h); ctx.clip();
   ctx.strokeStyle = 'rgba(100,116,139,0.4)'; ctx.lineWidth = 0.8;
   for (let i = -h; i < w + h; i += 5) {
-    ctx.beginPath();
-    ctx.moveTo(x - w/2 + i, y + h);
-    ctx.lineTo(x - w/2 + i - h, y);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x - w/2 + i, y + h); ctx.lineTo(x - w/2 + i - h, y); ctx.stroke();
   }
   ctx.restore();
 }
 
-// ===== Follower drawing: pointed (pencil) at absolute canvas position =====
-// baseY = fixed guide block position (rest position at base circle)
+// ===== 从动件绘制（全局坐标）=====
 function drawPencilAt(absX, tipY, baseY) {
-  const stemW = 6, tipLen = 14;
-  const rodTop = baseY - 40;
-  const blockW = 14, blockH = 12, blockGap = stemW + 6;
-  // Fixed guide blocks at baseY
+  const stemW = 6, tipLen = 14, rodTop = baseY - 40, blockW = 14, blockH = 12, blockGap = stemW + 6;
   drawGuideBlock(absX - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
   drawGuideBlock(absX + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
-  // Pencil body: from rodTop down to tip
   const grad = ctx.createLinearGradient(absX-stemW, 0, absX+stemW, 0);
   grad.addColorStop(0, '#4a5568'); grad.addColorStop(0.5, '#a0aec0'); grad.addColorStop(1, '#4a5568');
   ctx.fillStyle = grad;
@@ -490,319 +283,62 @@ function drawPencilAt(absX, tipY, baseY) {
   ctx.lineTo(absX+stemW, tipY-tipLen*0.6); ctx.lineTo(absX+3, tipY-tipLen*0.3);
   ctx.lineTo(absX, tipY); ctx.lineTo(absX-3, tipY-tipLen*0.3);
   ctx.lineTo(absX-stemW, tipY-tipLen*0.6); ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(52,211,153,0.6)'; ctx.lineWidth = 1; ctx.stroke();
-  // Contact
+  ctx.fill(); ctx.strokeStyle = 'rgba(52,211,153,0.6)'; ctx.lineWidth = 1; ctx.stroke();
   ctx.beginPath(); ctx.arc(absX, tipY, 3, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
 }
 
-// ===== Follower drawing: roller at absolute canvas position =====
-// Roller center at fixed guide position (guideX, tipY) — moves vertically along guide, NOT orbiting with cam
-// Contact point = actualProfile[degNow] rotated by camAngle — moves around roller surface
 function drawRollerAt(absX, tipY, baseY, degNow, camAngle, actualProfile) {
-  const rodTop = baseY - 40;
-  const blockW = 14, blockH = 12, blockGap = 8;
-  // Fixed guide blocks at baseY
+  const rodTop = baseY - 40, blockW = 14, blockH = 12, blockGap = 8;
   drawGuideBlock(absX - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
   drawGuideBlock(absX + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
-  // Rod from guide top to roller center
   ctx.strokeStyle = 'rgba(148,163,184,0.6)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(absX, rodTop); ctx.lineTo(absX, tipY); ctx.stroke(); ctx.lineCap = 'butt';
-  // Roller circle at (absX, tipY) - EMPHASIZED as main subject
   ctx.beginPath(); ctx.arc(absX, tipY, rr*scale, 0, PI*2);
   ctx.fillStyle = 'rgba(52,211,153,1)'; ctx.fill();
   ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3; ctx.stroke();
   ctx.beginPath(); ctx.arc(absX, tipY, 2.5, 0, PI*2); ctx.fillStyle = '#34d399'; ctx.fill();
-  // Contact point on roller surface (moves as cam rotates)
-  // actualProfile[degNow] is the cam surface point → rotate by camAngle to match ctx.rotate
   const cpMath = getRollerContactMath(degNow, actualProfile);
   const cosA = Math.cos(camAngle), sinA = Math.sin(camAngle);
   const contactX = cx + (cpMath.x * cosA + cpMath.y * sinA) * scale;
   const contactY = cy + (cpMath.x * sinA - cpMath.y * cosA) * scale;
-  // Highlight contact point: yellow dot + white center
-  ctx.beginPath(); ctx.arc(contactX, contactY, 4, 0, PI*2);
-  ctx.fillStyle = '#fbbf24'; ctx.fill();
-  ctx.beginPath(); ctx.arc(contactX, contactY, 2, 0, PI*2);
-  ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.beginPath(); ctx.arc(contactX, contactY, 4, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
+  ctx.beginPath(); ctx.arc(contactX, contactY, 2, 0, PI*2); ctx.fillStyle = '#fff'; ctx.fill();
 }
 
-// ===== Follower drawing: flat (rod + horizontal line) at absolute canvas position =====
-// tipY = flat face position (cam contact surface)
 function drawFlatAt(absX, tipY, baseY, dsOffset) {
-  const rodTop = baseY - 40;
-  const blockW = 14, blockH = 12, blockGap = 8;
-  const halfFlat = flatHalfWidth;
-  // Fixed guide blocks at baseY
+  const rodTop = baseY - 40, blockW = 14, blockH = 12, blockGap = 8, halfFlat = flatHalfWidth;
   drawGuideBlock(absX - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
   drawGuideBlock(absX + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
-  // Flat face (contact surface with cam)
   ctx.strokeStyle = '#34d399'; ctx.lineWidth = 4;
   ctx.beginPath(); ctx.moveTo(absX-halfFlat, tipY); ctx.lineTo(absX+halfFlat, tipY); ctx.stroke();
-  // Rod from rodTop down to top of flat face
   ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 4; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(absX, rodTop); ctx.lineTo(absX, tipY - 2); ctx.stroke(); ctx.lineCap = 'butt';
-  // Contact point at offset on flat face (ds * scale)
-  const contactX = absX + dsOffset;
-  ctx.beginPath(); ctx.arc(contactX, tipY, 3, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
+  ctx.beginPath(); ctx.arc(absX + dsOffset, tipY, 3, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
 }
 
-// ===== Main draw =====
-function draw() {
-  ctx.fillStyle = '#0f1117'; ctx.fillRect(0, 0, W, H);
-  const profile = computeProfile();
-  // Compute flat face width to always contain the contact point
-  if (followerType === 'flat') {
-    let maxDs = 0;
-    for (let d = 0; d < 360; d++) maxDs = Math.max(maxDs, Math.abs(profile[d].ds));
-    flatHalfWidth = Math.max(35, (maxDs + 5) * scale);
-  } else { flatHalfWidth = 35; }
-  const actualProfile = computeActualProfile(profile);
-  const degNow = ((delta * 180 / PI) % 360 + 360) % 360;
-  const sNow = getS(degNow);
-  const psiNow = getPsi(degNow);
-  const phaseNow = getPhase(degNow);
-  const camFill = 'rgba(71,85,105,0.35)';
-  const camStroke = '#94a3b8';
-  if (mode === 'actual') drawActualMode(profile, actualProfile, degNow, sNow, psiNow, camFill, camStroke);
-  else drawInversionMode(profile, actualProfile, degNow, sNow, camFill, camStroke);
-  if (showSD) drawSDiagram(degNow);
-  updateInfo(degNow, sNow, psiNow, phaseNow);
-}
-
-function drawActualMode(profile, actualProfile, degNow, sNow, psiNow, camFill, camStroke) {
-  const camAngle = delta; // CW rotation in canvas
-  // ===== Cam body =====
-  if (followerType === 'roller') {
-    // 滚子从动件：凸轮实体以实际廓线（内等距线）为边界，滚子才能与凸轮表面相切
-    drawProfilePath(actualProfile, camAngle, { fill: camFill, stroke: '#f97316', lineWidth: 2 });
-    // 理论廓线（滚子中心轨迹）作为参考虚线
-    if (showTheory)
-      drawProfilePath(profile, camAngle, { stroke: 'rgba(251,191,36,0.5)', lineWidth: 1, dash: [5,4] });
-  } else {
-    drawProfilePath(profile, camAngle, { fill: camFill, stroke: camStroke, lineWidth: 1.5 });
-  }
-  // Base circle
-  if (showBase) {
-    drawCircleShape(cx, cy, r0*scale, 'rgba(99,102,241,0.3)', [5,4]);
-    ctx.fillStyle = 'rgba(99,102,241,0.5)'; ctx.font = '11px sans-serif';
-    ctx.fillText('r₀='+r0, cx+r0*scale*0.7+6, cy-r0*scale*0.7);
-  }
-  // Phase arcs
-  if (showPhase) {
-    const colors = ['rgba(99,102,241,0.25)','rgba(52,211,153,0.25)','rgba(251,191,36,0.25)','rgba(113,113,122,0.1)'];
-    const angles = [p1,p2,p3,p4];
-    ctx.save(); ctx.translate(cx, cy); ctx.rotate(camAngle);
-    let startA = -PI/2;
-    for (let i = 0; i < 4; i++) {
-      if (angles[i] > 0) { ctx.beginPath(); ctx.arc(0,0,(r0-3)*scale,startA,startA+angles[i]*DEG); ctx.strokeStyle=colors[i]; ctx.lineWidth=3; ctx.stroke(); }
-      startA += angles[i]*DEG;
-    }
-    ctx.restore();
-  }
-  // Center mark
-  ctx.beginPath(); ctx.arc(cx,cy,3,0,PI*2); ctx.fillStyle='#6366f1'; ctx.fill();
-  // Rotation arrow CW
-  drawRotationArrow(cx, cy, 14, false);
-  ctx.fillStyle='rgba(228,228,231,0.5)'; ctx.font='11px sans-serif'; ctx.fillText('ω',cx+18,cy-12);
-  // ===== Follower at fixed guide =====
-  const s0raw = (e>0)?Math.sqrt(Math.max(0,r0*r0-e*e)):r0;
-  const s0 = (followerType === 'roller') ? ((e>0)?Math.sqrt(Math.max(0,(r0+rr)*(r0+rr)-e*e)):(r0+rr)) : s0raw;
-  const totalS = s0 + sNow;
-  const guideX = cx + e * scale;
-  const tipY = cy - totalS * scale;
-
-  if (followerType === 'oscillating') {
-    drawOscillatingActual(degNow, psiNow, camAngle);
-  } else {
-    // Guide blocks at fixed position above cam (r0+h+clearance) to avoid collision
-    const guideBlockY = cy - (r0 + h + 30) * scale;
-    if (followerType === 'pointed') drawPencilAt(guideX, tipY, guideBlockY);
-    else if (followerType === 'roller') drawRollerAt(guideX, tipY, guideBlockY, degNow, camAngle, actualProfile);
-    else {
-      // Flat follower: contact point offset = ds * scale (already in per-radian units from profile)
-      const dsOffset = -profile[Math.round(degNow) % 360].ds * scale;
-      drawFlatAt(guideX, tipY, guideBlockY, dsOffset);
-    }
-  }
-  if (showPressure) drawPressureAnnotation(degNow, camAngle);
-}
-
-function drawOscillatingActual(degNow, psiNow, camAngle) {
-  // In actual motion mode: cam rotates CW, pivot is FIXED at (cx, cy - L*scale)
-  const L = r0 + armLen;
-  // Fixed pivot position in canvas coords
-  const pivot = { x: cx, y: cy - L * scale };
-  // Contact point: cam profile point rotated by camAngle (CW)
-  // Math coords (x,y) with y-up → canvas (cx + x*s, cy - y*s), then CW rotate θ:
-  //   canvas_x' = (x*cosθ - y*sinθ)*s, canvas_y' = -(x*sinθ + y*cosθ)*s
-  const cp = getProfilePoint(degNow);
-  const cosA = Math.cos(camAngle), sinA = Math.sin(camAngle);
-  // Transform matching ctx.rotate(camAngle): (mx*s, -my*s) rotated
-  const contact = {
-    x: cx + (cp.x * cosA + cp.y * sinA) * scale,
-    y: cy + (cp.x * sinA - cp.y * cosA) * scale
-  };
-  // Draw ground at pivot
-  drawGround(pivot.x, pivot.y - 8, 30);
-  // Pivot circle
-  ctx.beginPath(); ctx.arc(pivot.x, pivot.y, 5, 0, PI*2);
-  ctx.fillStyle = '#71717a'; ctx.fill();
-  ctx.strokeStyle = '#52525b'; ctx.lineWidth = 1; ctx.stroke();
-  // Arm from pivot to contact
-  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(pivot.x, pivot.y); ctx.lineTo(contact.x, contact.y); ctx.stroke();
-  ctx.lineCap = 'butt';
-  // Contact dot
-  ctx.beginPath(); ctx.arc(contact.x, contact.y, 3, 0, PI*2);
-  ctx.fillStyle = '#fbbf24'; ctx.fill();
-}
-
-function drawInversionMode(profile, actualProfile, degNow, sNow, camFill, camStroke) {
-  if (playing) traceUpTo = degNow;
-  const s0raw = (e>0)?Math.sqrt(Math.max(0,r0*r0-e*e)):r0;
-  const s0 = (followerType === 'roller') ? ((e>0)?Math.sqrt(Math.max(0,(r0+rr)*(r0+rr)-e*e)):(r0+rr)) : s0raw;
-  const totalS = s0 + sNow;
-  // Base circle
-  if (showBase) {
-    drawCircleShape(cx,cy,r0*scale,'rgba(99,102,241,0.3)',[5,4]);
-    ctx.fillStyle='rgba(99,102,241,0.5)'; ctx.font='11px sans-serif';
-    ctx.fillText('r₀='+r0, cx+r0*scale*0.7+6, cy-r0*scale*0.7);
-  }
-  // Offset circle
-  if (showOffset && e>0 && followerType!=='oscillating' && followerType!=='flat') {
-    drawCircleShape(cx,cy,e*scale,'rgba(239,68,68,0.25)',[3,3]);
-    ctx.fillStyle='rgba(239,68,68,0.4)'; ctx.font='10px sans-serif'; ctx.fillText('e='+e,cx+e*scale+4,cy+2);
-  }
-  // Phase arcs
-  if (showPhase) {
-    const colors = ['rgba(99,102,241,0.25)','rgba(52,211,153,0.25)','rgba(251,191,36,0.25)','rgba(113,113,122,0.1)'];
-    const angles = [p1,p2,p3,p4];
-    let startA = -PI/2;
-    for (let i = 0; i < 4; i++) {
-      if (angles[i]>0){ctx.beginPath();ctx.arc(cx,cy,(r0-3)*scale,startA,startA+angles[i]*DEG);ctx.strokeStyle=colors[i];ctx.lineWidth=3;ctx.stroke();}
-      startA += angles[i]*DEG;
-    }
-  }
-  // Cam profile (step-by-step reveal)
-  if (followerType === 'roller') {
-    // 滚子从动件：凸轮实体以实际廓线为边界
-    drawPartialProfile(actualProfile, traceUpTo, showActual ? '#f97316' : null, 'rgba(249,115,22,0.5)', 'rgba(71,85,105,0.35)');
-    // 理论廓线作为参考虚线
-    if (showTheory) {
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.setLineDash([5, 4]);
-      ctx.beginPath();
-      for (let i = 0; i <= profile.length; i++) {
-        const p = profile[i % profile.length];
-        if (i === 0) ctx.moveTo(p.x * scale, -p.y * scale);
-        else ctx.lineTo(p.x * scale, -p.y * scale);
-      }
-      ctx.closePath();
-      ctx.strokeStyle = 'rgba(251,191,36,0.5)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.restore();
-    }
-  } else {
-    drawPartialProfile(profile, traceUpTo, showTheory ? '#fbbf24' : null, 'rgba(148,163,184,0.4)', 'rgba(71,85,105,0.35)');
-  }
-  // Center mark
-  ctx.beginPath(); ctx.arc(cx,cy,3,0,PI*2); ctx.fillStyle='#6366f1'; ctx.fill();
-  // ===== Follower orbiting (CCW rotation to match CCW profile) =====
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(-degNow * DEG); // CCW in canvas = matches CCW profile direction
-
-  if (followerType === 'oscillating') {
-    // Oscillating in inverted frame
-    // ctx.rotate(-degNow*DEG) already handles the inversion rotation,
-    // so in this LOCAL frame, pivot is always at (0, -L*scale).
-    // Tip is computed from pivot + armLen*(sin(ψ), cos(ψ)) in local canvas coords.
-    const psi = getPsi(degNow);
-    const L = r0 + armLen;
-    const pivotX = 0;
-    const pivotY = -L * scale;
-    // Tip: from pivot, swing by ψ. Direction (sin(ψ), cos(ψ)) in canvas (y-down).
-    const tipX = pivotX + armLen * Math.sin(psi) * scale;
-    const tipY = pivotY + armLen * Math.cos(psi) * scale;
-    // Draw ground at pivot
-    drawGround(pivotX, pivotY - 8, 30);
-    // Pivot circle
-    ctx.beginPath(); ctx.arc(pivotX, pivotY, 4, 0, PI*2); ctx.fillStyle='#71717a'; ctx.fill();
-    // Arm from pivot to tip
-    ctx.strokeStyle='#34d399'; ctx.lineWidth=3; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(pivotX, pivotY); ctx.lineTo(tipX, tipY); ctx.stroke(); ctx.lineCap='butt';
-    // Contact dot at tip
-    ctx.beginPath(); ctx.arc(tipX, tipY, 3, 0, PI*2); ctx.fillStyle='#fbbf24'; ctx.fill();
-  } else {
-    // Translating follower in inverted frame
-    const guideLocalX = e * scale;
-    const tipLocalY = -totalS * scale;
-    // Guide blocks at fixed position above cam profile to avoid collision
-    const guideBlockLocalY = -(r0 + h + 30) * scale;
-    if (followerType === 'pointed') drawPencilInLocal(guideLocalX, tipLocalY, guideBlockLocalY);
-    else if (followerType === 'roller') drawRollerInLocal(guideLocalX, tipLocalY, guideBlockLocalY);
-    else {
-      // Flat follower: contact point offset = ds * scale (already in per-radian units from profile)
-      const dsOffset = -profile[Math.round(degNow) % 360].ds * scale;
-      drawFlatInLocal(guideLocalX, tipLocalY, guideBlockLocalY, dsOffset);
-    }
-  }
-  ctx.restore();
-
-  // Contact point for roller follower — drawn in GLOBAL canvas coords (cam is fixed in inversion mode)
-  // Contact point = actualProfile[degNow] in math coords → global canvas (cx+mx*scale, cy-my*scale)
-  if (followerType === 'roller') {
-    const cpMath = getRollerContactMath(degNow, actualProfile);
-    const contactGx = cx + cpMath.x * scale;
-    const contactGy = cy - cpMath.y * scale;
-    ctx.beginPath(); ctx.arc(contactGx, contactGy, 4, 0, PI*2);
-    ctx.fillStyle = '#fbbf24'; ctx.fill();
-    ctx.beginPath(); ctx.arc(contactGx, contactGy, 2, 0, PI*2);
-    ctx.fillStyle = '#fff'; ctx.fill();
-  }
-
-  // CCW rotation arrow
-  drawRotationArrow(cx, cy, 20, true);
-  ctx.fillStyle='rgba(228,228,231,0.5)'; ctx.font='10px sans-serif'; ctx.fillText('-ω',cx+24,cy-16);
-
-  if (showPressure) drawPressureAnnotation(degNow, 0);
-}
-
-// ===== Local-frame follower drawings (for inversion mode, relative to cam center) =====
-// Rod extends from tip (on cam surface) upward with fixed length; guide blocks at top
+// ===== 从动件绘制（局部坐标，反转法模式）=====
 function drawPencilInLocal(lx, tipY, baseY) {
-  const stemW = 6;
-  const rodTop = baseY - 40;
-  const blockW = 14, blockH = 12, blockGap = stemW + 6;
-  // Fixed guide blocks at baseY
+  const stemW = 6, rodTop = baseY - 40, blockW = 14, blockH = 12, blockGap = stemW + 6;
   drawGuideBlock(lx - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
   drawGuideBlock(lx + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
-  // Pencil body from rodTop to tip
-  const grad=ctx.createLinearGradient(lx-stemW,0,lx+stemW,0);
-  grad.addColorStop(0,'#4a5568');grad.addColorStop(0.5,'#a0aec0');grad.addColorStop(1,'#4a5568');
-  ctx.fillStyle=grad;
+  const grad = ctx.createLinearGradient(lx-stemW, 0, lx+stemW, 0);
+  grad.addColorStop(0, '#4a5568'); grad.addColorStop(0.5, '#a0aec0'); grad.addColorStop(1, '#4a5568');
+  ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.moveTo(lx-stemW, rodTop); ctx.lineTo(lx+stemW, rodTop);
   ctx.lineTo(lx+stemW, tipY-14); ctx.lineTo(lx+3, tipY-4);
   ctx.lineTo(lx, tipY); ctx.lineTo(lx-3, tipY-4);
   ctx.lineTo(lx-stemW, tipY-14); ctx.closePath();
-  ctx.fill();ctx.strokeStyle='rgba(52,211,153,0.6)';ctx.lineWidth=1;ctx.stroke();
-  ctx.beginPath();ctx.arc(lx,tipY,3,0,PI*2);ctx.fillStyle='#fbbf24';ctx.fill();
+  ctx.fill(); ctx.strokeStyle='rgba(52,211,153,0.6)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(lx, tipY, 3, 0, PI*2); ctx.fillStyle='#fbbf24'; ctx.fill();
 }
 
 function drawRollerInLocal(lx, tipY, baseY) {
-  const rodTop = baseY - 40;
-  const blockW = 14, blockH = 12, blockGap = 8;
-  // Fixed guide blocks at baseY
+  const rodTop = baseY - 40, blockW = 14, blockH = 12, blockGap = 8;
   drawGuideBlock(lx - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
   drawGuideBlock(lx + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
-  // Rod from guide top to roller center
   ctx.strokeStyle = 'rgba(148,163,184,0.6)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(lx, rodTop); ctx.lineTo(lx, tipY); ctx.stroke(); ctx.lineCap = 'butt';
-  // Roller circle at (lx, tipY) - EMPHASIZED as main subject
   ctx.beginPath(); ctx.arc(lx, tipY, rr*scale, 0, PI*2);
   ctx.fillStyle = 'rgba(52,211,153,1)'; ctx.fill();
   ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3; ctx.stroke();
@@ -810,21 +346,161 @@ function drawRollerInLocal(lx, tipY, baseY) {
 }
 
 function drawFlatInLocal(lx, tipY, baseY, dsOffset) {
-  const rodTop = baseY - 40;
-  const blockW = 14, blockH = 12, blockGap = 8;
-  const halfFlat = flatHalfWidth;
-  // Fixed guide blocks at baseY
+  const rodTop = baseY - 40, blockW = 14, blockH = 12, blockGap = 8, halfFlat = flatHalfWidth;
   drawGuideBlock(lx - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
   drawGuideBlock(lx + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
-  // Flat face (contact surface with cam)
-  ctx.strokeStyle='#34d399';ctx.lineWidth=4;
-  ctx.beginPath();ctx.moveTo(lx-halfFlat,tipY);ctx.lineTo(lx+halfFlat,tipY);ctx.stroke();
-  // Rod from rodTop to top of flat face
-  ctx.strokeStyle='#94a3b8';ctx.lineWidth=4;ctx.lineCap='round';
-  ctx.beginPath();ctx.moveTo(lx,rodTop);ctx.lineTo(lx,tipY-2);ctx.stroke();ctx.lineCap='butt';
-  // Contact point at offset on flat face (ds * scale)
-  const contactX = lx + dsOffset;
-  ctx.beginPath();ctx.arc(contactX,tipY,3,0,PI*2);ctx.fillStyle='#fbbf24';ctx.fill();
+  ctx.strokeStyle='#34d399'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(lx-halfFlat,tipY); ctx.lineTo(lx+halfFlat,tipY); ctx.stroke();
+  ctx.strokeStyle='#94a3b8'; ctx.lineWidth=4; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(lx,rodTop); ctx.lineTo(lx,tipY-2); ctx.stroke(); ctx.lineCap='butt';
+  ctx.beginPath(); ctx.arc(lx+dsOffset,tipY,3,0,PI*2); ctx.fillStyle='#fbbf24'; ctx.fill();
+}
+
+// ===== 主绘制 =====
+function draw() {
+  const { w, h } = getDimensions();
+  ctx.fillStyle = '#0f1117'; ctx.fillRect(0, 0, w, h);
+  computeLayout();
+  const profile = computeProfile();
+  if (followerType === 'flat') {
+    let maxDs = 0;
+    for (let d = 0; d < 360; d++) maxDs = Math.max(maxDs, Math.abs(profile[d].ds));
+    flatHalfWidth = Math.max(35, (maxDs + 5) * scale);
+  } else flatHalfWidth = 35;
+  const actualProfile = computeActualProfile(profile);
+  const degNow = ((delta * 180 / PI) % 360 + 360) % 360;
+  const sNow = getS(degNow), psiNow = getPsi(degNow), phaseNow = getPhase(degNow);
+  const camFill = 'rgba(71,85,105,0.35)', camStroke = '#94a3b8';
+  if (mode === 'actual') drawActualMode(profile, actualProfile, degNow, sNow, psiNow, camFill, camStroke);
+  else drawInversionMode(profile, actualProfile, degNow, sNow, camFill, camStroke);
+  if (show.sd) drawSDiagram(degNow, w, h);
+  updateInfo(degNow, sNow, psiNow, phaseNow);
+}
+
+function drawActualMode(profile, actualProfile, degNow, sNow, psiNow, camFill, camStroke) {
+  const camAngle = delta;
+  if (followerType === 'roller') {
+    drawProfilePath(actualProfile, camAngle, { fill: camFill, stroke: '#f97316', lineWidth: 2 });
+    if (show.theory) drawProfilePath(profile, camAngle, { stroke: 'rgba(251,191,36,0.5)', lineWidth: 1, dash: [5,4] });
+  } else {
+    drawProfilePath(profile, camAngle, { fill: camFill, stroke: camStroke, lineWidth: 1.5 });
+  }
+  if (show.base) {
+    drawCircleShape(cx, cy, r0*scale, 'rgba(99,102,241,0.3)', [5,4]);
+    Mech.draw.text(ctx, 'r₀='+r0, cx+r0*scale*0.7+6, cy-r0*scale*0.7, { color: 'rgba(99,102,241,0.5)', font: '11px sans-serif', align: 'left' });
+  }
+  if (show.phase) drawPhaseArcs(camAngle);
+  Mech.draw.point(ctx, cx, cy, { color: Mech.colors.accent, r: 3 });
+  drawRotationArrow(cx, cy, 14, false);
+  Mech.draw.text(ctx, 'ω', cx+18, cy-12, { color: 'rgba(228,228,231,0.5)', font: '11px sans-serif', align: 'left' });
+
+  const s0raw = (e>0)?Math.sqrt(Math.max(0,r0*r0-e*e)):r0;
+  const s0 = (followerType === 'roller') ? ((e>0)?Math.sqrt(Math.max(0,(r0+rr)**2-e*e)):(r0+rr)) : s0raw;
+  const totalS = s0 + sNow;
+  const guideX = cx + e * scale;
+  const tipY = cy - totalS * scale;
+
+  if (followerType === 'oscillating') {
+    drawOscillatingActual(degNow, psiNow, camAngle);
+  } else {
+    const guideBlockY = cy - (r0 + h + 30) * scale;
+    if (followerType === 'pointed') drawPencilAt(guideX, tipY, guideBlockY);
+    else if (followerType === 'roller') drawRollerAt(guideX, tipY, guideBlockY, degNow, camAngle, actualProfile);
+    else drawFlatAt(guideX, tipY, guideBlockY, -profile[Math.round(degNow)%360].ds * scale);
+  }
+  if (show.pressure) drawPressureAnnotation(degNow, camAngle);
+}
+
+function drawPhaseArcs(camAngle) {
+  const colors = ['rgba(99,102,241,0.25)','rgba(52,211,153,0.25)','rgba(251,191,36,0.25)','rgba(113,113,122,0.1)'];
+  const angles = [p1,p2,p3,p4];
+  ctx.save(); ctx.translate(cx, cy); if (camAngle) ctx.rotate(camAngle);
+  let startA = -PI/2;
+  for (let i = 0; i < 4; i++) {
+    if (angles[i] > 0) { ctx.beginPath(); ctx.arc(0,0,(r0-3)*scale,startA,startA+angles[i]*DEG); ctx.strokeStyle=colors[i]; ctx.lineWidth=3; ctx.stroke(); }
+    startA += angles[i]*DEG;
+  }
+  ctx.restore();
+}
+
+function drawOscillatingActual(degNow, psiNow, camAngle) {
+  const L = r0 + armLen;
+  const pivot = { x: cx, y: cy - L * scale };
+  const cp = getProfilePoint(degNow);
+  const cosA = Math.cos(camAngle), sinA = Math.sin(camAngle);
+  const contact = { x: cx + (cp.x * cosA + cp.y * sinA) * scale, y: cy + (cp.x * sinA - cp.y * cosA) * scale };
+  drawGround(pivot.x, pivot.y - 8, 30);
+  ctx.beginPath(); ctx.arc(pivot.x, pivot.y, 5, 0, PI*2); ctx.fillStyle = '#71717a'; ctx.fill();
+  ctx.strokeStyle = '#52525b'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(pivot.x, pivot.y); ctx.lineTo(contact.x, contact.y); ctx.stroke(); ctx.lineCap = 'butt';
+  ctx.beginPath(); ctx.arc(contact.x, contact.y, 3, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
+}
+
+function drawInversionMode(profile, actualProfile, degNow, sNow, camFill, camStroke) {
+  if (anim.isPlaying()) traceUpTo = degNow;
+  const s0raw = (e>0)?Math.sqrt(Math.max(0,r0*r0-e*e)):r0;
+  const s0 = (followerType === 'roller') ? ((e>0)?Math.sqrt(Math.max(0,(r0+rr)**2-e*e)):(r0+rr)) : s0raw;
+  const totalS = s0 + sNow;
+
+  if (show.base) {
+    drawCircleShape(cx, cy, r0*scale, 'rgba(99,102,241,0.3)', [5,4]);
+    Mech.draw.text(ctx, 'r₀='+r0, cx+r0*scale*0.7+6, cy-r0*scale*0.7, { color: 'rgba(99,102,241,0.5)', font: '11px sans-serif', align: 'left' });
+  }
+  if (show.offset && e>0 && followerType!=='oscillating' && followerType!=='flat') {
+    drawCircleShape(cx, cy, e*scale, 'rgba(239,68,68,0.25)', [3,3]);
+    Mech.draw.text(ctx, 'e='+e, cx+e*scale+4, cy+2, { color: 'rgba(239,68,68,0.4)', font: '10px sans-serif', align: 'left' });
+  }
+  if (show.phase) drawPhaseArcs(0);
+
+  if (followerType === 'roller') {
+    drawPartialProfile(actualProfile, traceUpTo, show.actual ? '#f97316' : null, 'rgba(249,115,22,0.5)', 'rgba(71,85,105,0.35)');
+    if (show.theory) {
+      ctx.save(); ctx.translate(cx, cy); ctx.setLineDash([5, 4]); ctx.beginPath();
+      for (let i = 0; i <= profile.length; i++) {
+        const p = profile[i % profile.length];
+        if (i === 0) ctx.moveTo(p.x * scale, -p.y * scale); else ctx.lineTo(p.x * scale, -p.y * scale);
+      }
+      ctx.closePath(); ctx.strokeStyle = 'rgba(251,191,36,0.5)'; ctx.lineWidth = 1; ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    }
+  } else {
+    drawPartialProfile(profile, traceUpTo, show.theory ? '#fbbf24' : null, 'rgba(148,163,184,0.4)', 'rgba(71,85,105,0.35)');
+  }
+
+  Mech.draw.point(ctx, cx, cy, { color: Mech.colors.accent, r: 3 });
+
+  // 从动件（反转坐标系内）
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(-degNow * DEG);
+  if (followerType === 'oscillating') {
+    const psi = getPsi(degNow), L = r0 + armLen;
+    const pivotX = 0, pivotY = -L * scale;
+    const tipX = pivotX + armLen * Math.sin(psi) * scale;
+    const tipY = pivotY + armLen * Math.cos(psi) * scale;
+    drawGround(pivotX, pivotY - 8, 30);
+    ctx.beginPath(); ctx.arc(pivotX, pivotY, 4, 0, PI*2); ctx.fillStyle='#71717a'; ctx.fill();
+    ctx.strokeStyle='#34d399'; ctx.lineWidth=3; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(pivotX, pivotY); ctx.lineTo(tipX, tipY); ctx.stroke(); ctx.lineCap='butt';
+    ctx.beginPath(); ctx.arc(tipX, tipY, 3, 0, PI*2); ctx.fillStyle='#fbbf24'; ctx.fill();
+  } else {
+    const guideLocalX = e * scale, tipLocalY = -totalS * scale;
+    const guideBlockLocalY = -(r0 + h + 30) * scale;
+    if (followerType === 'pointed') drawPencilInLocal(guideLocalX, tipLocalY, guideBlockLocalY);
+    else if (followerType === 'roller') drawRollerInLocal(guideLocalX, tipLocalY, guideBlockLocalY);
+    else drawFlatInLocal(guideLocalX, tipLocalY, guideBlockLocalY, -profile[Math.round(degNow)%360].ds * scale);
+  }
+  ctx.restore();
+
+  // 滚子接触点（全局坐标）
+  if (followerType === 'roller') {
+    const cpMath = getRollerContactMath(degNow, actualProfile);
+    const contactGx = cx + cpMath.x * scale, contactGy = cy - cpMath.y * scale;
+    ctx.beginPath(); ctx.arc(contactGx, contactGy, 4, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
+    ctx.beginPath(); ctx.arc(contactGx, contactGy, 2, 0, PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+  }
+
+  drawRotationArrow(cx, cy, 20, true);
+  Mech.draw.text(ctx, '-ω', cx+24, cy-16, { color: 'rgba(228,228,231,0.5)', font: '10px sans-serif', align: 'left' });
+  if (show.pressure) drawPressureAnnotation(degNow, 0);
 }
 
 function drawPressureAnnotation(degNow, camAngle) {
@@ -838,144 +514,228 @@ function drawPressureAnnotation(degNow, camAngle) {
   const prev = getProfilePoint(degNow-0.5), next = getProfilePoint(degNow+0.5);
   const tCamX=next.x-prev.x, tCamY=next.y-prev.y;
   const tLen=Math.sqrt(tCamX*tCamX+tCamY*tCamY);
-  if(tLen<0.001)return;
-  let nCamX=tCamY/tLen,nCamY=-tCamX/tLen;
+  if(tLen<0.001) return;
+  let nCamX=tCamY/tLen, nCamY=-tCamX/tLen;
   const midR=Math.sqrt(pt.x*pt.x+pt.y*pt.y);
-  const outerR=Math.sqrt((pt.x+nCamX*2)*(pt.x+nCamX*2)+(pt.y+nCamY*2)*(pt.y+nCamY*2));
-  if(outerR<midR){nCamX=-nCamX;nCamY=-nCamY;}
+  if(Math.sqrt((pt.x+nCamX*2)**2+(pt.y+nCamY*2)**2)<midR){nCamX=-nCamX;nCamY=-nCamY;}
   const nRX=nCamX*cosA+nCamY*sinA, nRY=-nCamX*sinA+nCamY*cosA;
   const nGx=nRX*20, nGy=-nRY*20;
-  ctx.beginPath();ctx.moveTo(gx,gy);ctx.lineTo(gx+nGx,gy+nGy);
-  ctx.strokeStyle=alphaDeg>45?'#ef4444':'rgba(251,191,36,0.7)';ctx.lineWidth=1;
-  ctx.setLineDash([3,2]);ctx.stroke();ctx.setLineDash([]);
-  ctx.fillStyle=alphaDeg>45?'#ef4444':'#fbbf24';ctx.font='10px sans-serif';
-  ctx.fillText('α='+alphaDeg.toFixed(1)+'°',gx+nGx+4,gy+nGy-2);
+  ctx.beginPath(); ctx.moveTo(gx,gy); ctx.lineTo(gx+nGx,gy+nGy);
+  ctx.strokeStyle=alphaDeg>45?'#ef4444':'rgba(251,191,36,0.7)'; ctx.lineWidth=1;
+  ctx.setLineDash([3,2]); ctx.stroke(); ctx.setLineDash([]);
+  Mech.draw.text(ctx, 'α='+alphaDeg.toFixed(1)+'°', gx+nGx+4, gy+nGy-2,
+    { color: alphaDeg>45?'#ef4444':'#fbbf24', font: '10px sans-serif', align: 'left' });
 }
 
-function drawSDiagram(degNow) {
-  const dw=Math.min(160,W*0.25),dh=Math.min(100,H*0.15);
-  const dx=W-dw-16,dy=H-dh-16;
-  ctx.fillStyle='rgba(15,17,23,0.85)';ctx.strokeStyle='#252833';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(dx,dy,dw,dh,8);ctx.fill();ctx.stroke();
-  const pad=24,pw=dw-pad-10,ph=dh-pad-10,ox=dx+pad,oy=dy+dh-pad;
+function drawSDiagram(degNow, w, h) {
+  const dw=Math.min(160,w*0.25), dh=Math.min(100,h*0.15);
+  const dx=w-dw-16, dy=h-dh-16;
+  ctx.fillStyle='rgba(15,17,23,0.85)'; ctx.strokeStyle='#252833'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.roundRect(dx,dy,dw,dh,8); ctx.fill(); ctx.stroke();
+  const pad=24, pw=dw-pad-10, ph=dh-pad-10, ox=dx+pad, oy=dy+dh-pad;
   const isOsc=followerType==='oscillating';
-  ctx.fillStyle='#71717a';ctx.font='10px sans-serif';ctx.fillText(isOsc?'ψ-δ':'s-δ',ox,dy+14);
-  ctx.strokeStyle='#3a3d47';ctx.lineWidth=0.5;
-  ctx.beginPath();ctx.moveTo(ox,dy+20);ctx.lineTo(ox,oy);ctx.lineTo(ox+pw,oy);ctx.stroke();
+  Mech.draw.text(ctx, isOsc?'ψ-δ':'s-δ', ox, dy+14, { color: '#71717a', font: '10px sans-serif', align: 'left' });
+  ctx.strokeStyle='#3a3d47'; ctx.lineWidth=0.5;
+  ctx.beginPath(); ctx.moveTo(ox,dy+20); ctx.lineTo(ox,oy); ctx.lineTo(ox+pw,oy); ctx.stroke();
   const phases=[p1,p2,p3,p4];
   const pColors=['rgba(99,102,241,0.08)','rgba(52,211,153,0.08)','rgba(251,191,36,0.08)','rgba(113,113,122,0.05)'];
   let px=ox;
-  for(let i=0;i<4;i++){const w=phases[i]/360*pw;ctx.fillStyle=pColors[i];ctx.fillRect(px,dy+20,w,ph);px+=w;}
+  for(let i=0;i<4;i++){const ww=phases[i]/360*pw;ctx.fillStyle=pColors[i];ctx.fillRect(px,dy+20,ww,ph);px+=ww;}
   ctx.beginPath();
   for(let d=0;d<=360;d+=2){const val=isOsc?getPsi(d)/(psiMax*DEG):getS(d)/Math.max(h,1);const x=ox+(d/360)*pw,y=oy-val*ph;if(d===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
-  ctx.strokeStyle='rgba(228,228,231,0.5)';ctx.lineWidth=1;ctx.stroke();
+  ctx.strokeStyle='rgba(228,228,231,0.5)'; ctx.lineWidth=1; ctx.stroke();
   const val=isOsc?getPsi(degNow)/(psiMax*DEG):getS(degNow)/Math.max(h,1);
-  const cpx=ox+(degNow/360)*pw,cpy=oy-val*ph;
-  ctx.beginPath();ctx.arc(cpx,cpy,4,0,PI*2);ctx.fillStyle='#ef4444';ctx.fill();
-  ctx.beginPath();ctx.arc(cpx,cpy,2,0,PI*2);ctx.fillStyle='#fff';ctx.fill();
-  ctx.setLineDash([2,2]);ctx.strokeStyle='rgba(239,68,68,0.3)';ctx.lineWidth=0.5;
-  ctx.beginPath();ctx.moveTo(cpx,cpy);ctx.lineTo(cpx,oy);ctx.moveTo(cpx,cpy);ctx.lineTo(ox,cpy);ctx.stroke();ctx.setLineDash([]);
-  ctx.fillStyle='#52525b';ctx.font='9px sans-serif';
-  ctx.fillText('0°',ox-2,oy+10);ctx.fillText('360°',ox+pw-10,oy+10);ctx.fillText(isOsc?'ψ':'s',ox-12,dy+24);
+  const cpx=ox+(degNow/360)*pw, cpy=oy-val*ph;
+  Mech.draw.point(ctx, cpx, cpy, { color: '#ef4444', r: 4 });
+  ctx.beginPath(); ctx.arc(cpx, cpy, 2, 0, PI*2); ctx.fillStyle='#fff'; ctx.fill();
+  ctx.setLineDash([2,2]); ctx.strokeStyle='rgba(239,68,68,0.3)'; ctx.lineWidth=0.5;
+  ctx.beginPath(); ctx.moveTo(cpx,cpy); ctx.lineTo(cpx,oy); ctx.moveTo(cpx,cpy); ctx.lineTo(ox,cpy); ctx.stroke(); ctx.setLineDash([]);
+  Mech.draw.text(ctx, '0°', ox-2, oy+10, { color: '#52525b', font: '9px sans-serif', align: 'left' });
+  Mech.draw.text(ctx, '360°', ox+pw-10, oy+10, { color: '#52525b', font: '9px sans-serif', align: 'left' });
 }
 
+// ===== 信息更新 =====
+const ui = {};
 function updateInfo(degNow, sNow, psiNow, phaseNow) {
-  document.getElementById('infoDelta').textContent = degNow.toFixed(1)+'°';
+  ui.infoDelta.textContent = degNow.toFixed(1)+'°';
   const isOsc = followerType==='oscillating';
-  document.getElementById('infoDispLabel').textContent = isOsc?'摆角 ψ':'位移 s';
-  document.getElementById('infoDisp').textContent = isOsc?(psiNow*180/PI).toFixed(1)+'°':sNow.toFixed(1);
+  ui.infoDispLabel.textContent = isOsc?'摆角 ψ':'位移 s';
+  ui.infoDisp.textContent = isOsc?(psiNow*180/PI).toFixed(1)+'°':sNow.toFixed(1);
   const alphaDeg = getPressureAngle(degNow)*180/PI;
-  const alphaEl = document.getElementById('infoAlpha');
-  alphaEl.textContent = alphaDeg.toFixed(1)+'°';
-  alphaEl.className = 'value'+(alphaDeg>50?' warn':'');
-  document.getElementById('infoPhase').textContent = phaseNow;
-  document.getElementById('infoPhase').style.color = phaseNow==='推程'?'#a5b4fc':phaseNow==='远休止'?'#6ee7b7':phaseNow==='回程'?'#fbbf24':'#a1a1aa';
-  document.getElementById('slAngle').value = degNow;
-  document.getElementById('valAngle').textContent = Math.round(degNow)+'°';
+  ui.infoAlpha.textContent = alphaDeg.toFixed(1)+'°';
+  ui.infoAlpha.style.color = alphaDeg>50?'#f87171':'';
+  ui.infoPhase.textContent = phaseNow;
+  ui.infoPhase.style.color = phaseNow==='推程'?'#a5b4fc':phaseNow==='远休止'?'#6ee7b7':phaseNow==='回程'?'#fbbf24':'#a1a1aa';
+  ui.angleSlider.value = degNow;
+  ui.angleVal.textContent = Math.round(degNow)+'°';
   updateTip(degNow, alphaDeg, phaseNow);
 }
 
 function updateTip(degNow, alphaDeg, phaseNow) {
-  const el = document.getElementById('tipText');
   if (mode==='inversion') {
-    if (alphaDeg>50){el.textContent='压力角α='+alphaDeg.toFixed(1)+'°过大！传力效果差，建议增大基圆半径r₀。';el.style.borderLeftColor='#ef4444';}
-    else if(phaseNow==='推程'){el.textContent='推程阶段：凸轮轮廓推动从动件远离基圆。观察从动件尖端轨迹，即为凸轮理论廓线。';el.style.borderLeftColor='#6366f1';}
-    else if(phaseNow==='回程'){el.textContent='回程阶段：从动件返回。凸轮顺时针转动时，从动件导路逆时针反转（-ω）。';el.style.borderLeftColor='#fbbf24';}
-    else if(phaseNow==='远休止'){el.textContent='远休止：从动件保持在最高位置，廓线为以(r₀+h)为半径的圆弧。';el.style.borderLeftColor='#34d399';}
-    else{el.textContent='近休止：从动件在基圆上不动，廓线就是基圆。';el.style.borderLeftColor='#6366f1';}
+    if (alphaDeg>50){ui.tip.textContent='压力角α='+alphaDeg.toFixed(1)+'°过大！传力效果差，建议增大基圆半径r₀。';ui.tip.style.borderLeftColor='#ef4444';}
+    else if(phaseNow==='推程'){ui.tip.textContent='推程阶段：凸轮轮廓推动从动件远离基圆。观察从动件尖端轨迹，即为凸轮理论廓线。';ui.tip.style.borderLeftColor='#6366f1';}
+    else if(phaseNow==='回程'){ui.tip.textContent='回程阶段：从动件返回。凸轮顺时针转动时，从动件导路逆时针反转（-ω）。';ui.tip.style.borderLeftColor='#fbbf24';}
+    else if(phaseNow==='远休止'){ui.tip.textContent='远休止：从动件保持在最高位置，廓线为以(r₀+h)为半径的圆弧。';ui.tip.style.borderLeftColor='#34d399';}
+    else{ui.tip.textContent='近休止：从动件在基圆上不动，廓线就是基圆。';ui.tip.style.borderLeftColor='#6366f1';}
   } else {
-    if(alphaDeg>50){el.textContent='压力角α过大，传动效率低。切换反转法可直观理解。';el.style.borderLeftColor='#ef4444';}
-    else{el.textContent='实际运动：凸轮以ω顺时针转动，推动从动件按简谐运动往复。切换"反转法"查看廓线设计过程。';el.style.borderLeftColor='#6366f1';}
+    if(alphaDeg>50){ui.tip.textContent='压力角α过大，传动效率低。切换反转法可直观理解。';ui.tip.style.borderLeftColor='#ef4444';}
+    else{ui.tip.textContent='实际运动：凸轮以ω顺时针转动，推动从动件按简谐运动往复。切换"反转法"查看廓线设计过程。';ui.tip.style.borderLeftColor='#6366f1';}
   }
 }
 
-// ===== Animation =====
-let lastTime = 0;
-function animate(time) {
-  try {
-    if (playing) {
-      const dt = lastTime ? (time-lastTime)/1000 : 0.016;
-      delta += speed * 0.8 * dt;
-      if (delta > PI*2) delta -= PI*2;
-    }
-    lastTime = time;
-    computeLayout();
-    draw();
-  } catch(e) {
-    ctx.fillStyle='#ef4444'; ctx.font='14px monospace';
-    ctx.fillText('ERROR: '+e.message, 10, 30);
-    console.error(e);
-  }
-  requestAnimationFrame(animate);
+// ===== UI 构建 =====
+const toolbar = document.getElementById('toolbar');
+const playBtn = Mech.ui.button(toolbar, { text: '⏸ 暂停', variant: 'primary', onClick: () => {
+  if (anim.isPlaying()) { anim.pause(); playBtn.textContent = '▶ 播放'; }
+  else { anim.play(); playBtn.textContent = '⏸ 暂停'; }
+}});
+Mech.ui.button(toolbar, { text: '◀', variant: 'secondary', onClick: () => stepAngle(-10) });
+Mech.ui.button(toolbar, { text: '▶', variant: 'secondary', onClick: () => stepAngle(10) });
+Mech.ui.slider(toolbar, { label: '速度', min: 0.1, max: 3, value: 1, step: 0.1, format: v => v.toFixed(1)+'x', onChange: v => { speed = v; } });
+
+function stepAngle(deg) { anim.pause(); playBtn.textContent = '▶ 播放'; delta = ((delta+deg*DEG)%(PI*2)+PI*2)%(PI*2); traceUpTo = ((delta*180/PI)%360+360)%360; }
+
+// 侧边栏
+const sidebar = document.getElementById('sidebar');
+
+// 模式切换
+const modePanel = Mech.ui.panel(sidebar, '模式');
+const modeToggle = document.createElement('div');
+modeToggle.style.cssText = 'display:flex;gap:6px;';
+const modeBtns = {};
+['inversion','actual'].forEach(m => {
+  const btn = document.createElement('button');
+  btn.className = 'btn ' + (m === mode ? 'btn-primary' : 'btn-secondary');
+  btn.textContent = m === 'inversion' ? '反转法' : '实际运动';
+  btn.style.flex = '1';
+  btn.addEventListener('click', () => {
+    mode = m;
+    modeBtns.inversion.className = 'btn ' + (mode==='inversion'?'btn-primary':'btn-secondary');
+    modeBtns.actual.className = 'btn ' + (mode==='actual'?'btn-primary':'btn-secondary');
+    if (mode === 'inversion') traceUpTo = delta * 180 / PI;
+  });
+  modeBtns[m] = btn;
+  modeToggle.appendChild(btn);
+});
+modePanel.appendChild(modeToggle);
+
+// 运动规律
+const lawPanel = Mech.ui.panel(sidebar, '运动规律');
+const lawBadge = document.createElement('span');
+lawBadge.className = 'warning-badge';
+lawBadge.style.display = 'inline-block';
+lawBadge.textContent = '简谐运动 (SHM)';
+lawPanel.appendChild(lawBadge);
+
+// 从动件类型
+const typePanel = Mech.ui.panel(sidebar, '从动件类型');
+const typeTabs = document.createElement('div');
+typeTabs.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;';
+const typeBtns = {};
+['pointed','roller','oscillating','flat'].forEach(t => {
+  const btn = document.createElement('button');
+  btn.className = 'btn ' + (t === followerType ? 'btn-primary' : 'btn-secondary');
+  btn.textContent = { pointed:'尖底', roller:'滚子', oscillating:'摆动', flat:'平底' }[t];
+  btn.style.flex = '1'; btn.style.fontSize = '12px';
+  btn.addEventListener('click', () => setFollowerType(t));
+  typeBtns[t] = btn;
+  typeTabs.appendChild(btn);
+});
+typePanel.appendChild(typeTabs);
+
+function setFollowerType(t) {
+  followerType = t;
+  Object.entries(typeBtns).forEach(([k, b]) => { b.className = 'btn ' + (k===t?'btn-primary':'btn-secondary'); });
+  const isTranslating = (t==='pointed'||t==='roller'||t==='flat');
+  ui.pgH.style.display = isTranslating ? '' : 'none';
+  ui.pgPsi.style.display = isTranslating ? 'none' : '';
+  ui.pgE.style.display = isTranslating ? '' : 'none';
+  ui.pgRr.style.display = t==='roller' ? '' : 'none';
+  ui.pgL.style.display = t==='oscillating' ? '' : 'none';
+  traceUpTo = 0;
 }
 
-// ===== Controls =====
-function setMode(m) {
-  mode=m;
-  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelector('.mode-btn[onclick*="'+m+'"]').classList.add('active');
-  if(m==='inversion') traceUpTo=delta*180/PI;
-}
-function setType(t) {
-  followerType=t;
-  document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelector('.type-btn[onclick*="'+t+'"]').classList.add('active');
-  const isTranslating=(t==='pointed'||t==='roller'||t==='flat');
-  document.getElementById('pgH').classList.toggle('hidden',!isTranslating);
-  document.getElementById('pgPsi').classList.toggle('hidden',isTranslating);
-  document.getElementById('pgE').classList.toggle('hidden',!isTranslating);
-  document.getElementById('pgRr').classList.toggle('hidden',t!=='roller');
-  document.getElementById('pgL').classList.toggle('hidden',t!=='oscillating');
-  document.getElementById('chkActualRow').classList.toggle('disabled',t!=='roller');
-  if(t!=='roller'){document.getElementById('chkActual').checked=false;showActual=false;}
-  document.getElementById('chkOffsetRow').classList.toggle('disabled',!isTranslating||t==='flat');
-  if(!isTranslating||t==='flat'){document.getElementById('chkOffset').checked=false;showOffset=false;}
-  traceUpTo=0;
-}
-function togglePlay(){playing=!playing;const btn=document.getElementById('btnPlay');btn.classList.toggle('playing',playing);btn.innerHTML=playing?'&#10074;&#10074;':'&#9654;';}
-function stepAngle(deg){playing=false;document.getElementById('btnPlay').classList.remove('playing');document.getElementById('btnPlay').innerHTML='&#9654;';delta=((delta+deg*DEG)%(PI*2)+PI*2)%(PI*2);traceUpTo=((delta*180/PI)%360+360)%360;}
-function initEvents(){
-  ['slP1','slP2','slP3'].forEach(id=>{document.getElementById(id).addEventListener('input',updatePhases);});
-  document.getElementById('slR0').addEventListener('input',function(){r0=+this.value;document.getElementById('valR0').textContent=r0;});
-  document.getElementById('slH').addEventListener('input',function(){h=+this.value;document.getElementById('valH').textContent=h;});
-  document.getElementById('slPsi').addEventListener('input',function(){psiMax=+this.value;document.getElementById('valPsi').textContent=psiMax+'°';});
-  document.getElementById('slE').addEventListener('input',function(){e=+this.value;document.getElementById('valE').textContent=e;showOffset=e>0;document.getElementById('chkOffset').checked=showOffset;});
-  document.getElementById('slRr').addEventListener('input',function(){rr=+this.value;document.getElementById('valRr').textContent=rr;});
-  document.getElementById('slL').addEventListener('input',function(){armLen=+this.value;document.getElementById('valL').textContent=armLen;});
-  document.getElementById('slSpeed').addEventListener('input',function(){speed=+this.value;document.getElementById('valSpeed').textContent=speed.toFixed(1)+'x';});
-  document.getElementById('slAngle').addEventListener('input',function(){const d=+this.value;delta=d*DEG;traceUpTo=d;playing=false;document.getElementById('btnPlay').classList.remove('playing');document.getElementById('btnPlay').innerHTML='&#9654;';});
-  document.getElementById('chkBase').addEventListener('change',function(){showBase=this.checked;});
-  document.getElementById('chkTheory').addEventListener('change',function(){showTheory=this.checked;});
-  document.getElementById('chkActual').addEventListener('change',function(){showActual=this.checked;});
-  document.getElementById('chkOffset').addEventListener('change',function(){showOffset=this.checked;});
-  document.getElementById('chkPressure').addEventListener('change',function(){showPressure=this.checked;});
-  document.getElementById('chkPhase').addEventListener('change',function(){showPhase=this.checked;});
-  document.getElementById('chkSD').addEventListener('change',function(){showSD=this.checked;});
+// 参数设置
+const paramPanel = Mech.ui.panel(sidebar, '参数设置');
+ui.pgR0 = Mech.ui.sidebarSlider(paramPanel, { label: '基圆半径 r₀', min: 20, max: 80, value: 40, onChange: v => { r0 = v; } });
+ui.pgH = Mech.ui.sidebarSlider(paramPanel, { label: '行程 h', min: 5, max: 50, value: 25, onChange: v => { h = v; } });
+ui.pgPsi = Mech.ui.sidebarSlider(paramPanel, { label: '摆角 ψ', min: 10, max: 60, value: 18, format: v => v + '°', onChange: v => { psiMax = v; } });
+ui.pgPsi.el.style.display = 'none';
+ui.pgE = Mech.ui.sidebarSlider(paramPanel, { label: '偏距 e', min: 0, max: 35, value: 0, onChange: v => { e = v; show.offset = e > 0; } });
+ui.pgRr = Mech.ui.sidebarSlider(paramPanel, { label: '滚子半径 rr', min: 3, max: 20, value: 8, onChange: v => { rr = v; } });
+ui.pgRr.el.style.display = 'none';
+ui.pgL = Mech.ui.sidebarSlider(paramPanel, { label: '摆臂长度 l', min: 40, max: 140, value: 80, onChange: v => { armLen = v; } });
+ui.pgL.el.style.display = 'none';
+
+// 运动角分配
+const phasePanel = Mech.ui.panel(sidebar, '运动角分配');
+ui.slP1 = Mech.ui.sidebarSlider(phasePanel, { label: '推程角 δ₁', min: 30, max: 180, value: 120, format: v => v + '°', onChange: updatePhases });
+ui.slP2 = Mech.ui.sidebarSlider(phasePanel, { label: '远休止角 δ₂', min: 0, max: 180, value: 60, format: v => v + '°', onChange: updatePhases });
+ui.slP3 = Mech.ui.sidebarSlider(phasePanel, { label: '回程角 δ₃', min: 30, max: 180, value: 120, format: v => v + '°', onChange: updatePhases });
+const p4Row = document.createElement('div');
+p4Row.className = 'slider-group';
+p4Row.innerHTML = `<div class="slider-header"><span class="slider-label">近休止角 δ₄</span><span class="slider-value" id="valP4">60°</span></div>`;
+phasePanel.appendChild(p4Row);
+ui.valP4 = p4Row.querySelector('#valP4');
+
+function updatePhases() {
+  p1 = +ui.slP1.input.value; p2 = +ui.slP2.input.value; p3 = +ui.slP3.input.value;
+  p4 = Math.max(0, 360 - p1 - p2 - p3);
+  ui.valP4.textContent = p4 + '°';
 }
 
-window.addEventListener('resize', resize);
-resize(); initEvents(); updatePhases();
-requestAnimationFrame(animate);
+// 显示选项
+const optPanel = Mech.ui.panel(sidebar, '显示选项');
+Mech.ui.checkbox(optPanel, { label: '基圆', checked: true, onChange: v => { show.base = v; } });
+Mech.ui.checkbox(optPanel, { label: '理论廓线', checked: true, onChange: v => { show.theory = v; } });
+Mech.ui.checkbox(optPanel, { label: '实际廓线', checked: true, onChange: v => { show.actual = v; } });
+Mech.ui.checkbox(optPanel, { label: '偏距圆', checked: false, onChange: v => { show.offset = v; } });
+Mech.ui.checkbox(optPanel, { label: '压力角', checked: true, onChange: v => { show.pressure = v; } });
+Mech.ui.checkbox(optPanel, { label: '运动区间', checked: true, onChange: v => { show.phase = v; } });
+Mech.ui.checkbox(optPanel, { label: 's-δ位移图', checked: true, onChange: v => { show.sd = v; } });
+
+// 角度控制
+const anglePanel = Mech.ui.panel(sidebar, '角度控制');
+const angleGroup = document.createElement('div');
+angleGroup.className = 'slider-group';
+angleGroup.innerHTML = `<div class="slider-header"><span class="slider-label">角度 δ</span><span class="slider-value">0°</span></div><input type="range" min="0" max="360" value="0" step="0.5">`;
+anglePanel.appendChild(angleGroup);
+ui.angleSlider = angleGroup.querySelector('input');
+ui.angleVal = angleGroup.querySelector('.slider-value');
+ui.angleSlider.addEventListener('input', () => {
+  const d = +ui.angleSlider.value;
+  delta = d * DEG; traceUpTo = d; anim.pause(); playBtn.textContent = '▶ 播放';
+});
+
+// 实时信息
+const infoPanel = Mech.ui.panel(sidebar, '实时信息');
+const infoGrid = document.createElement('div');
+infoGrid.className = 'info-grid';
+infoGrid.innerHTML = `
+  <div class="info-item"><div class="label">当前角度 δ</div><div class="value" id="infoDelta">0°</div></div>
+  <div class="info-item"><div class="label" id="infoDispLabel">位移 s</div><div class="value" id="infoDisp">0</div></div>
+  <div class="info-item"><div class="label">压力角 α</div><div class="value" id="infoAlpha">0°</div></div>
+  <div class="info-item"><div class="label">当前阶段</div><div class="value" id="infoPhase">近休止</div></div>`;
+infoPanel.appendChild(infoGrid);
+ui.infoDelta = infoGrid.querySelector('#infoDelta');
+ui.infoDispLabel = infoGrid.querySelector('#infoDispLabel');
+ui.infoDisp = infoGrid.querySelector('#infoDisp');
+ui.infoAlpha = infoGrid.querySelector('#infoAlpha');
+ui.infoPhase = infoGrid.querySelector('#infoPhase');
+
+// 知识点提示
+const tipPanel = Mech.ui.panel(sidebar, '知识点提示');
+ui.tip = document.createElement('div');
+ui.tip.className = 'tip';
+ui.tip.textContent = '反转法：给整个凸轮机构加一个与凸轮角速度大小相等、方向相反的转动（-ω），凸轮顺时针转动时，从动件导路绕凸轮中心逆时针反转。从动件尖端的运动轨迹即为凸轮的理论廓线。';
+tipPanel.appendChild(ui.tip);
+
+// ===== 启动 =====
+window.addEventListener('resize', () => draw());
+updatePhases();
+anim.play();
+console.log('v2.0 loaded (refactored with mech.css + mech.js)');
 </script>
 </body>
 </html>
