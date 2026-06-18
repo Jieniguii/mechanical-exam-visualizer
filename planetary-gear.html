@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>行星轮系传动比 — 机械考研可视化</title>
+<link rel="stylesheet" href="mech.css">
+</head>
+<body>
+<a href="ch6-geartrain.html" class="back-btn">← 返回章节</a>
+
+<div class="header">
+  <h1>行星轮系传动比 <span class="version-badge">v1.0</span></h1>
+  <p>周转轮系 Willis 公式与行星轮运动可视化</p>
+</div>
+
+<div class="app">
+  <div class="main-layout">
+    <div>
+      <div class="canvas-card">
+        <div class="canvas-wrapper">
+          <canvas id="canvas"></canvas>
+        </div>
+        <div class="canvas-toolbar" id="toolbar"></div>
+      </div>
+    </div>
+    <div class="sidebar" id="sidebar"></div>
+  </div>
+</div>
+
+<script src="mech.js"></script>
+<script>
+/* ===== 行星轮系传动比 v1.0 ===== */
+const RAD = Math.PI / 180;
+const ALPHA = 20 * RAD;
+
+// ===== 状态 =====
+const state = {
+  z1: 24,     // 太阳轮齿数
+  z2: 16,     // 行星轮齿数
+  // z3 = z1 + 2*z2 (自动计算)
+  inputMember: 'sun',  // 'sun' | 'carrier' | 'ring'
+  inputRPM: 960,
+  theta: 0,
+  speed: 0.3,
+  showPitch: true,
+  showLabels: true,
+  showCarrier: true,
+};
+
+// ===== Canvas + 动画 =====
+const { ctx, getDimensions, canvas } = Mech.setupCanvas(document.getElementById('canvas'));
+const anim = Mech.createAnimator(
+  dt => { state.theta += state.speed * dt; },
+  () => draw()
+);
+
+// ===== 齿轮几何 =====
+function gearParams(z, m, alpha) {
+  const r = m * z / 2;
+  const rb = r * Math.cos(alpha);
+  const ra = r + m;
+  const rf = r - 1.25 * m;
+  return { z, m, r, rb, ra, rf, alpha };
+}
+
+function generateGearProfile(z, m, alpha) {
+  const { r, rb, ra, rf } = gearParams(z, m, alpha);
+  const invAlpha = Math.tan(alpha) - alpha;
+  const toothAngle = 2 * Math.PI / z;
+  const halfTooth = Math.PI / (2 * z);
+  const psiMax = Math.acos(Math.min(1, rb / Math.max(rb + 0.01, ra)));
+  const steps = 16;
+  const points = [];
+  for (let i = 0; i < z; i++) {
+    const center = i * toothAngle;
+    for (let s = 0; s <= steps; s++) {
+      const psi = (s / steps) * psiMax;
+      const ri = rb / Math.cos(psi);
+      const angle = center - halfTooth - invAlpha + (Math.tan(psi) - psi);
+      points.push({ x: ri * Math.cos(angle), y: ri * Math.sin(angle) });
+    }
+    const rightTopAngle = center - halfTooth - invAlpha + (Math.tan(psiMax) - psiMax);
+    const leftTopAngle = center + halfTooth + invAlpha - (Math.tan(psiMax) - psiMax);
+    for (let s = 1; s <= 4; s++) {
+      const angle = rightTopAngle + (leftTopAngle - rightTopAngle) * s / 4;
+      points.push({ x: ra * Math.cos(angle), y: ra * Math.sin(angle) });
+    }
+    for (let s = steps; s >= 0; s--) {
+      const psi = (s / steps) * psiMax;
+      const ri = rb / Math.cos(psi);
+      const angle = center + halfTooth + invAlpha - (Math.tan(psi) - psi);
+      points.push({ x: ri * Math.cos(angle), y: ri * Math.sin(angle) });
+    }
+    const leftBaseAngle = center + halfTooth + invAlpha;
+    const nextRightBaseAngle = (i + 1) * toothAngle - halfTooth - invAlpha;
+    if (rf < rb) {
+      points.push({ x: rf * Math.cos(leftBaseAngle), y: rf * Math.sin(leftBaseAngle) });
+      for (let s = 1; s <= 4; s++) {
+        const angle = leftBaseAngle + (nextRightBaseAngle - leftBaseAngle) * s / 4;
+        points.push({ x: rf * Math.cos(angle), y: rf * Math.sin(angle) });
+      }
+      points.push({ x: rb * Math.cos(nextRightBaseAngle), y: rb * Math.sin(nextRightBaseAngle) });
+    } else {
+      points.push({ x: rf * Math.cos(leftBaseAngle), y: rf * Math.sin(leftBaseAngle) });
+      for (let s = 1; s <= 4; s++) {
+        const angle = leftBaseAngle + (nextRightBaseAngle - leftBaseAngle) * s / 4;
+        points.push({ x: rf * Math.cos(angle), y: rf * Math.sin(angle) });
+      }
+    }
+  }
+  return points;
+}
+
+// ===== 内齿圈轮廓 =====
+function generateRingGearProfile(z, m, alpha) {
+  const r = m * z / 2;
+  const rb = r * Math.cos(alpha);
+  const ra = r + m;      // 齿顶圆（内齿圈齿顶在内部，半径较小）
+  const rf = r - 1.25 * m; // 齿根圆（内齿圈齿根在外部，半径较大）
+
+  // 内齿圈：齿在圆的内侧
+  // 齿顶圆 = r - m (向内)
+  // 齿根圆 = r + 1.25*m (向外)
+  const rInner = r - m;       // 齿顶圆（内侧）
+  const rOuter = r + 1.25 * m; // 齿根圆（外侧）
+
+  const invAlpha = Math.tan(alpha) - alpha;
+  const toothAngle = 2 * Math.PI / z;
+  const halfTooth = Math.PI / (2 * z);
+  const psiMax = Math.acos(Math.min(1, rb / Math.max(rb + 0.01, rOuter)));
+  const steps = 14;
+  const points = [];
+
+  for (let i = 0; i < z; i++) {
+    const center = i * toothAngle;
+    // 内齿圈的齿廓是外齿轮齿廓的"镜像"
+    // 左侧齿面
+    for (let s = 0; s <= steps; s++) {
+      const psi = (s / steps) * psiMax;
+      const ri = rb / Math.cos(psi);
+      const angle = center + halfTooth + invAlpha - (Math.tan(psi) - psi);
+      points.push({ x: ri * Math.cos(angle), y: ri * Math.sin(angle) });
+    }
+    // 齿顶（内侧）
+    const rightTopAngle = center + halfTooth + invAlpha - (Math.tan(psiMax) - psiMax);
+    const leftTopAngle = center - halfTooth - invAlpha + (Math.tan(psiMax) - psiMax);
+    for (let s = 1; s <= 4; s++) {
+      const angle = rightTopAngle + (leftTopAngle - rightTopAngle + 2 * Math.PI) * s / 4;
+      const a2 = rightTopAngle - (rightTopAngle - leftTopAngle) * s / 4;
+      points.push({ x: rInner * Math.cos(a2), y: rInner * Math.sin(a2) });
+    }
+    // 右侧齿面
+    for (let s = steps; s >= 0; s--) {
+      const psi = (s / steps) * psiMax;
+      const ri = rb / Math.cos(psi);
+      const angle = center - halfTooth - invAlpha + (Math.tan(psi) - psi);
+      points.push({ x: ri * Math.cos(angle), y: ri * Math.sin(angle) });
+    }
+    // 齿根（外侧）
+    const leftBaseAngle = center - halfTooth - invAlpha;
+    const nextRightBaseAngle = (i + 1) * toothAngle + halfTooth + invAlpha;
+    points.push({ x: rOuter * Math.cos(leftBaseAngle), y: rOuter * Math.sin(leftBaseAngle) });
+    for (let s = 1; s <= 4; s++) {
+      const angle = leftBaseAngle + (nextRightBaseAngle - leftBaseAngle) * s / 4;
+      points.push({ x: rOuter * Math.cos(angle), y: rOuter * Math.sin(angle) });
+    }
+  }
+  return { points, rInner, rOuter, r, rb };
+}
+
+// ===== Willis 公式计算 =====
+function calcPlanetary() {
+  const z1 = state.z1;
+  const z2 = state.z2;
+  const z3 = z1 + 2 * z2; // 内齿圈齿数
+
+  // 转化机构传动比 (系杆固定时)
+  // i_13^H = (ω1-ωH)/(ω3-ωH) = -z3/z1 (外啮合+内啮合)
+  const i13H = -z3 / z1;
+
+  // 根据输入构件计算各转速
+  let omega1, omega3, omegaH;
+  const nInput = state.inputRPM * 2 * Math.PI / 60; // rad/s (用相对值，省去 2π/60)
+
+  if (state.inputMember === 'sun') {
+    // 太阳轮输入: ω1 = nInput, ω3 = 0 (齿圈固定)
+    // i13H = (ω1 - ωH)/(0 - ωH) = -z3/z1
+    // ω1 - ωH = i13H * (-ωH)
+    // ω1 = ωH * (1 - i13H)
+    // ωH = ω1 / (1 - i13H)
+    omega1 = state.inputRPM;
+    omega3 = 0;
+    omegaH = omega1 / (1 - i13H);
+  } else if (state.inputMember === 'carrier') {
+    // 系杆输入: ωH = nInput, ω3 = 0 (齿圈固定)
+    omegaH = state.inputRPM;
+    omega3 = 0;
+    // i13H = (ω1 - ωH)/(0 - ωH) = -z3/z1
+    // ω1 - ωH = i13H * (-ωH)
+    // ω1 = ωH * (1 - i13H)
+    omega1 = omegaH * (1 - i13H);
+  } else {
+    // 齿圈输入: ω3 = nInput, ω1 = 0 (太阳轮固定)
+    omega1 = 0;
+    omega3 = state.inputRPM;
+    // i13H = (0 - ωH)/(ω3 - ωH) = -z3/z1
+    // -ωH = -z3/z1 * (ω3 - ωH)
+    // ωH = z3/z1 * (ω3 - ωH)
+    // ωH * (1 + z3/z1) = z3/z1 * ω3
+    // ωH = (z3/z1) / (1 + z3/z1) * ω3 = z3/(z1+z3) * ω3
+    omegaH = z3 / (z1 + z3) * omega3;
+  }
+
+  // 行星轮转速（自转）
+  // ω2 = -z1/z2 * (ω1 - ωH) + ωH
+  // 或者：在转化机构中 i12H = -z2/z1 (外啮合)
+  // (ω2-ωH)/(ω1-ωH) = -z1/z2
+  // ω2 = ωH + (-z1/z2)*(ω1 - ωH)
+  const omega2 = omegaH + (-z1 / z2) * (omega1 - omegaH);
+
+  // 实际传动比（输出构件/输入构件）
+  let i_actual;
+  let outputLabel;
+  if (state.inputMember === 'sun') {
+    i_actual = omegaH / omega1;
+    outputLabel = 'i(系杆/太阳)';
+  } else if (state.inputMember === 'carrier') {
+    i_actual = omega1 / omegaH;
+    outputLabel = 'i(太阳/系杆)';
+  } else {
+    i_actual = omegaH / omega3;
+    outputLabel = 'i(系杆/齿圈)';
+  }
+
+  return { z1, z2, z3, i13H, omega1, omega2, omega3, omegaH, i_actual, outputLabel };
+}
+
+// ===== 绘制齿轮（填充） =====
+function drawGearFilled(cx, cy, profile, scale, fillColor, strokeColor, rotation) {
+  if (profile.length < 3) return;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rotation);
+  ctx.beginPath();
+  ctx.moveTo(profile[0].x * scale, -profile[0].y * scale);
+  for (let i = 1; i < profile.length; i++)
+    ctx.lineTo(profile[i].x * scale, -profile[i].y * scale);
+  ctx.closePath();
+  ctx.fillStyle = fillColor; ctx.fill();
+  ctx.strokeStyle = strokeColor; ctx.lineWidth = 1.5; ctx.stroke();
+  const holeR = Math.max(3, 5 * scale);
+  ctx.beginPath(); ctx.arc(0, 0, holeR, 0, Math.PI * 2);
+  ctx.fillStyle = '#0f1117'; ctx.fill();
+  ctx.strokeStyle = strokeColor; ctx.lineWidth = 1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 0, Math.max(1.5, 2 * scale), 0, Math.PI * 2);
+  ctx.fillStyle = strokeColor; ctx.fill();
+  ctx.restore();
+}
+
+// ===== 绘制内齿圈 =====
+function drawRingGear(cx, cy, ringData, scale, fillColor, strokeColor, rotation) {
+  const { points, rInner, rOuter } = ringData;
+  if (points.length < 3) return;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rotation);
+
+  // 画外圆（齿根圆）和内齿廓
+  // 先画一个填充的环
+  ctx.beginPath();
+  // 外圆
+  const outerR = (rOuter + 4) * scale;
+  ctx.arc(0, 0, outerR, 0, Math.PI * 2);
+  // 内齿廓（逆时针方向作为 hole）
+  ctx.moveTo(points[0].x * scale, -points[0].y * scale);
+  for (let i = 1; i < points.length; i++)
+    ctx.lineTo(points[i].x * scale, -points[i].y * scale);
+  ctx.closePath();
+
+  // 使用 evenodd 填充
+  ctx.fillStyle = fillColor; ctx.fill('evenodd');
+  ctx.strokeStyle = strokeColor; ctx.lineWidth = 1.5; ctx.stroke();
+
+  // 标注内齿圈
+  ctx.restore();
+}
+
+// ===== 绘制旋转方向弧线箭头 =====
+function drawRotArrow(cx, cy, radius, clockwise, color, label) {
+  if (radius < 12) return;
+  const startAngle = clockwise ? -0.4 : Math.PI + 0.4;
+  const endAngle = clockwise ? 1.4 : Math.PI - 1.4;
+  ctx.strokeStyle = color; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, radius, startAngle, endAngle, !clockwise); ctx.stroke();
+  const tipAngle = endAngle;
+  const tipX = cx + radius * Math.cos(tipAngle);
+  const tipY = cy + radius * Math.sin(tipAngle);
+  const dirAngle = clockwise ? tipAngle + Math.PI / 2 : tipAngle - Math.PI / 2;
+  const sz = 6;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(tipX - sz * Math.cos(dirAngle - 0.5), tipY - sz * Math.sin(dirAngle - 0.5));
+  ctx.lineTo(tipX - sz * Math.cos(dirAngle + 0.5), tipY - sz * Math.sin(dirAngle + 0.5));
+  ctx.closePath(); ctx.fill();
+
+  if (label) {
+    const lx = cx + (radius + 14) * Math.cos((startAngle + endAngle) / 2);
+    const ly = cy + (radius + 14) * Math.sin((startAngle + endAngle) / 2);
+    Mech.draw.text(ctx, label, lx, ly, { color, font: 'bold 11px sans-serif' });
+  }
+}
+
+// ===== 主绘制 =====
+function draw() {
+  const { w, h } = getDimensions();
+  ctx.clearRect(0, 0, w, h);
+  const C = Mech.colors;
+  const result = calcPlanetary();
+  const { z1, z2, z3 } = result;
+
+  const m = 1.5; // 模数
+  const p1 = gearParams(z1, m, ALPHA);  // 太阳轮
+  const p2 = gearParams(z2, m, ALPHA);  // 行星轮
+  // p3 是内齿圈，半径用 r3 = m*z3/2
+  const r3 = m * z3 / 2;
+  const r3Inner = r3 - m;
+  const r3Outer = r3 + 1.25 * m;
+
+  // 中心距
+  const a = p1.r + p2.r; // 太阳轮中心到行星轮中心
+  const maxR = r3Outer;
+
+  // 缩放
+  const scale = Math.min(w, h) / (maxR * 2.6);
+  const cx = w / 2, cy = h / 2;
+
+  // 动画角度计算
+  // 以系杆角为基准
+  const omegaH_rel = result.omegaH;
+  const omega1_rel = result.omega1;
+  const omega2_rel = result.omega2;
+
+  // 用 state.theta 驱动，归一化速度
+  const maxOmega = Math.max(Math.abs(omega1_rel), Math.abs(omegaH_rel), 1);
+  const thetaH = state.theta; // 系杆角度
+  const theta1 = state.theta * (omega1_rel / omegaH_rel || 0); // 太阳轮角度
+  // 行星轮自转角度
+  const theta2_self = state.theta * (omega2_rel / omegaH_rel || 0);
+  // 行星轮公转角度 = 系杆角度
+
+  // 绘制分度圆
+  if (state.showPitch) {
+    // 内齿圈分度圆
+    Mech.draw.circle(ctx, cx, cy, r3 * scale, {
+      color: 'rgba(251,191,36,0.25)', width: 1, dash: [5, 4]
+    });
+    // 太阳轮分度圆
+    Mech.draw.circle(ctx, cx, cy, p1.r * scale, {
+      color: 'rgba(99,102,241,0.3)', width: 1, dash: [5, 4]
+    });
+  }
+
+  // 绘制内齿圈
+  const ringData = generateRingGearProfile(z3, m, ALPHA);
+  drawRingGear(cx, cy, ringData, scale,
+    'rgba(251,191,36,0.08)', 'rgba(251,191,36,0.6)', 0);
+
+  // 绘制系杆
+  if (state.showCarrier) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(thetaH);
+    // 画3个系杆臂
+    for (let i = 0; i < 3; i++) {
+      const angle = i * 2 * Math.PI / 3;
+      const ex = a * scale * Math.cos(angle);
+      const ey = a * scale * Math.sin(angle);
+      ctx.strokeStyle = 'rgba(113,113,122,0.5)';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+      // 行星轮轴心标记
+      ctx.beginPath();
+      ctx.arc(ex, ey, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#71717a';
+      ctx.fill();
+      ctx.strokeStyle = '#0f1117';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // 绘制太阳轮
+  const sunProfile = generateGearProfile(z1, m, ALPHA);
+  drawGearFilled(cx, cy, sunProfile, scale,
+    'rgba(99,102,241,0.15)', 'rgba(99,102,241,0.75)', theta1);
+
+  // 绘制3个行星轮
+  const planetProfile = generateGearProfile(z2, m, ALPHA);
+  for (let i = 0; i < 3; i++) {
+    const orbitAngle = thetaH + i * 2 * Math.PI / 3;
+    const px = cx + a * scale * Math.cos(orbitAngle);
+    const py = cy + a * scale * Math.sin(orbitAngle);
+    // 行星轮自转角度 = theta2_self，但要考虑系杆旋转
+    const planetRotation = theta2_self;
+    drawGearFilled(px, py, planetProfile, scale,
+      'rgba(52,211,153,0.15)', 'rgba(52,211,153,0.75)', planetRotation);
+  }
+
+  // 标注
+  if (state.showLabels) {
+    // 太阳轮标注
+    Mech.draw.text(ctx, `z₁=${z1}`, cx, cy - p1.ra * scale - 10,
+      { color: 'rgba(99,102,241,0.9)', font: 'bold 12px sans-serif' });
+    Mech.draw.text(ctx, '太阳轮', cx, cy + p1.ra * scale + 16,
+      { color: 'rgba(99,102,241,0.7)', font: '10px sans-serif' });
+
+    // 内齿圈标注
+    Mech.draw.text(ctx, `z₃=${z3}`, cx + r3 * scale * 0.7, cy - r3 * scale * 0.7,
+      { color: 'rgba(251,191,36,0.8)', font: 'bold 12px sans-serif' });
+    Mech.draw.text(ctx, '内齿圈', cx + r3 * scale * 0.55, cy - r3 * scale * 0.55 + 16,
+      { color: 'rgba(251,191,36,0.6)', font: '10px sans-serif' });
+
+    // 行星轮标注（只标一个）
+    const labelOrbitAngle = thetaH;
+    const lpx = cx + a * scale * Math.cos(labelOrbitAngle);
+    const lpy = cy + a * scale * Math.sin(labelOrbitAngle);
+    Mech.draw.text(ctx, `z₂=${z2}`, lpx, lpy - p2.ra * scale - 10,
+      { color: 'rgba(52,211,153,0.9)', font: 'bold 12px sans-serif' });
+
+    // 系杆标注
+    if (state.showCarrier) {
+      Mech.draw.text(ctx, 'H(系杆)', cx + 14, cy + 14,
+        { color: 'rgba(113,113,122,0.8)', font: '11px sans-serif', align: 'left' });
+    }
+
+    // 旋转方向箭头
+    const arrowR1 = Math.min(p1.ra * scale * 0.55, 20);
+    if (arrowR1 > 8 && Math.abs(omega1_rel) > 0.01) {
+      const cw1 = omega1_rel > 0;
+      drawRotArrow(cx, cy, arrowR1, cw1, 'rgba(99,102,241,0.6)', 'ω₁');
+    }
+  }
+
+  // 中心点
+  Mech.draw.point(ctx, cx, cy, { color: 'rgba(99,102,241,0.8)', r: 3 });
+
+  // 更新信息
+  updateInfoPanel(result);
+  updateTip(result);
+}
+
+// ===== 信息面板 =====
+const ui = {};
+
+function updateInfoPanel(result) {
+  const { z1, z2, z3, i13H, omega1, omega2, omega3, omegaH, i_actual, outputLabel } = result;
+
+  ui.z3Val.textContent = z3;
+  ui.i13hVal.textContent = i13H.toFixed(4);
+  ui.i13hVal.style.color = i13H < 0 ? '#f97316' : '#34d399';
+
+  ui.iActualVal.textContent = i_actual.toFixed(4);
+  ui.iActualLabel.textContent = outputLabel;
+
+  // 各构件转速
+  const rpmColor = (v) => v > 0 ? '#34d399' : v < 0 ? '#f97316' : '#71717a';
+  ui.omega1Val.textContent = omega1.toFixed(1);
+  ui.omega1Val.style.color = rpmColor(omega1);
+  ui.omega3Val.textContent = omega3.toFixed(1);
+  ui.omega3Val.style.color = rpmColor(omega3);
+  ui.omegaHVal.textContent = omegaH.toFixed(1);
+  ui.omegaHVal.style.color = rpmColor(omegaH);
+  ui.omega2Val.textContent = omega2.toFixed(1);
+  ui.omega2Val.style.color = rpmColor(omega2);
+}
+
+function updateTip(result) {
+  const { z1, z2, z3, i13H, i_actual, outputLabel, omega1, omega3, omegaH } = result;
+  let text = `Willis公式：i₁₃ᴴ = (ω₁−ωH)/(ω₃−ωH) = −z₃/z₁\n`;
+  text += `代入：i₁₃ᴴ = −${z3}/${z1} = ${i13H.toFixed(4)}\n`;
+
+  if (state.inputMember === 'sun') {
+    text += `\n齿圈固定(ω₃=0)，太阳轮输入：\n`;
+    text += `i₁₃ᴴ = (ω₁−ωH)/(0−ωH) = −z₃/z₁\n`;
+    text += `ωH = ω₁/(1−i₁₃ᴴ) = ${omega1.toFixed(1)}/${(1 - i13H).toFixed(4)} = ${omegaH.toFixed(1)}\n`;
+    text += `实际传动比 ${outputLabel} = ${i_actual.toFixed(4)}`;
+  } else if (state.inputMember === 'carrier') {
+    text += `\n齿圈固定(ω₃=0)，系杆输入：\n`;
+    text += `ω₁ = ωH × (1−i₁₃ᴴ) = ${omegaH.toFixed(1)} × ${(1-i13H).toFixed(4)} = ${omega1.toFixed(1)}\n`;
+    text += `实际传动比 ${outputLabel} = ${i_actual.toFixed(4)}`;
+  } else {
+    text += `\n太阳轮固定(ω₁=0)，齿圈输入：\n`;
+    text += `i₁₃ᴴ = (0−ωH)/(ω₃−ωH) = −z₃/z₁\n`;
+    text += `ωH = z₃/(z₁+z₃) × ω₃ = ${omegaH.toFixed(1)}\n`;
+    text += `实际传动比 ${outputLabel} = ${i_actual.toFixed(4)}`;
+  }
+  ui.tip.textContent = text;
+}
+
+// ===== UI 构建 =====
+const sidebar = document.getElementById('sidebar');
+
+// 面板1：齿轮参数
+const paramPanel = Mech.ui.panel(sidebar, '齿轮参数');
+ui.z1Slider = Mech.ui.sidebarSlider(paramPanel, {
+  label: 'z₁ (太阳轮齿数)', min: 12, max: 50, value: 24,
+  onChange: v => { state.z1 = v; draw(); }
+});
+ui.z2Slider = Mech.ui.sidebarSlider(paramPanel, {
+  label: 'z₂ (行星轮齿数)', min: 8, max: 40, value: 16,
+  onChange: v => { state.z2 = v; draw(); }
+});
+// z3 自动计算显示
+const z3Display = document.createElement('div');
+z3Display.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px;';
+z3Display.innerHTML = `<span style="color:var(--text-dim)">z₃ (内齿圈)</span><span style="color:var(--warning);font-weight:600" id="z3Display">—</span>`;
+paramPanel.appendChild(z3Display);
+ui.z3Val = z3Display.querySelector('#z3Display');
+
+// 面板2：输入构件选择
+const inputPanel = Mech.ui.panel(sidebar, '输入构件');
+const selectWrap = document.createElement('div');
+selectWrap.style.marginBottom = '10px';
+selectWrap.innerHTML = `<select class="select-group" id="inputSelect">
+  <option value="sun" selected>☀️ 太阳轮输入（齿圈固定）</option>
+  <option value="carrier">🔧 系杆输入（齿圈固定）</option>
+  <option value="ring">⚙️ 齿圈输入（太阳轮固定）</option>
+</select>`;
+inputPanel.appendChild(selectWrap);
+document.getElementById('inputSelect').addEventListener('change', e => {
+  state.inputMember = e.target.value;
+  draw();
+});
+
+ui.rpmSlider = Mech.ui.sidebarSlider(inputPanel, {
+  label: '输入转速 (r/min)', min: 60, max: 3000, value: 960, step: 10,
+  onChange: v => { state.inputRPM = v; draw(); }
+});
+
+// 面板3：显示选项
+const optPanel = Mech.ui.panel(sidebar, '显示选项');
+Mech.ui.checkbox(optPanel, { label: '分度圆', checked: true, onChange: v => { state.showPitch = v; draw(); } });
+Mech.ui.checkbox(optPanel, { label: '齿数/名称标注', checked: true, onChange: v => { state.showLabels = v; draw(); } });
+Mech.ui.checkbox(optPanel, { label: '系杆', checked: true, onChange: v => { state.showCarrier = v; draw(); } });
+
+// 面板4：Willis公式计算
+const calcPanel = Mech.ui.panel(sidebar, '传动比计算');
+
+const calcInfo = document.createElement('div');
+calcInfo.className = 'info-grid';
+calcInfo.innerHTML = `
+  <div class="info-item" style="grid-column:span 2"><div class="label">z₃ = z₁+2z₂</div><div class="value" id="z3Calc" style="color:var(--warning)">—</div></div>
+  <div class="info-item"><div class="label">i₁₃ᴴ</div><div class="value" id="i13hVal" style="color:var(--orange)">—</div></div>
+  <div class="info-item"><div class="label" id="iActualLabel">i(实际)</div><div class="value" id="iActualVal" style="color:var(--accent)">—</div></div>
+`;
+calcPanel.appendChild(calcInfo);
+ui.i13hVal = calcInfo.querySelector('#i13hVal');
+ui.iActualVal = calcInfo.querySelector('#iActualVal');
+ui.iActualLabel = calcInfo.querySelector('#iActualLabel');
+ui.z3Calc = calcInfo.querySelector('#z3Calc');
+
+// 面板5：各构件转速
+const speedPanel = Mech.ui.panel(sidebar, '各构件转速 (r/min)');
+const speedGrid = document.createElement('div');
+speedGrid.className = 'info-grid';
+speedGrid.innerHTML = `
+  <div class="info-item"><div class="label">ω₁ 太阳轮</div><div class="value" id="omega1Val" style="font-size:13px">—</div></div>
+  <div class="info-item"><div class="label">ω₂ 行星轮</div><div class="value" id="omega2Val" style="font-size:13px">—</div></div>
+  <div class="info-item"><div class="label">ω₃ 齿圈</div><div class="value" id="omega3Val" style="font-size:13px">—</div></div>
+  <div class="info-item"><div class="label">ωH 系杆</div><div class="value" id="omegaHVal" style="font-size:13px">—</div></div>
+`;
+speedPanel.appendChild(speedGrid);
+ui.omega1Val = speedGrid.querySelector('#omega1Val');
+ui.omega2Val = speedGrid.querySelector('#omega2Val');
+ui.omega3Val = speedGrid.querySelector('#omega3Val');
+ui.omegaHVal = speedGrid.querySelector('#omegaHVal');
+
+// 面板6：知识点
+const tipPanel = Mech.ui.panel(sidebar, 'Willis公式推导');
+ui.tip = document.createElement('div');
+ui.tip.className = 'tip';
+ui.tip.style.whiteSpace = 'pre-wrap';
+tipPanel.appendChild(ui.tip);
+
+// ===== 工具栏 =====
+const toolbar = document.getElementById('toolbar');
+const playBtn = Mech.ui.button(toolbar, {
+  text: '⏸ 暂停', variant: 'primary',
+  onClick: () => {
+    if (anim.isPlaying()) { anim.pause(); playBtn.textContent = '▶ 播放'; }
+    else { anim.play(); playBtn.textContent = '⏸ 暂停'; }
+  }
+});
+Mech.ui.button(toolbar, {
+  text: '重置', variant: 'secondary',
+  onClick: () => {
+    state.theta = 0;
+    state.z1 = 24; state.z2 = 16;
+    state.inputMember = 'sun';
+    state.inputRPM = 960;
+    ui.z1Slider.set(24); ui.z2Slider.set(16);
+    document.getElementById('inputSelect').value = 'sun';
+    ui.rpmSlider.set(960);
+    draw();
+  }
+});
+Mech.ui.slider(toolbar, {
+  label: '转速', min: 0.05, max: 2, value: 0.3, step: 0.05,
+  format: v => v.toFixed(2) + 'x',
+  onChange: v => { state.speed = v; }
+});
+
+// ===== 启动 =====
+window.addEventListener('resize', () => draw());
+anim.play();
+console.log('行星轮系传动比 v1.0 loaded');
+</script>
+</body>
+</html>

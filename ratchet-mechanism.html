@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>棘轮机构 — 机械考研可视化</title>
+<link rel="stylesheet" href="mech.css">
+</head>
+<body>
+<a href="ch10-intermittent.html" class="back-btn">← 返回章节</a>
+
+<div class="header">
+  <h1>棘轮机构 <span class="version-badge">v1.0</span></h1>
+  <p>外啮合齿式棘轮机构 — 棘爪往复摆动驱动棘轮间歇单向转动</p>
+</div>
+
+<div class="app">
+  <div class="main-layout">
+    <div>
+      <div class="canvas-card">
+        <div class="canvas-wrapper">
+          <canvas id="canvas"></canvas>
+        </div>
+        <div class="canvas-toolbar" id="toolbar"></div>
+      </div>
+    </div>
+    <div class="sidebar" id="sidebar"></div>
+  </div>
+</div>
+
+<script src="mech.js"></script>
+<script>
+/* ===== 棘轮机构 v1.0 ===== */
+
+// ===== 状态 =====
+const state = {
+  z: 12,           // 齿数
+  speed: 0.4,      // 摆杆转速系数
+  swingAngle: 60,  // 摆角（度）
+  showPawl: true,   // 止回爪
+  showProfile: false, // 齿廓
+  showCycle: false,  // 运动周期
+  time: 0,
+  playing: true,
+};
+
+// ===== Canvas + 动画 =====
+const { ctx, getDimensions, canvas } = Mech.setupCanvas(document.getElementById('canvas'));
+const anim = Mech.createAnimator(
+  dt => {
+    state.time += state.speed * dt;
+  },
+  () => draw()
+);
+
+// ===== 棘轮齿形计算 =====
+function getRatchetParams() {
+  const z = state.z;
+  const toothAngle = 2 * Math.PI / z;
+  const swingRad = Mech.math.deg2rad(state.swingAngle);
+  const stepAngle = toothAngle; // 每次转过一齿
+  const driveAngle = swingRad;
+  const dwellAngle = 2 * Math.PI - driveAngle;
+  return { z, toothAngle, swingRad, stepAngle, driveAngle, dwellAngle };
+}
+
+// ===== 绘制棘轮 =====
+function drawRatchet(cx, cy, R, rInner, params, ratchetAngle) {
+  const C = Mech.colors;
+  const { z, toothAngle } = params;
+  const toothH = R - rInner;
+  const toothTopWidth = toothAngle * 0.35;
+  const toothBaseWidth = toothAngle * 0.55;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(ratchetAngle);
+
+  // 齿轮轮廓
+  ctx.beginPath();
+  for (let i = 0; i < z; i++) {
+    const baseAng = i * toothAngle;
+    const topAng = baseAng + toothAngle * 0.5;
+
+    // 齿根起始
+    const a0 = baseAng - toothBaseWidth / 2;
+    const a1 = baseAng + toothBaseWidth / 2;
+    const a2 = topAng - toothTopWidth / 2;
+    const a3 = topAng + toothTopWidth / 2;
+
+    if (i === 0) {
+      ctx.moveTo(rInner * Math.cos(a0), rInner * Math.sin(a0));
+    }
+    // 齿根到齿顶左
+    ctx.lineTo(rInner * Math.cos(a1), rInner * Math.sin(a1));
+    ctx.lineTo(R * Math.cos(a2), R * Math.sin(a2));
+    // 齿顶
+    ctx.lineTo(R * Math.cos(a3), R * Math.sin(a3));
+    // 齿顶到齿根右
+    const nextBase = (i + 1) * toothAngle;
+    const na0 = nextBase - toothBaseWidth / 2;
+    ctx.lineTo(rInner * Math.cos(na0), rInner * Math.sin(na0));
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(99, 102, 241, 0.08)';
+  ctx.fill();
+  ctx.strokeStyle = C.accent;
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+
+  // 齿廓细节（显示齿廓时额外画工作面线）
+  if (state.showProfile) {
+    ctx.strokeStyle = 'rgba(99, 102, 241, 0.4)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < z; i++) {
+      const baseAng = i * toothAngle;
+      const topAng = baseAng + toothAngle * 0.5;
+      const a1 = baseAng + toothBaseWidth / 2;
+      const a2 = topAng - toothTopWidth / 2;
+      ctx.beginPath();
+      ctx.moveTo(rInner * Math.cos(a1), rInner * Math.sin(a1));
+      ctx.lineTo(R * Math.cos(a2), R * Math.sin(a2));
+      ctx.stroke();
+      // 齿顶面
+      const a3 = topAng + toothTopWidth / 2;
+      ctx.beginPath();
+      ctx.moveTo(R * Math.cos(a2), R * Math.sin(a2));
+      ctx.lineTo(R * Math.cos(a3), R * Math.sin(a3));
+      ctx.stroke();
+    }
+  }
+
+  // 中心轴
+  Mech.draw.circle(ctx, 0, 0, 6, { color: C.hinge, width: 2, fill: 'rgba(113,113,122,0.3)' });
+
+  // 轮辐
+  ctx.strokeStyle = 'rgba(99, 102, 241, 0.15)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 4; i++) {
+    const a = i * Math.PI / 2;
+    ctx.beginPath();
+    ctx.moveTo(12 * Math.cos(a), 12 * Math.sin(a));
+    ctx.lineTo((rInner - 5) * Math.cos(a), (rInner - 5) * Math.sin(a));
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// ===== 绘制驱动棘爪 =====
+function drawDrivePawl(cx, cy, R, pivotR, pawlAngle, params) {
+  const C = Mech.colors;
+  const { toothAngle } = params;
+
+  // 摆杆（绕棘轮中心摆动）
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  // 摆杆臂
+  const armLen = R + 25;
+  const pawlTipR = R - 3;
+  const pawlBaseR = pivotR + 8;
+
+  // 摆杆
+  const armEndX = armLen * Math.cos(pawlAngle);
+  const armEndY = armLen * Math.sin(pawlAngle);
+  Mech.draw.link(ctx, 0, 0, armEndX, armEndY, { color: C.work, width: 3.5 });
+
+  // 棘爪（在摆杆末端，朝向棘轮齿）
+  const pawlLen = R - pivotR + 5;
+  const pawlDir = pawlAngle + toothAngle * 0.25;
+  const pawlBaseX = pawlBaseR * Math.cos(pawlAngle);
+  const pawlBaseY = pawlBaseR * Math.sin(pawlAngle);
+  const pawlTipX = pawlTipR * Math.cos(pawlDir);
+  const pawlTipY = pawlTipR * Math.sin(pawlDir);
+
+  // 棘爪三角形
+  ctx.beginPath();
+  ctx.moveTo(pawlBaseX, pawlBaseY);
+  ctx.lineTo(pawlTipX, pawlTipY);
+  const pawlBackAngle = pawlAngle - 0.12;
+  const backX = (pawlBaseR + 5) * Math.cos(pawlBackAngle);
+  const backY = (pawlBaseR + 5) * Math.sin(pawlBackAngle);
+  ctx.lineTo(backX, backY);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';
+  ctx.fill();
+  ctx.strokeStyle = C.work;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 棘爪尖端
+  Mech.draw.point(ctx, pawlTipX, pawlTipY, { color: C.warning, r: 3.5 });
+
+  // 摆杆端铰链
+  Mech.draw.hinge(ctx, armEndX, armEndY, { color: C.work, r: 4 });
+
+  // 中心铰链
+  Mech.draw.hinge(ctx, 0, 0, { color: C.hinge, r: 5 });
+
+  ctx.restore();
+}
+
+// ===== 绘制止回爪 =====
+function drawDetentPawl(cx, cy, R, ratchetAngle, params) {
+  const C = Mech.colors;
+  const { toothAngle } = params;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  // 止回爪安装在棘轮下方偏右
+  const pivotAngle = Math.PI * 0.65;
+  const pivotDist = R + 30;
+  const px = pivotDist * Math.cos(pivotAngle);
+  const py = pivotDist * Math.sin(pivotAngle);
+
+  // 固定铰支座
+  Mech.draw.hingedSupport(ctx, px, py);
+
+  // 止回爪臂
+  const pawlLen = pivotDist - R + 10;
+  const targetAngle = pivotAngle + Math.PI + 0.15;
+  const tipX = px + pawlLen * Math.cos(targetAngle);
+  const tipY = py + pawlLen * Math.sin(targetAngle);
+
+  Mech.draw.link(ctx, px, py, tipX, tipY, { color: C.orange, width: 2.5 });
+
+  // 爪尖
+  Mech.draw.point(ctx, tipX, tipY, { color: C.warning, r: 3 });
+
+  // 标注
+  Mech.draw.text(ctx, '止回爪', px + 18, py + 8, { color: C.orange, font: '11px sans-serif', align: 'left' });
+
+  ctx.restore();
+}
+
+// ===== 绘制运动周期图 =====
+function drawCycleDiagram(w, h, params, progress) {
+  const C = Mech.colors;
+  const dw = Math.min(w * 0.35, 220);
+  const dh = 65;
+  const dx = w - dw - 14;
+  const dy = h - dh - 14;
+
+  // 半透明背景
+  ctx.fillStyle = 'rgba(15, 17, 23, 0.88)';
+  ctx.beginPath();
+  ctx.roundRect(dx, dy, dw, dh, 8);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(99, 102, 241, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // 标题
+  Mech.draw.text(ctx, '运动周期', dx + dw / 2, dy + 12, { color: C.textDim, font: '10px sans-serif' });
+
+  const barX = dx + 10;
+  const barY = dy + 24;
+  const barW = dw - 20;
+  const barH = 14;
+
+  // 背景
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.beginPath();
+  ctx.roundRect(barX, barY, barW, barH, 3);
+  ctx.fill();
+
+  // 动程段
+  const driveRatio = params.driveAngle / (2 * Math.PI);
+  const driveW = barW * driveRatio;
+  ctx.fillStyle = 'rgba(59, 130, 246, 0.4)';
+  ctx.beginPath();
+  ctx.roundRect(barX, barY, driveW, barH, 3);
+  ctx.fill();
+
+  // 停歇段
+  ctx.fillStyle = 'rgba(52, 211, 153, 0.2)';
+  ctx.fillRect(barX + driveW, barY, barW - driveW, barH);
+
+  // 进度指示
+  const progW = barW * (progress % 1);
+  ctx.fillStyle = 'rgba(251, 191, 36, 0.7)';
+  ctx.fillRect(barX + progW - 1, barY - 2, 2, barH + 4);
+
+  // 标签
+  Mech.draw.text(ctx, '动程', barX + driveW / 2, barY + barH + 10, { color: C.work, font: '9px sans-serif' });
+  Mech.draw.text(ctx, '停歇', barX + driveW + (barW - driveW) / 2, barY + barH + 10, { color: C.return, font: '9px sans-serif' });
+}
+
+// ===== 绘制角速度标注 =====
+function drawAngularVelocityArrow(cx, cy, R, ratchetAngle, isDriving) {
+  const C = Mech.colors;
+  const arrowR = R + 40;
+  const startA = ratchetAngle - 0.3;
+  const endA = ratchetAngle + 0.3;
+
+  Mech.draw.arc(ctx, cx, cy, arrowR, startA, endA, false, { color: isDriving ? C.work : C.return, width: 1.5 });
+
+  // 箭头
+  const tipX = cx + arrowR * Math.cos(endA);
+  const tipY = cy + arrowR * Math.sin(endA);
+  const preX = cx + arrowR * Math.cos(endA - 0.15);
+  const preY = cy + arrowR * Math.sin(endA - 0.15);
+  Mech.draw.arrow(ctx, preX, preY, tipX, tipY, { color: isDriving ? C.work : C.return, size: 6 });
+
+  // 标签
+  Mech.draw.text(ctx, 'ω', cx + (arrowR + 12) * Math.cos(ratchetAngle), cy + (arrowR + 12) * Math.sin(ratchetAngle), {
+    color: isDriving ? C.work : C.return, font: 'bold 12px sans-serif'
+  });
+}
+
+// ===== 主绘制函数 =====
+function draw() {
+  const { w, h } = getDimensions();
+  ctx.clearRect(0, 0, w, h);
+  const C = Mech.colors;
+  const params = getRatchetParams();
+
+  Mech.draw.grid(ctx, w * 0.4, h * 0.45, w, h, 1);
+
+  // 棘轮中心和半径
+  const cx = w * 0.42;
+  const cy = h * 0.48;
+  const scale = Math.min(w, h) / 480;
+  const R = 110 * scale;
+  const rInner = R * 0.72;
+
+  // 计算当前运动状态
+  const cycleTime = 2 * Math.PI;
+  const progress = Mech.math.norm(state.time) / cycleTime;
+  const driveFraction = params.driveAngle / cycleTime;
+
+  // 判断当前阶段
+  const isDriving = progress < driveFraction;
+  let ratchetAngle, pawlAngle;
+
+  if (isDriving) {
+    // 动程：摆杆正向摆动，推动棘轮转动
+    const t = progress / driveFraction;
+    pawlAngle = -Math.PI / 2 + params.swingRad * t;
+    ratchetAngle = -Math.PI / 2 + params.stepAngle * t;
+  } else {
+    // 停歇：摆杆回程，棘轮不动
+    const t = (progress - driveFraction) / (1 - driveFraction);
+    pawlAngle = -Math.PI / 2 + params.swingRad - params.swingRad * t;
+    ratchetAngle = -Math.PI / 2 + params.stepAngle;
+  }
+
+  // 绘制运动周期图
+  if (state.showCycle) {
+    drawCycleDiagram(w, h, params, progress);
+  }
+
+  // 角速度方向
+  drawAngularVelocityArrow(cx, cy, R, ratchetAngle + Math.PI / 4, isDriving);
+
+  // 绘制棘轮
+  drawRatchet(cx, cy, R, rInner, params, ratchetAngle);
+
+  // 绘制驱动棘爪和摆杆
+  drawDrivePawl(cx, cy, R, rInner * 0.5, pawlAngle, params);
+
+  // 绘制止回爪
+  if (state.showPawl) {
+    drawDetentPawl(cx, cy, R, ratchetAngle, params);
+  }
+
+  // 绘制机架标注
+  Mech.draw.hingedSupport(ctx, cx, cy + R + 45);
+  Mech.draw.dashedLine(ctx, cx, cy, cx, cy + R + 36, { color: C.hinge });
+
+  // 阶段标注
+  const phaseText = isDriving ? '▶ 动程（棘轮转动）' : '■ 停歇（棘轮静止）';
+  const phaseColor = isDriving ? C.work : C.return;
+  Mech.draw.text(ctx, phaseText, cx, 24, { color: phaseColor, font: 'bold 13px sans-serif' });
+
+  // 摆杆摆角标注
+  if (state.showProfile) {
+    const arcR = R * 0.55;
+    Mech.draw.dashedArc(ctx, cx, cy, arcR, -Math.PI / 2, -Math.PI / 2 + params.swingRad, false, {
+      color: C.warning, width: 1.5, dash: [3, 3]
+    });
+    const midAng = -Math.PI / 2 + params.swingRad / 2;
+    Mech.draw.text(ctx, `ψ=${state.swingAngle}°`, cx + (arcR + 14) * Math.cos(midAng), cy + (arcR + 14) * Math.sin(midAng), {
+      color: C.warning, font: '11px sans-serif'
+    });
+  }
+
+  // 更新信息面板
+  updateInfo(params, isDriving);
+}
+
+// ===== UI 构建 =====
+const sidebar = document.getElementById('sidebar');
+const ui = {};
+
+// 面板1：参数调节
+const paramPanel = Mech.ui.panel(sidebar, '参数调节');
+ui.zSlider = Mech.ui.sidebarSlider(paramPanel, {
+  label: '齿数 z', min: 8, max: 20, value: 12, step: 1,
+  format: v => v,
+  onChange: v => { state.z = v; draw(); }
+});
+ui.speedSlider = Mech.ui.sidebarSlider(paramPanel, {
+  label: '摆杆转速', min: 0.1, max: 2.0, value: 0.4, step: 0.1,
+  format: v => v.toFixed(1) + 'x',
+  onChange: v => { state.speed = v; }
+});
+ui.swingSlider = Mech.ui.sidebarSlider(paramPanel, {
+  label: '摆角 ψ (°)', min: 20, max: 90, value: 60, step: 5,
+  format: v => v + '°',
+  onChange: v => { state.swingAngle = v; draw(); }
+});
+
+// 面板2：显示选项
+const optPanel = Mech.ui.panel(sidebar, '显示选项');
+ui.pawlCb = Mech.ui.checkbox(optPanel, {
+  label: '显示止回爪', checked: true,
+  onChange: v => { state.showPawl = v; draw(); }
+});
+ui.profileCb = Mech.ui.checkbox(optPanel, {
+  label: '显示齿廓', checked: false,
+  onChange: v => { state.showProfile = v; draw(); }
+});
+ui.cycleCb = Mech.ui.checkbox(optPanel, {
+  label: '显示运动周期', checked: false,
+  onChange: v => { state.showCycle = v; draw(); }
+});
+
+// 面板3：实时信息
+const infoPanel = Mech.ui.panel(sidebar, '实时信息');
+ui.infoGrid = document.createElement('div');
+ui.infoGrid.className = 'info-grid';
+infoPanel.appendChild(ui.infoGrid);
+
+function updateInfo(params, isDriving) {
+  const stepDeg = (360 / params.z).toFixed(1);
+  const driveDeg = Mech.math.rad2deg(params.driveAngle).toFixed(1);
+  const dwellDeg = Mech.math.rad2deg(params.dwellAngle).toFixed(1);
+  const omega = isDriving ? (params.stepAngle / (params.driveAngle / state.speed)).toFixed(2) : '0.00';
+
+  ui.infoGrid.innerHTML = `
+    <div class="info-item"><div class="label">每次转角</div><div class="value" style="color:var(--accent)">${stepDeg}°</div></div>
+    <div class="info-item"><div class="label">动程角</div><div class="value" style="color:var(--work-color)">${driveDeg}°</div></div>
+    <div class="info-item"><div class="label">停歇角</div><div class="value" style="color:var(--return-color)">${dwellDeg}°</div></div>
+    <div class="info-item"><div class="label">棘轮角速度</div><div class="value" style="color:${isDriving ? 'var(--work-color)' : 'var(--text-dim)'}">${omega} rad/s</div></div>
+    <div class="info-item" style="grid-column:span 2"><div class="label">当前阶段</div><div class="value" style="color:${isDriving ? 'var(--work-color)' : 'var(--return-color)'}">${isDriving ? '动程（转动）' : '停歇（静止）'}</div></div>
+  `;
+}
+
+// 面板4：知识点
+const tipPanel = Mech.ui.panel(sidebar, '知识点提示');
+const tipEl = document.createElement('div');
+tipEl.className = 'tip';
+tipEl.innerHTML = `
+  <b>棘轮机构分类：</b><br>
+  • 按啮合方式：外啮合、内啮合<br>
+  • 按结构形式：齿式（本模块）、摩擦式<br>
+  • 按运动形式：单向转动、双向转动<br><br>
+  <b>特点：</b><br>
+  • 结构简单、制造方便<br>
+  • 动程可调（改变摆杆摆角）<br>
+  • 有噪声和冲击，不宜高速<br>
+  • 棘爪每次推动棘轮转过 360°/z
+`;
+tipPanel.appendChild(tipEl);
+
+// ===== 工具栏 =====
+const toolbar = document.getElementById('toolbar');
+
+const playBtn = Mech.ui.button(toolbar, {
+  text: '⏸ 暂停', variant: 'primary',
+  onClick: () => {
+    if (anim.isPlaying()) { anim.pause(); playBtn.textContent = '▶ 播放'; }
+    else { anim.play(); playBtn.textContent = '⏸ 暂停'; }
+  }
+});
+
+Mech.ui.button(toolbar, {
+  text: '重置', variant: 'secondary',
+  onClick: () => {
+    state.time = 0;
+    state.z = 12; state.speed = 0.4; state.swingAngle = 60;
+    state.showPawl = true; state.showProfile = false; state.showCycle = false;
+    ui.zSlider.set(12); ui.speedSlider.set(0.4); ui.swingSlider.set(60);
+    ui.pawlCb.set(true); ui.profileCb.set(false); ui.cycleCb.set(false);
+    draw();
+  }
+});
+
+Mech.ui.slider(toolbar, {
+  label: '速度', min: 0.1, max: 3, value: 0.4, step: 0.1,
+  format: v => v.toFixed(1) + 'x',
+  onChange: v => { state.speed = v; }
+});
+
+// ===== 启动 =====
+window.addEventListener('resize', () => draw());
+anim.play();
+console.log('棘轮机构 v1.0 loaded');
+</script>
+</body>
+</html>

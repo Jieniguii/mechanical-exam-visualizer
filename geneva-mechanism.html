@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>槽轮机构 — 机械考研可视化</title>
+<link rel="stylesheet" href="mech.css">
+</head>
+<body>
+<a href="ch10-intermittent.html" class="back-btn">← 返回章节</a>
+
+<div class="header">
+  <h1>槽轮机构 <span class="version-badge">v1.0</span></h1>
+  <p>外啮合槽轮机构（马耳他十字）— 拨盘匀速转动驱动槽轮间歇运动</p>
+</div>
+
+<div class="app">
+  <div class="main-layout">
+    <div>
+      <div class="canvas-card">
+        <div class="canvas-wrapper">
+          <canvas id="canvas"></canvas>
+        </div>
+        <div class="canvas-toolbar" id="toolbar"></div>
+      </div>
+    </div>
+    <div class="sidebar" id="sidebar"></div>
+  </div>
+</div>
+
+<script src="mech.js"></script>
+<script>
+/* ===== 槽轮机构 v1.0 ===== */
+
+// ===== 状态 =====
+const state = {
+  z: 4,            // 槽数
+  speed: 0.5,      // 拨盘转速系数
+  centerDist: 1.0, // 中心距系数
+  showMotionAngle: false,
+  showLockArc: true,
+  showOmegaCurve: false,
+  time: 0,
+};
+
+// ===== Canvas + 动画 =====
+const { ctx, getDimensions, canvas } = Mech.setupCanvas(document.getElementById('canvas'));
+const anim = Mech.createAnimator(
+  dt => { state.time += state.speed * dt; },
+  () => draw()
+);
+
+// ===== 槽轮运动学计算 =====
+function getGenevaParams() {
+  const z = state.z;
+  const phi2 = Math.PI / z;                       // 槽轮运动半角
+  const phi1 = Math.PI / 2 - phi2;                // 拨盘运动半角（对应的拨盘转角半角）
+  // 实际上：2φ1 = π - 2π/z，2φ2 = 2π/z
+  const motionAngle2 = 2 * phi2;                   // 槽轮运动角 = 2π/z
+  const motionAngle1 = 2 * phi1;                   // 拨盘运动角 = π - 2π/z
+  const tau = (z - 1) / (2 * z);                  // 运动系数
+  const dwellAngle1 = 2 * Math.PI - motionAngle1; // 拨盘停歇角（即槽轮静止时拨盘转角）
+  return { z, phi1, phi2, motionAngle1, motionAngle2, tau, dwellAngle1 };
+}
+
+// ===== 槽轮角位移（拨盘转角θ1时）=====
+function genevaAngle(theta1, params) {
+  const { z, phi1, phi2 } = params;
+  const lambda = Math.sin(phi2) / Math.sin(phi1); // = 1 for external geneva
+
+  // 判断是否在运动段：拨盘转角在 [-phi1, phi1] 范围内时槽轮运动
+  // 归一化拨盘角
+  const norm = Mech.math.norm(theta1);
+  // 运动段中心在0，范围[-phi1, phi1]
+  let relAngle = norm;
+  if (relAngle > Math.PI) relAngle -= 2 * Math.PI;
+
+  if (Math.abs(relAngle) <= phi1) {
+    // 运动段
+    const beta = relAngle;
+    const sinB = Math.sin(beta);
+    const cosB = Math.cos(beta);
+    const denom = 1 + lambda * lambda - 2 * lambda * cosB;
+    if (denom < 1e-6) return { angle2: 0, omega2: 0, phase: 'motion' };
+    const cosPsi = (1 - lambda * cosB) / Math.sqrt(denom);
+    const sinPsi = lambda * sinB / Math.sqrt(denom);
+    const psi = Math.atan2(sinPsi, cosPsi);
+    // 角速度比 ω2/ω1
+    const omegaRatio = lambda * (Math.cos(beta) - lambda) / (1 + lambda * lambda - 2 * lambda * cosB);
+    return { angle2: psi, omega2: omegaRatio, phase: 'motion' };
+  } else {
+    // 停歇段
+    return { angle2: 0, omega2: 0, phase: 'dwell' };
+  }
+}
+
+// ===== 绘制拨盘 =====
+function drawDrivingPlate(cx, cy, R1, theta1, params, pinR) {
+  const C = Mech.colors;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  // 拨盘圆盘
+  ctx.beginPath();
+  ctx.arc(0, 0, R1 * 0.35, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(59, 130, 246, 0.06)';
+  ctx.fill();
+  ctx.strokeStyle = C.work;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // 拨盘臂到圆销
+  const pinX = pinR * Math.cos(theta1);
+  const pinY = pinR * Math.sin(theta1);
+  Mech.draw.link(ctx, 0, 0, pinX, pinY, { color: C.work, width: 2.5 });
+
+  // 圆销
+  ctx.beginPath();
+  ctx.arc(pinX, pinY, 5, 0, Math.PI * 2);
+  ctx.fillStyle = C.warning;
+  ctx.fill();
+  ctx.strokeStyle = '#12141d';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // 中心轴
+  Mech.draw.circle(ctx, 0, 0, 5, { color: C.hinge, width: 1.5, fill: 'rgba(113,113,122,0.3)' });
+
+  // 转向箭头
+  const arrowR = R1 * 0.35 + 10;
+  Mech.draw.arc(ctx, 0, 0, arrowR, theta1 - 0.5, theta1 - 0.1, false, { color: C.work, width: 1.5 });
+  const arx = arrowR * Math.cos(theta1 - 0.1);
+  const ary = arrowR * Math.sin(theta1 - 0.1);
+  Mech.draw.arrow(ctx,
+    arrowR * Math.cos(theta1 - 0.25), arrowR * Math.sin(theta1 - 0.25),
+    arx, ary, { color: C.work, size: 6 }
+  );
+
+  ctx.restore();
+}
+
+// ===== 绘制槽轮 =====
+function drawGenevaWheel(cx, cy, R2, theta2, params) {
+  const C = Mech.colors;
+  const { z, phi2 } = params;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(theta2);
+
+  const slotR = R2 * 0.92;
+  const outerR = R2;
+  const innerR = R2 * 0.35;
+  const slotWidth = 12;
+
+  // 径向槽
+  for (let i = 0; i < z; i++) {
+    const slotAngle = i * (2 * Math.PI / z) - Math.PI / 2;
+
+    // 槽（两条平行线）
+    const perpAngle = slotAngle + Math.PI / 2;
+    const dx = (slotWidth / 2) * Math.cos(perpAngle);
+    const dy = (slotWidth / 2) * Math.sin(perpAngle);
+
+    ctx.beginPath();
+    ctx.moveTo(innerR * Math.cos(slotAngle) + dx, innerR * Math.sin(slotAngle) + dy);
+    ctx.lineTo(slotR * Math.cos(slotAngle) + dx, slotR * Math.sin(slotAngle) + dy);
+    ctx.strokeStyle = C.accent;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(innerR * Math.cos(slotAngle) - dx, innerR * Math.sin(slotAngle) - dy);
+    ctx.lineTo(slotR * Math.cos(slotAngle) - dx, slotR * Math.sin(slotAngle) - dy);
+    ctx.stroke();
+  }
+
+  // 外圆弧段（相邻槽之间）
+  for (let i = 0; i < z; i++) {
+    const slotAngle = i * (2 * Math.PI / z) - Math.PI / 2;
+    const nextSlotAngle = (i + 1) * (2 * Math.PI / z) - Math.PI / 2;
+    const midAngle = (slotAngle + nextSlotAngle) / 2;
+
+    // 画外弧
+    const arcStart = slotAngle + Math.atan2(slotWidth / 2, slotR);
+    const arcEnd = nextSlotAngle - Math.atan2(slotWidth / 2, slotR);
+    ctx.beginPath();
+    ctx.arc(0, 0, outerR, arcStart, arcEnd, false);
+    ctx.strokeStyle = C.accent;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // 锁止弧
+  if (state.showLockArc) {
+    for (let i = 0; i < z; i++) {
+      const slotAngle = i * (2 * Math.PI / z) - Math.PI / 2;
+      const nextSlotAngle = (i + 1) * (2 * Math.PI / z) - Math.PI / 2;
+      const arcStart = slotAngle + 0.15;
+      const arcEnd = nextSlotAngle - 0.15;
+
+      ctx.beginPath();
+      ctx.arc(0, 0, outerR - 4, arcStart, arcEnd, false);
+      ctx.strokeStyle = 'rgba(249, 115, 22, 0.5)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+  }
+
+  // 中心轴
+  Mech.draw.circle(ctx, 0, 0, 6, { color: C.hinge, width: 2, fill: 'rgba(113,113,122,0.3)' });
+
+  // 轮辐
+  ctx.strokeStyle = 'rgba(99, 102, 241, 0.12)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < z; i++) {
+    const a = i * (2 * Math.PI / z) - Math.PI / 2;
+    ctx.beginPath();
+    ctx.moveTo(10 * Math.cos(a), 10 * Math.sin(a));
+    ctx.lineTo(innerR * 0.9 * Math.cos(a), innerR * 0.9 * Math.sin(a));
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// ===== 绘制运动角标注 =====
+function drawMotionAngles(cxD, cyD, cxG, cyG, theta1, params) {
+  const C = Mech.colors;
+  const { phi1, phi2, motionAngle1, motionAngle2 } = params;
+
+  // 拨盘运动角
+  const arcR = 28;
+  Mech.draw.dashedArc(ctx, cxD, cyD, arcR, -phi1, phi1, false, {
+    color: C.work, width: 1.5, dash: [3, 3]
+  });
+  Mech.draw.text(ctx, `2φ₁`, cxD + arcR + 12, cyD - 4, { color: C.work, font: '10px sans-serif', align: 'left' });
+
+  // 槽轮运动角
+  Mech.draw.dashedArc(ctx, cxG, cyG, arcR, -Math.PI / 2 - phi2, -Math.PI / 2 + phi2, false, {
+    color: C.accent, width: 1.5, dash: [3, 3]
+  });
+  Mech.draw.text(ctx, `2φ₂`, cxG + arcR + 12, cyG - 4, { color: C.accent, font: '10px sans-serif', align: 'left' });
+}
+
+// ===== 绘制角速度曲线 =====
+function drawOmegaCurve(w, h, params, theta1) {
+  const C = Mech.colors;
+  const dw = Math.min(w * 0.38, 240);
+  const dh = 90;
+  const dx = w - dw - 14;
+  const dy = h - dh - 14;
+
+  // 背景
+  ctx.fillStyle = 'rgba(15, 17, 23, 0.88)';
+  ctx.beginPath();
+  ctx.roundRect(dx, dy, dw, dh, 8);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(99, 102, 241, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  Mech.draw.text(ctx, 'ω₂/ω₁ 角速度比', dx + dw / 2, dy + 12, { color: C.textDim, font: '10px sans-serif' });
+
+  const plotX = dx + 10;
+  const plotY = dy + 20;
+  const plotW = dw - 20;
+  const plotH = dh - 32;
+
+  // 坐标轴
+  ctx.beginPath();
+  ctx.moveTo(plotX, plotY);
+  ctx.lineTo(plotX, plotY + plotH);
+  ctx.lineTo(plotX + plotW, plotY + plotH);
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // 零线
+  ctx.beginPath();
+  ctx.moveTo(plotX, plotY + plotH);
+  ctx.lineTo(plotX + plotW, plotY + plotH);
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.stroke();
+
+  // ω2/ω1 曲线
+  const { phi1 } = params;
+  const maxOmega = 1 / (Math.sin(phi1) * Math.cos(phi1)) * (1 / Math.tan(phi1) - 1); // 近似最大值
+  const yScale = plotH / Math.max(Math.abs(maxOmega) * 1.1, 2);
+
+  ctx.beginPath();
+  let first = true;
+  for (let i = 0; i <= plotW; i++) {
+    const angle = -phi1 + (2 * phi1) * (i / plotW);
+    const result = genevaAngle(angle + Math.PI / 2, params);
+    // 这里需要重新计算，genevaAngle用的参考不同
+    // 简化：直接用公式 ω2/ω1 = λ(cosβ - λ)/(1 + λ² - 2λcosβ)
+    const lambda = Math.sin(Math.PI / params.z) / Math.sin(Math.PI / 2 - Math.PI / params.z);
+    const beta = angle;
+    const cosB = Math.cos(beta);
+    const omegaR = lambda * (cosB - lambda) / (1 + lambda * lambda - 2 * lambda * cosB);
+    const px = plotX + i;
+    const py = plotY + plotH - omegaR * yScale;
+    if (first) { ctx.moveTo(px, py); first = false; }
+    else ctx.lineTo(px, py);
+  }
+  ctx.strokeStyle = C.accent;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // 当前位置指示
+  const norm = Mech.math.norm(theta1);
+  let relAngle = norm;
+  if (relAngle > Math.PI) relAngle -= 2 * Math.PI;
+  if (Math.abs(relAngle) <= phi1) {
+    const xPos = plotX + ((relAngle + phi1) / (2 * phi1)) * plotW;
+    ctx.beginPath();
+    ctx.moveTo(xPos, plotY);
+    ctx.lineTo(xPos, plotY + plotH);
+    ctx.strokeStyle = C.warning;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+// ===== 主绘制函数 =====
+function draw() {
+  const { w, h } = getDimensions();
+  ctx.clearRect(0, 0, w, h);
+  const C = Mech.colors;
+  const params = getGenevaParams();
+
+  Mech.draw.grid(ctx, w * 0.42, h * 0.48, w, h, 1);
+
+  const scale = Math.min(w, h) / 500 * state.centerDist;
+  const pinR = 90 * scale;           // 圆销回转半径
+  const R2 = pinR / Math.sin(Math.PI / params.z); // 槽轮外径
+  const R1 = R2 * 0.45;              // 拨盘半径
+  const centerDist = pinR / Math.tan(Math.PI / params.z); // 两轴中心距
+
+  // 拨盘中心（左）和槽轮中心（右）
+  const cxD = w * 0.5 - centerDist * 0.5;
+  const cyD = h * 0.48;
+  const cxG = w * 0.5 + centerDist * 0.5;
+  const cyG = h * 0.48;
+
+  // 拨盘转角
+  const theta1 = Mech.math.norm(state.time);
+
+  // 计算槽轮运动
+  const result = genevaAngle(theta1, params);
+  const theta2 = result.angle2;
+  const isMotion = result.phase === 'motion';
+
+  // 绘制中心距虚线
+  Mech.draw.dashedLine(ctx, cxD, cyD, cxG, cyG, { color: C.hinge, dash: [5, 4] });
+  Mech.draw.text(ctx, 'a', (cxD + cxG) / 2, cyD - 10, { color: C.textDim, font: '11px sans-serif' });
+
+  // 绘制槽轮（先画，拨盘在上层）
+  drawGenevaWheel(cxG, cyG, R2, theta2, params);
+
+  // 绘制拨盘
+  drawDrivingPlate(cxD, cyD, R1, theta1, params, pinR);
+
+  // 机架支座
+  Mech.draw.hingedSupport(ctx, cxD, cyD + R1 * 0.35 + 20);
+  Mech.draw.hingedSupport(ctx, cxG, cyG + R2 + 20);
+
+  // 运动角标注
+  if (state.showMotionAngle) {
+    drawMotionAngles(cxD, cyD, cxG, cyG, theta1, params);
+  }
+
+  // 角速度曲线
+  if (state.showOmegaCurve) {
+    drawOmegaCurve(w, h, params, theta1);
+  }
+
+  // 阶段标注
+  const phaseText = isMotion ? '▶ 运动段（槽轮转动）' : '■ 停歇段（槽轮静止）';
+  const phaseColor = isMotion ? C.work : C.return;
+  Mech.draw.text(ctx, phaseText, w * 0.5, 24, { color: phaseColor, font: 'bold 13px sans-serif' });
+
+  // 标注
+  Mech.draw.text(ctx, '拨盘', cxD, cyD - R1 * 0.35 - 16, { color: C.work, font: '11px sans-serif' });
+  Mech.draw.text(ctx, '槽轮', cxG, cyG - R2 - 16, { color: C.accent, font: '11px sans-serif' });
+
+  // 更新信息
+  updateInfo(params, result);
+}
+
+// ===== UI 构建 =====
+const sidebar = document.getElementById('sidebar');
+const ui = {};
+
+// 面板1：参数调节
+const paramPanel = Mech.ui.panel(sidebar, '参数调节');
+ui.zSlider = Mech.ui.sidebarSlider(paramPanel, {
+  label: '槽数 z', min: 3, max: 6, value: 4, step: 1,
+  format: v => v,
+  onChange: v => { state.z = v; draw(); }
+});
+ui.speedSlider = Mech.ui.sidebarSlider(paramPanel, {
+  label: '拨盘转速', min: 0.1, max: 2.0, value: 0.5, step: 0.1,
+  format: v => v.toFixed(1) + 'x',
+  onChange: v => { state.speed = v; }
+});
+ui.distSlider = Mech.ui.sidebarSlider(paramPanel, {
+  label: '中心距系数', min: 0.6, max: 1.4, value: 1.0, step: 0.1,
+  format: v => v.toFixed(1),
+  onChange: v => { state.centerDist = v; draw(); }
+});
+
+// 面板2：显示选项
+const optPanel = Mech.ui.panel(sidebar, '显示选项');
+ui.motionCb = Mech.ui.checkbox(optPanel, {
+  label: '显示运动角', checked: false,
+  onChange: v => { state.showMotionAngle = v; draw(); }
+});
+ui.lockCb = Mech.ui.checkbox(optPanel, {
+  label: '显示锁止弧', checked: true,
+  onChange: v => { state.showLockArc = v; draw(); }
+});
+ui.omegaCb = Mech.ui.checkbox(optPanel, {
+  label: '显示角速度曲线', checked: false,
+  onChange: v => { state.showOmegaCurve = v; draw(); }
+});
+
+// 面板3：实时信息
+const infoPanel = Mech.ui.panel(sidebar, '实时信息');
+ui.infoGrid = document.createElement('div');
+ui.infoGrid.className = 'info-grid';
+infoPanel.appendChild(ui.infoGrid);
+
+function updateInfo(params, result) {
+  const z = params.z;
+  const tau = params.tau.toFixed(3);
+  const phi1Deg = Mech.math.rad2deg(params.motionAngle1).toFixed(1);
+  const phi2Deg = Mech.math.rad2deg(params.motionAngle2).toFixed(1);
+  const phaseText = result.phase === 'motion' ? '运动段' : '停歇段';
+  const phaseColor = result.phase === 'motion' ? 'var(--work-color)' : 'var(--return-color)';
+  const omegaDisplay = result.phase === 'motion' ? result.omega2.toFixed(3) : '0';
+
+  ui.infoGrid.innerHTML = `
+    <div class="info-item"><div class="label">运动系数 τ</div><div class="value" style="color:var(--accent)">${tau}</div></div>
+    <div class="info-item"><div class="label">拨盘运动角 2φ₁</div><div class="value" style="color:var(--work-color)">${phi1Deg}°</div></div>
+    <div class="info-item"><div class="label">槽轮运动角 2φ₂</div><div class="value" style="color:var(--return-color)">${phi2Deg}°</div></div>
+    <div class="info-item"><div class="label">当前阶段</div><div class="value" style="color:${phaseColor}">${phaseText}</div></div>
+    <div class="info-item" style="grid-column:span 2"><div class="label">ω₂/ω₁</div><div class="value" style="color:${result.phase === 'motion' ? 'var(--work-color)' : 'var(--text-dim)'}">${omegaDisplay}</div></div>
+  `;
+}
+
+// 面板4：知识点
+const tipPanel = Mech.ui.panel(sidebar, '知识点提示');
+const tipEl = document.createElement('div');
+tipEl.className = 'tip';
+tipEl.innerHTML = `
+  <b>槽轮机构分类：</b><br>
+  • 按啮合方式：外啮合（本模块）、内啮合<br>
+  • 按圆销数：单销、多销<br><br>
+  <b>运动系数 τ：</b><br>
+  • τ = (z−1)/(2z)，表示运动时间占比<br>
+  • 外啮合：τ < 0.5（运动时间 < 停歇时间）<br>
+  • z↑ → τ↑，槽数越多运动越平稳<br>
+  • z ≥ 3，常用 z = 4, 6<br><br>
+  <b>特点：</b><br>
+  • 结构紧凑，转动平稳<br>
+  • 转位精确，无需止回装置<br>
+  • 槽轮加速度有突变，存在柔性冲击<br>
+  • 拨盘运动角 2φ₁ = π − 2π/z
+`;
+tipPanel.appendChild(tipEl);
+
+// ===== 工具栏 =====
+const toolbar = document.getElementById('toolbar');
+
+const playBtn = Mech.ui.button(toolbar, {
+  text: '⏸ 暂停', variant: 'primary',
+  onClick: () => {
+    if (anim.isPlaying()) { anim.pause(); playBtn.textContent = '▶ 播放'; }
+    else { anim.play(); playBtn.textContent = '⏸ 暂停'; }
+  }
+});
+
+Mech.ui.button(toolbar, {
+  text: '重置', variant: 'secondary',
+  onClick: () => {
+    state.time = 0;
+    state.z = 4; state.speed = 0.5; state.centerDist = 1.0;
+    state.showMotionAngle = false; state.showLockArc = true; state.showOmegaCurve = false;
+    ui.zSlider.set(4); ui.speedSlider.set(0.5); ui.distSlider.set(1.0);
+    ui.motionCb.set(false); ui.lockCb.set(true); ui.omegaCb.set(false);
+    draw();
+  }
+});
+
+Mech.ui.slider(toolbar, {
+  label: '速度', min: 0.1, max: 3, value: 0.5, step: 0.1,
+  format: v => v.toFixed(1) + 'x',
+  onChange: v => { state.speed = v; }
+});
+
+// ===== 启动 =====
+window.addEventListener('resize', () => draw());
+anim.play();
+console.log('槽轮机构 v1.0 loaded');
+</script>
+</body>
+</html>
