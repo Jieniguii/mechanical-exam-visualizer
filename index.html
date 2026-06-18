@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>机械原理考研可视化学习平台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f1117;color:#e4e4e7;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px}
+.hero{text-align:center;margin-bottom:40px}
+.hero h1{font-size:28px;font-weight:700;background:linear-gradient(135deg,#6366f1,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px}
+.hero p{font-size:14px;color:#71717a;max-width:560px}
+.hero .stats{display:flex;gap:24px;margin-top:16px;justify-content:center}
+.stat{text-align:center}
+.stat-num{font-size:22px;font-weight:700;color:#6366f1}
+.stat-label{font-size:11px;color:#52525b;margin-top:2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;max-width:960px;width:100%}
+.card{background:#1a1d27;border:1px solid #252833;border-radius:14px;padding:24px 20px;text-decoration:none;color:#e4e4e7;transition:all .25s ease;position:relative;overflow:hidden}
+.card:hover{border-color:#6366f1;transform:translateY(-3px);box-shadow:0 8px 32px rgba(99,102,241,0.15)}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#6366f1,#34d399);opacity:0;transition:opacity .25s}
+.card:hover::before{opacity:1}
+.card-num{font-size:12px;font-weight:700;color:#6366f1;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);border-radius:6px;padding:2px 8px;display:inline-block;margin-bottom:10px}
+.card-title{font-size:16px;font-weight:600;margin-bottom:6px}
+.card-desc{font-size:12px;color:#71717a;line-height:1.6}
+.card-badge{display:inline-block;margin-top:10px;padding:3px 10px;border-radius:12px;font-size:11px}
+.card-badge.done{background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.3);color:#6ee7b7}
+.card-badge.wip{background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);color:#fbbf24}
+.card-badge.todo{background:rgba(113,113,122,0.12);border:1px solid rgba(113,113,122,0.3);color:#71717a}
+footer{margin-top:40px;font-size:12px;color:#52525b}
+footer a{color:#6366f1;text-decoration:none}
+@media(max-width:640px){.grid{grid-template-columns:1fr}.hero h1{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>机械原理考研可视化学习平台</h1>
+  <p>以教材标准画法呈现机械原理核心知识点，交互式动画帮助你直观理解机构运动</p>
+  <div class="stats">
+    <div class="stat"><div class="stat-num">6</div><div class="stat-label">已完成模块</div></div>
+    <div class="stat"><div class="stat-num">10</div><div class="stat-label">章节</div></div>
+    <div class="stat"><div class="stat-num">∞</div><div class="stat-label">考点覆盖</div></div>
+  </div>
+</div>
+<div class="grid">
+  <a class="card" href="ch1-structure.html">
+    <span class="card-num">CH 01</span>
+    <div class="card-title">平面机构的结构分析</div>
+    <div class="card-desc">自由度计算、复合铰链、虚约束、高副低代</div>
+    <span class="card-badge todo">待开发</span>
+  </a>
+  <a class="card" href="ch2-kinematics.html">
+    <span class="card-num">CH 02</span>
+    <div class="card-title">平面机构的运动分析</div>
+    <div class="card-desc">瞬心法、相对运动图解法、运动线图</div>
+    <span class="card-badge todo">待开发</span>
+  </a>
+  <a class="card" href="ch3-linkage.html">
+    <span class="card-num">CH 03</span>
+    <div class="card-title">平面连杆机构及其设计</div>
+    <div class="card-desc">四杆机构运动学分析、急回特性、传动角与压力角</div>
+    <span class="card-badge done">2 个模块</span>
+  </a>
+  <a class="card" href="ch4-cam.html">
+    <span class="card-num">CH 04</span>
+    <div class="card-title">凸轮机构及其设计</div>
+    <div class="card-desc">反转法设计凸轮轮廓、从动件运动规律、压力角分析</div>
+    <span class="card-badge done">2 个模块</span>
+  </a>
+  <a class="card" href="ch5-gear.html">
+    <span class="card-num">CH 05</span>
+    <div class="card-title">齿轮机构及其设计</div>
+    <div class="card-desc">渐开线齿廓原理、齿轮啮合传动、重合度</div>
+    <span class="card-badge done">2 个模块</span>
+  </a>
+  <a class="card" href="ch6-geartrain.html">
+    <span class="card-num">CH 06</span>
+    <div class="card-title">轮系及其设计</div>
+    <div class="card-desc">定轴轮系、周转轮系、复合轮系传动比计算</div>
+    <span class="card-badge todo">待开发</span>
+  </a>
+  <a class="card" href="ch7-force.html">
+    <span class="card-num">CH 07</span>
+    <div class="card-title">力分析与机械效率、自锁</div>
+    <div class="card-desc">运动副摩擦、机械效率、自锁条件</div>
+    <span class="card-badge todo">待开发</span>
+  </a>
+  <a class="card" href="ch8-balance.html">
+    <span class="card-num">CH 08</span>
+    <div class="card-title">机械的平衡</div>
+    <div class="card-desc">静平衡、动平衡、平衡设计</div>
+    <span class="card-badge todo">待开发</span>
+  </a>
+  <a class="card" href="ch9-flywheel.html">
+    <span class="card-num">CH 09</span>
+    <div class="card-title">机械的运转及其速度波动调节</div>
+    <div class="card-desc">等效力与等效质量、飞轮设计</div>
+    <span class="card-badge todo">待开发</span>
+  </a>
+  <a class="card" href="ch10-intermittent.html">
+    <span class="card-num">CH 10</span>
+    <div class="card-title">其他常用机构及其设计</div>
+    <div class="card-desc">棘轮机构、槽轮机构、不完全齿轮机构</div>
+    <span class="card-badge todo">待开发</span>
+  </a>
+</div>
+<footer>Made with ❤️ by Sparksah & Agent · <a href="https://github.com/Jieniguii/mechanical-exam-visualizer">GitHub</a></footer>
+</body>
+</html>

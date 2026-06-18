@@ -26,6 +26,7 @@ body {
   flex-direction: column;
   align-items: center;
   padding: 20px;
+  scrollbar-gutter: stable;
 }
 
 .back-btn {
@@ -171,6 +172,12 @@ canvas {
   gap: 16px;
   margin-top: 12px;
 }
+/* 画布容器置顶：sticky 必须在 main-layout 的直接子级上才生效 */
+.main-layout > div:first-child {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
 .sidebar {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -181,9 +188,6 @@ canvas {
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-  position: sticky;
-  top: 0;
-  z-index: 50;
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
 .canvas-card .canvas-wrapper {
