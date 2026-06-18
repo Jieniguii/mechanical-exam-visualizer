@@ -126,9 +126,9 @@ function getContactAndNormal(angle, cx, cy, scale) {
 
 function calcPressureAngle(angle) {
   if (followerType === 'flat') return 0;
-  const { w, h } = getDimensions();
-  const scale = getScale(w, h);
-  const { normal } = getContactAndNormal(angle, w * 0.45, h * 0.52, scale);
+  // 不调用 getDimensions()，因为重设 canvas.width 会清空画布
+  // normal 是方向向量（已归一化），与 cx/cy/scale 无关
+  const { normal } = getContactAndNormal(angle, 0, 0, 1);
   const ds = motionDeriv(angle);
   const vy = ds >= 0 ? -1 : 1;
   return Math.acos(Math.min(1, Math.max(-1, Math.abs(normal.y * vy)))) * 180 / PI;

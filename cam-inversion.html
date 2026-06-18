@@ -527,9 +527,9 @@ function drawPressureAnnotation(degNow, camAngle) {
     { color: alphaDeg>45?'#ef4444':'#fbbf24', font: '10px sans-serif', align: 'left' });
 }
 
-function drawSDiagram(degNow, w, h) {
-  const dw=Math.min(160,w*0.25), dh=Math.min(100,h*0.15);
-  const dx=w-dw-16, dy=h-dh-16;
+function drawSDiagram(degNow, w, ch) {
+  const dw=Math.min(160,w*0.25), dh=Math.min(100,ch*0.15);
+  const dx=w-dw-16, dy=ch-dh-16;
   ctx.fillStyle='rgba(15,17,23,0.85)'; ctx.strokeStyle='#252833'; ctx.lineWidth=1;
   ctx.beginPath(); ctx.roundRect(dx,dy,dw,dh,8); ctx.fill(); ctx.stroke();
   const pad=24, pw=dw-pad-10, ph=dh-pad-10, ox=dx+pad, oy=dy+dh-pad;
