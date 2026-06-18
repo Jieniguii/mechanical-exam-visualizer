@@ -328,6 +328,24 @@ canvas {
 }
 @media (max-width: 768px) {
   .main-layout { grid-template-columns: 1fr; }
+
+  /* 画布置顶：滚动时始终可见 */
+  .canvas-card {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+
+  /* 移动端画布高度固定为视口的45%，留空间给控制区 */
+  .canvas-card .canvas-wrapper {
+    padding-bottom: 0;
+    height: 45vh;
+    max-height: 320px;
+  }
+
+  /* 返回按钮压在画布上方 */
+  .back-btn { z-index: 60; top: 8px; left: 8px; }
 }
 .toggle-row {
   display: flex;
