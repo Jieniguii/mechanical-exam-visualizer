@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>转子平衡 — 机械考研可视化</title>
+<link rel="stylesheet" href="mech.css">
+</head>
+<body>
+<a href="ch8-balance.html" class="back-btn">← 返回章节</a>
+
+<div class="header">
+  <h1>转子平衡 <span class="version-badge">v1.0</span></h1>
+  <p>静平衡与动平衡可视化分析 — 机械考研可视化学习</p>
+</div>
+
+<div class="app">
+  <div class="main-layout">
+    <div>
+      <div class="canvas-card">
+        <div class="canvas-wrapper">
+          <canvas id="canvas"></canvas>
+        </div>
+        <div class="canvas-toolbar" id="toolbar"></div>
+      </div>
+    </div>
+    <div class="sidebar" id="sidebar"></div>
+  </div>
+</div>
+
+<script src="mech.js"></script>
+<script>
+/* ===== 常量 ===== */
+const DEG = 180 / Math.PI;
+const RAD = Math.PI / 180;
+const MASS_COLORS = ['#3b82f6', '#34d399', '#fbbf24'];
+const BALANCE_COLOR = '#6366f1';
+
+/* ===== 模块状态 ===== */
+let mode = 'static'; // 'static' | 'dynamic'
+let numMasses = 2;
+let rotAngle = 0;
+let speed = 1;
+let showForcePolygon = true;
+let showAmplitude = true;
+
+/* 不平衡质量参数 */
+let masses = [
+  { m: 2, r: 80, theta: 0,   a: 30 },
+  { m: 3, r: 60, theta: 120, a: 70 },
+  { m: 1.5, r: 50, theta: 240, a: 50 },
+];
+
+/* 平衡质量 */
+let balanceEnabled = false;
+let balanceMass = { m: 2, r: 70, theta: 180, a: 50 };
+
+/* ===== Canvas + 动画器 ===== */
+const { ctx, getDimensions, canvas } = Mech.setupCanvas(document.getElementById('canvas'));
+const anim = Mech.createAnimator(
+  dt => { rotAngle += speed * 1.5 * dt; if (rotAngle > Math.PI * 2) rotAngle -= Math.PI * 2; },
+  () => draw()
+);
+
+/* ===== 计算函数 ===== */
+function getActiveMasses() {
+  const list = masses.slice(0, numMasses);
+  if (balanceEnabled) list.push({ ...balanceMass, isBalance: true });
+  return list;
+}
+
+function calcUnbalance() {
+  const active = getActiveMasses();
+  let Fx = 0, Fy = 0, Mx = 0, My = 0;
+  for (const m of active) {
+    const t = m.theta * RAD;
+    const mr = m.m * m.r;
+    Fx += mr * Math.cos(t);
+    Fy += mr * Math.sin(t);
+    Mx += mr * m.a * Math.cos(t);
+    My += mr * m.a * Math.sin(t);
+  }
+  return { Fx, Fy, Fmag: Math.sqrt(Fx * Fx + Fy * Fy), Fangle: Math.atan2(Fy, Fx),
+           Mx, My, Mmag: Math.sqrt(Mx * Mx + My * My), Mangle: Math.atan2(My, Mx) };
+}
+
+function autoCalcBalance() {
+  const active = masses.slice(0, numMasses);
+  let Fx = 0, Fy = 0;
+  for (const m of active) {
+    const t = m.theta * RAD;
+    Fx += m.m * m.r * Math.cos(t);
+    Fy += m.m * m.r * Math.sin(t);
+  }
+  const mag = Math.sqrt(Fx * Fx + Fy * Fy);
+  if (mag < 0.01) return;
+  const reqAngle = (Math.atan2(-Fy, -Fx) * DEG + 360) % 360;
+  const rB = 70;
+  const mB = Math.max(0.1, mag / rB);
+  balanceMass.m = Math.round(mB * 10) / 10;
+  balanceMass.r = rB;
+  balanceMass.theta = Math.round(reqAngle * 10) / 10;
+  if (mode === 'dynamic') {
+    let Mx = 0, My = 0;
+    for (const m of active) {
+      const t = m.theta * RAD;
+      Mx += m.m * m.r * m.a * Math.cos(t);
+      My += m.m * m.r * m.a * Math.sin(t);
+    }
+    const mMag = Math.sqrt(Mx * Mx + My * My);
+    if (mMag > 0.01) {
+      balanceMass.a = Math.round(mMag / mag);
+    }
+  }
+  balanceEnabled = true;
+  ui.chkBalance.set(true);
+  rebuildBalanceSliders();
+  draw();
+}
+
+/* ===== 绘制辅助 ===== */
+function drawForceArrow(fromX, fromY, toX, toY, color, label) {
+  const dx = toX - fromX, dy = toY - fromY;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len < 2) return;
+  ctx.beginPath(); ctx.moveTo(fromX, fromY); ctx.lineTo(toX, toY);
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke();
+  Mech.draw.arrow(ctx, fromX, fromY, toX, toY, { color, size: 8 });
+  if (label) {
+    const angle = Math.atan2(dy, dx);
+    const mx = (fromX + toX) / 2, my = (fromY + toY) / 2;
+    ctx.fillStyle = color; ctx.font = '10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, mx - Math.sin(angle) * 12, my + Math.cos(angle) * 12);
+  }
+}
+
+/* ===== 主绘制 ===== */
+function draw() {
+  const { w, h } = getDimensions();
+  ctx.clearRect(0, 0, w, h);
+  const C = Mech.colors;
+  const ub = calcUnbalance();
+  const isStaticBalanced = ub.Fmag < 0.5;
+  const isDynamicBalanced = ub.Fmag < 0.5 && ub.Mmag < 0.5;
+  const isBalanced = mode === 'static' ? isStaticBalanced : isDynamicBalanced;
+
+  /* --- 网格 --- */
+  Mech.draw.grid(ctx, w * 0.32, h * 0.38, w, h, 1);
+
+  /* ====== 前视图（截面）====== */
+  const isDynamic = mode === 'dynamic';
+  const viewH = isDynamic ? h * 0.58 : h * 0.85;
+  const cxV = w * 0.35, cyV = viewH * 0.5;
+  const rotorR = Math.min(viewH * 0.38, w * 0.25);
+
+  // 振动偏移
+  let vibOx = 0, vibOy = 0;
+  if (showAmplitude && !isBalanced) {
+    const vibScale = Math.min(12, ub.Fmag * 0.05);
+    vibOx = vibScale * Math.cos(ub.Fangle + rotAngle);
+    vibOy = -vibScale * Math.sin(ub.Fangle + rotAngle);
+  }
+  const rcx = cxV + vibOx, rcy = cyV + vibOy;
+
+  // 转子外圈
+  Mech.draw.circle(ctx, rcx, rcy, rotorR, { color: C.hinge, width: 1.5, dash: [4, 3] });
+  // 轴心
+  Mech.draw.point(ctx, rcx, rcy, { color: C.text, r: 3 });
+  // 参考刻度
+  for (let deg = 0; deg < 360; deg += 30) {
+    const a = deg * RAD + rotAngle;
+    const x1 = rcx + (rotorR - 6) * Math.cos(a), y1 = rcy - (rotorR - 6) * Math.sin(a);
+    const x2 = rcx + rotorR * Math.cos(a), y2 = rcy - rotorR * Math.sin(a);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1; ctx.stroke();
+  }
+
+  // 绘制各质量
+  const active = getActiveMasses();
+  const scale = rotorR / 120; // 归一化缩放
+  active.forEach((mass, i) => {
+    const theta = mass.theta * RAD + rotAngle;
+    const mr = mass.r * scale;
+    const mx = rcx + mr * Math.cos(theta);
+    const my = rcy - mr * Math.sin(theta);
+    const color = mass.isBalance ? BALANCE_COLOR : MASS_COLORS[i % 3];
+    const dotR = Math.max(5, Math.min(12, mass.m * 3));
+    // 连线
+    ctx.beginPath(); ctx.moveTo(rcx, rcy); ctx.lineTo(mx, my);
+    ctx.strokeStyle = color + '55'; ctx.lineWidth = 1; ctx.stroke();
+    // 质量点
+    ctx.beginPath(); ctx.arc(mx, my, dotR, 0, Math.PI * 2);
+    ctx.fillStyle = color + '30'; ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+    // 标签
+    const lbl = mass.isBalance ? 'b' : `m${i + 1}`;
+    Mech.draw.text(ctx, lbl, mx, my, { color, font: 'bold 11px sans-serif', baseline: 'middle' });
+  });
+
+  // 旋转方向弧
+  Mech.draw.arc(ctx, rcx, rcy, rotorR + 14, -0.3 + rotAngle, 0.3 + rotAngle, false,
+    { color: C.textDim, width: 1.5 });
+  const arrA = 0.3 + rotAngle;
+  const arrX = rcx + (rotorR + 14) * Math.cos(arrA);
+  const arrY = rcy - (rotorR + 14) * Math.sin(arrA);
+  Mech.draw.arrow(ctx, rcx + (rotorR + 14) * Math.cos(arrA - 0.15), rcy - (rotorR + 14) * Math.sin(arrA - 0.15),
+    arrX, arrY, { color: C.textDim, size: 7 });
+  Mech.draw.text(ctx, 'ω', rcx + (rotorR + 28) * Math.cos(rotAngle), rcy - (rotorR + 28) * Math.sin(rotAngle),
+    { color: C.textDim, font: '12px sans-serif' });
+
+  // 平衡状态标记
+  ctx.save();
+  const stX = w - 24, stY = 26;
+  ctx.beginPath(); ctx.arc(stX - 56, stY, 7, 0, Math.PI * 2);
+  ctx.fillStyle = isBalanced ? '#34d399' : '#f87171'; ctx.fill();
+  ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = isBalanced ? '#34d399' : '#f87171';
+  const stLabel = mode === 'static' ? (isStaticBalanced ? '静平衡 ✓' : '静不平衡 ✗') :
+                                    (isDynamicBalanced ? '动平衡 ✓' : '动不平衡 ✗');
+  ctx.fillText(stLabel, stX, stY);
+  ctx.restore();
+
+  /* ====== 力多边形（右上角叠加）====== */
+  if (showForcePolygon) {
+    const pgW = 150, pgH = 150;
+    const pgX = w - pgW - 16, pgY = 44;
+    // 半透明背景
+    ctx.fillStyle = 'rgba(15,17,23,0.8)';
+    ctx.strokeStyle = C.hinge; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(pgX, pgY, pgW, pgH, 8);
+    ctx.fill(); ctx.stroke();
+    Mech.draw.text(ctx, mode === 'static' ? '力多边形 Σmr' : '力多边形 Σmr',
+      pgX + pgW / 2, pgY + 13, { color: C.textDim, font: '10px sans-serif' });
+
+    const pgCx = pgX + pgW / 2, pgCy = pgY + pgH / 2 + 8;
+    // 计算多边形缩放
+    let maxMr = 0;
+    const vectors = [];
+    let cumX = 0, cumY = 0;
+    for (const m of active) {
+      const t = m.theta * RAD;
+      const mr = m.m * m.r;
+      vectors.push({ dx: mr * Math.cos(t), dy: mr * Math.sin(t) });
+      cumX += mr * Math.cos(t); cumY += mr * Math.sin(t);
+      maxMr = Math.max(maxMr, Math.abs(mr * Math.cos(t)), Math.abs(mr * Math.sin(t)));
+    }
+    maxMr = Math.max(maxMr, Math.sqrt(cumX * cumX + cumY * cumY), 1);
+    const pgScale = (pgW * 0.35) / maxMr;
+
+    let px = pgCx, py = pgCy;
+    vectors.forEach((v, i) => {
+      const nx = px + v.dx * pgScale, ny = py - v.dy * pgScale;
+      const color = active[i].isBalance ? BALANCE_COLOR : MASS_COLORS[i % 3];
+      drawForceArrow(px, py, nx, ny, color, '');
+      px = nx; py = ny;
+    });
+    // 闭合向量（不平衡量）
+    if (Math.sqrt((px - pgCx) ** 2 + (py - pgCy) ** 2) > 2) {
+      drawForceArrow(px, py, pgCx, pgCy, '#f87171', '');
+    }
+    // 原点标记
+    Mech.draw.point(ctx, pgCx, pgCy, { color: C.text, r: 3 });
+  }
+
+  /* ====== 侧视图（动平衡模式）====== */
+  if (isDynamic) {
+    const sideY0 = viewH + 15;
+    const sideH = h - sideY0 - 20;
+    const shaftLeft = 60, shaftRight = w - 40;
+    const shaftY = sideY0 + sideH * 0.5;
+
+    // 分隔线
+    ctx.beginPath(); ctx.moveTo(20, sideY0 - 5); ctx.lineTo(w - 20, sideY0 - 5);
+    ctx.strokeStyle = C.hinge + '40'; ctx.lineWidth = 1; ctx.stroke();
+    Mech.draw.text(ctx, '侧视图（轴向位置）', 80, sideY0 + 6, { color: C.textDim, font: '11px sans-serif', align: 'left' });
+
+    // 轴线
+    ctx.beginPath(); ctx.moveTo(shaftLeft, shaftY); ctx.lineTo(shaftRight, shaftY);
+    ctx.strokeStyle = C.hinge; ctx.lineWidth = 2; ctx.stroke();
+    // 参考面标记
+    const refL = shaftLeft + 10, refR = shaftRight - 10;
+    ctx.beginPath(); ctx.moveTo(refL, shaftY - 18); ctx.lineTo(refL, shaftY + 18);
+    ctx.strokeStyle = C.hinge + '60'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(refR, shaftY - 18); ctx.lineTo(refR, shaftY + 18);
+    ctx.strokeStyle = C.hinge + '60'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
+    Mech.draw.text(ctx, 'A', refL, shaftY + 28, { color: C.textDim, font: '10px sans-serif' });
+    Mech.draw.text(ctx, 'B', refR, shaftY + 28, { color: C.textDim, font: '10px sans-serif' });
+
+    const shaftLen = refR - refL;
+    const maxA = 100;
+    active.forEach((mass, i) => {
+      const ax = refL + (mass.a / maxA) * shaftLen;
+      const theta = mass.theta * RAD + rotAngle;
+      const yOff = mass.r * 0.15 * Math.sin(theta);
+      const color = mass.isBalance ? BALANCE_COLOR : MASS_COLORS[i % 3];
+      const dotR = Math.max(4, Math.min(9, mass.m * 2.5));
+      ctx.beginPath(); ctx.arc(ax, shaftY - yOff, dotR, 0, Math.PI * 2);
+      ctx.fillStyle = color + '30'; ctx.fill();
+      ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
+      const lbl = mass.isBalance ? 'b' : `m${i + 1}`;
+      Mech.draw.text(ctx, lbl, ax, shaftY - yOff - dotR - 6, { color, font: '9px sans-serif' });
+      Mech.draw.text(ctx, `a=${mass.a}`, ax, shaftY + 22, { color: C.textDim, font: '9px sans-serif' });
+    });
+  }
+
+  /* --- 更新信息面板 --- */
+  ui.infoSigmaMr.textContent = ub.Fmag.toFixed(1);
+  ui.infoSigmaMrAngle.textContent = ((ub.Fangle * DEG + 360) % 360).toFixed(1) + '°';
+  ui.infoSigmaMr.style.color = isStaticBalanced ? '#34d399' : '#f87171';
+  ui.infoSigmaMra.textContent = ub.Mmag.toFixed(1);
+  ui.infoSigmaMraAngle.textContent = ((ub.Mangle * DEG + 360) % 360).toFixed(1) + '°';
+  ui.infoSigmaMra.style.color = ub.Mmag < 0.5 ? '#34d399' : '#f87171';
+  ui.infoBalance.textContent = isBalanced ? '✓ 已平衡' : '✗ 未平衡';
+  ui.infoBalance.style.color = isBalanced ? '#34d399' : '#f87171';
+
+  if (mode === 'static') {
+    ui.tip.textContent = isStaticBalanced
+      ? '静平衡条件 Σmr = 0 已满足。所有质量的质径积矢量和为零，转子的重心与回转轴心重合，旋转时不会产生惯性力。'
+      : `静不平衡：Σmr = ${ub.Fmag.toFixed(1)}，方向 ${((ub.Fangle * DEG + 360) % 360).toFixed(1)}°。需要在该方向的对侧增加平衡质量，使质径积矢量和为零。点击"自动计算"可自动设置平衡质量。`;
+  } else {
+    ui.tip.textContent = isDynamicBalanced
+      ? '动平衡条件 Σmr = 0 且 Σmra = 0 均满足。转子既无惯性力也无惯性力矩，可在任意转速下平稳运转。'
+      : `动不平衡：Σmr = ${ub.Fmag.toFixed(1)}，Σmra = ${ub.Mmag.toFixed(1)}。动平衡需要同时消除惯性力和惯性力矩，通常需要两个校正平面。`;
+  }
+}
+
+/* ===== UI 构建 ===== */
+const ui = {};
+
+// 工具栏
+const toolbar = document.getElementById('toolbar');
+const playBtn = Mech.ui.button(toolbar, {
+  text: '⏸ 暂停', variant: 'primary',
+  onClick: () => {
+    if (anim.isPlaying()) { anim.pause(); playBtn.textContent = '▶ 播放'; }
+    else { anim.play(); playBtn.textContent = '⏸ 暂停'; }
+  }
+});
+Mech.ui.button(toolbar, { text: '重置', variant: 'secondary',
+  onClick: () => {
+    rotAngle = 0; speed = 1; numMasses = 2; mode = 'static';
+    balanceEnabled = false;
+    masses = [
+      { m: 2, r: 80, theta: 0, a: 30 },
+      { m: 3, r: 60, theta: 120, a: 70 },
+      { m: 1.5, r: 50, theta: 240, a: 50 },
+    ];
+    balanceMass = { m: 2, r: 70, theta: 180, a: 50 };
+    ui.modeBtn.textContent = '切换：动平衡';
+    ui.chkBalance.set(false);
+    rebuildMassSliders(); rebuildBalanceSliders();
+    draw();
+  }
+});
+Mech.ui.slider(toolbar, {
+  label: '转速', min: 0.1, max: 3, value: 1, step: 0.1,
+  format: v => v.toFixed(1) + 'x', onChange: v => { speed = v; }
+});
+
+// 侧边栏
+const sidebar = document.getElementById('sidebar');
+
+// 模式面板
+const modePanel = Mech.ui.panel(sidebar, '平衡模式');
+ui.modeBtn = Mech.ui.button(modePanel, {
+  text: '切换：动平衡', variant: 'accent',
+  onClick: () => {
+    mode = mode === 'static' ? 'dynamic' : 'static';
+    ui.modeBtn.textContent = mode === 'static' ? '切换：动平衡' : '切换：静平衡';
+    draw();
+  }
+});
+const modeInfo = document.createElement('div');
+modeInfo.style.cssText = 'font-size:12px;color:#a1a1aa;margin-top:8px;line-height:1.5';
+modeInfo.innerHTML = mode === 'static'
+  ? '当前：<b style="color:#3b82f6">静平衡</b> — 条件：Σmr = 0'
+  : '当前：<b style="color:#f97316">动平衡</b> — 条件：Σmr = 0 且 Σmra = 0';
+function updateModeInfo() {
+  modeInfo.innerHTML = mode === 'static'
+    ? '当前：<b style="color:#3b82f6">静平衡</b> — 条件：Σmr = 0'
+    : '当前：<b style="color:#f97316">动平衡</b> — 条件：Σmr = 0 且 Σmra = 0';
+}
+modePanel.appendChild(modeInfo);
+const origModeClick = ui.modeBtn.onclick;
+ui.modeBtn.addEventListener('click', updateModeInfo);
+
+// 质量参数面板
+const massPanel = Mech.ui.panel(sidebar, '不平衡质量');
+let massSliderRefs = [];
+
+function rebuildMassSliders() {
+  // 保留标题，清除其余
+  const title = massPanel.querySelector('.panel-title');
+  massPanel.innerHTML = '';
+  massPanel.appendChild(title);
+
+  // 数量滑块
+  Mech.ui.sidebarSlider(massPanel, {
+    label: '质量数量', min: 1, max: 3, value: numMasses, step: 1,
+    format: v => v + '个',
+    onChange: v => { numMasses = v; rebuildMassSliders(); draw(); }
+  });
+
+  massSliderRefs = [];
+  for (let i = 0; i < numMasses; i++) {
+    const m = masses[i];
+    const color = MASS_COLORS[i];
+    const header = document.createElement('div');
+    header.style.cssText = `font-size:12px;font-weight:600;color:${color};margin:8px 0 4px;padding-top:6px;border-top:1px solid #252833`;
+    header.textContent = `质量 ${i + 1}`;
+    massPanel.appendChild(header);
+
+    const refs = {};
+    refs.m = Mech.ui.sidebarSlider(massPanel, {
+      label: 'm (kg)', min: 0.5, max: 10, value: m.m, step: 0.5,
+      format: v => v.toFixed(1), onChange: v => { masses[i].m = v; draw(); }
+    });
+    refs.r = Mech.ui.sidebarSlider(massPanel, {
+      label: 'r (mm)', min: 10, max: 120, value: m.r, step: 5,
+      format: v => v, onChange: v => { masses[i].r = v; draw(); }
+    });
+    refs.theta = Mech.ui.sidebarSlider(massPanel, {
+      label: 'θ (°)', min: 0, max: 359, value: m.theta, step: 5,
+      format: v => v + '°', onChange: v => { masses[i].theta = v; draw(); }
+    });
+    if (mode === 'dynamic') {
+      refs.a = Mech.ui.sidebarSlider(massPanel, {
+        label: 'a (轴向位置)', min: 5, max: 100, value: m.a, step: 5,
+        format: v => v, onChange: v => { masses[i].a = v; draw(); }
+      });
+    }
+    massSliderRefs.push(refs);
+  }
+}
+rebuildMassSliders();
+
+// 平衡质量面板
+const balPanel = Mech.ui.panel(sidebar, '平衡质量');
+let balSliderRefs = {};
+
+ui.chkBalance = Mech.ui.checkbox(balPanel, {
+  label: '启用平衡质量', checked: false,
+  onChange: v => { balanceEnabled = v; draw(); }
+});
+
+Mech.ui.button(balPanel, {
+  text: '自动计算', variant: 'accent',
+  onClick: () => autoCalcBalance()
+});
+
+function rebuildBalanceSliders() {
+  // 保留标题和前两个控件
+  const children = Array.from(balPanel.children);
+  const keepCount = 3; // panel-title, checkbox, button
+  while (balPanel.children.length > keepCount) balPanel.removeChild(balPanel.lastChild);
+
+  const bm = balanceMass;
+  const header = document.createElement('div');
+  header.style.cssText = `font-size:12px;font-weight:600;color:${BALANCE_COLOR};margin:8px 0 4px;padding-top:6px;border-top:1px solid #252833`;
+  header.textContent = '平衡质量参数';
+  balPanel.appendChild(header);
+
+  balSliderRefs = {};
+  balSliderRefs.m = Mech.ui.sidebarSlider(balPanel, {
+    label: 'm (kg)', min: 0.1, max: 10, value: bm.m, step: 0.1,
+    format: v => v.toFixed(1), onChange: v => { balanceMass.m = v; draw(); }
+  });
+  balSliderRefs.r = Mech.ui.sidebarSlider(balPanel, {
+    label: 'r (mm)', min: 10, max: 120, value: bm.r, step: 5,
+    format: v => v, onChange: v => { balanceMass.r = v; draw(); }
+  });
+  balSliderRefs.theta = Mech.ui.sidebarSlider(balPanel, {
+    label: 'θ (°)', min: 0, max: 359, value: bm.theta, step: 1,
+    format: v => v + '°', onChange: v => { balanceMass.theta = v; draw(); }
+  });
+  if (mode === 'dynamic') {
+    balSliderRefs.a = Mech.ui.sidebarSlider(balPanel, {
+      label: 'a (轴向位置)', min: 5, max: 100, value: bm.a, step: 5,
+      format: v => v, onChange: v => { balanceMass.a = v; draw(); }
+    });
+  }
+}
+rebuildBalanceSliders();
+
+// 显示选项面板
+const dispPanel = Mech.ui.panel(sidebar, '显示选项');
+Mech.ui.checkbox(dispPanel, { label: '显示力多边形', checked: true, onChange: v => { showForcePolygon = v; draw(); } });
+Mech.ui.checkbox(dispPanel, { label: '显示振幅', checked: true, onChange: v => { showAmplitude = v; draw(); } });
+
+// 实时信息面板
+const infoP = Mech.ui.panel(sidebar, '实时信息');
+const infoGrid = document.createElement('div');
+infoGrid.className = 'info-grid';
+infoGrid.innerHTML = `
+  <div class="info-item"><div class="label">Σmr 大小</div><div class="value" id="infoSigmaMr">—</div></div>
+  <div class="info-item"><div class="label">Σmr 方向</div><div class="value" id="infoSigmaMrAngle">—</div></div>
+  <div class="info-item"><div class="label">Σmra 大小</div><div class="value" id="infoSigmaMra">—</div></div>
+  <div class="info-item"><div class="label">Σmra 方向</div><div class="value" id="infoSigmaMraAngle">—</div></div>
+  <div class="info-item" style="grid-column:span 2"><div class="label">平衡状态</div><div class="value" id="infoBalance">—</div></div>`;
+infoP.appendChild(infoGrid);
+ui.infoSigmaMr = infoGrid.querySelector('#infoSigmaMr');
+ui.infoSigmaMrAngle = infoGrid.querySelector('#infoSigmaMrAngle');
+ui.infoSigmaMra = infoGrid.querySelector('#infoSigmaMra');
+ui.infoSigmaMraAngle = infoGrid.querySelector('#infoSigmaMraAngle');
+ui.infoBalance = infoGrid.querySelector('#infoBalance');
+
+// 知识点面板
+const tipPanel = Mech.ui.panel(sidebar, '知识点提示');
+ui.tip = document.createElement('div');
+ui.tip.className = 'tip';
+tipPanel.appendChild(ui.tip);
+
+/* ===== 模式切换时重建滑块 ===== */
+const origModeHandler = ui.modeBtn.onclick;
+ui.modeBtn.addEventListener('click', () => {
+  rebuildMassSliders();
+  rebuildBalanceSliders();
+  updateModeInfo();
+});
+
+/* ===== 启动 ===== */
+window.addEventListener('resize', () => draw());
+anim.play();
+draw();
+console.log('rotor-balance v1.0 loaded');
+</script>
+</body>
+</html>
