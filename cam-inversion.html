@@ -255,7 +255,7 @@ function drawRotationArrow(x, y, r, ccw) {
   ctx.fillStyle = 'rgba(228,228,231,0.7)';
   ctx.beginPath(); ctx.moveTo(tx, ty);
   ctx.lineTo(x+(r+sp)*Math.cos(bA), y+(r+sp)*Math.sin(bA));
-  ctx.lineTo(x+(r-sp)*Math.cos(bA), y-(r-sp)*Math.sin(bA)); // fix: y+ → y-(r-sp)
+  ctx.lineTo(x+(r-sp)*Math.cos(bA), y+(r-sp)*Math.sin(bA));
   ctx.closePath(); ctx.fill();
 }
 
@@ -272,88 +272,77 @@ function drawGuideBlock(x, y, w, h) {
 
 // ===== 从动件绘制（全局坐标）=====
 function drawPencilAt(absX, tipY, baseY) {
-  const stemW = 6, tipLen = 14, rodTop = baseY - 40, blockW = 14, blockH = 12, blockGap = stemW + 6;
-  drawGuideBlock(absX - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
-  drawGuideBlock(absX + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
-  const grad = ctx.createLinearGradient(absX-stemW, 0, absX+stemW, 0);
-  grad.addColorStop(0, '#4a5568'); grad.addColorStop(0.5, '#a0aec0'); grad.addColorStop(1, '#4a5568');
-  ctx.fillStyle = grad;
+  const tipSize = 6;
+  ctx.fillStyle = '#34d399';
   ctx.beginPath();
-  ctx.moveTo(absX-stemW, rodTop); ctx.lineTo(absX+stemW, rodTop);
-  ctx.lineTo(absX+stemW, tipY-tipLen*0.6); ctx.lineTo(absX+3, tipY-tipLen*0.3);
-  ctx.lineTo(absX, tipY); ctx.lineTo(absX-3, tipY-tipLen*0.3);
-  ctx.lineTo(absX-stemW, tipY-tipLen*0.6); ctx.closePath();
-  ctx.fill(); ctx.strokeStyle = 'rgba(52,211,153,0.6)'; ctx.lineWidth = 1; ctx.stroke();
-  ctx.beginPath(); ctx.arc(absX, tipY, 3, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
+  ctx.moveTo(absX, tipY);
+  ctx.lineTo(absX - tipSize/2, tipY - tipSize);
+  ctx.lineTo(absX + tipSize/2, tipY - tipSize);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(absX, tipY - tipSize); ctx.lineTo(absX, tipY - 80); ctx.stroke();
+  ctx.beginPath(); ctx.arc(absX, tipY, 2.5, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
 }
 
 function drawRollerAt(absX, tipY, baseY, degNow, camAngle, actualProfile) {
-  const rodTop = baseY - 40, blockW = 14, blockH = 12, blockGap = 8;
-  drawGuideBlock(absX - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
-  drawGuideBlock(absX + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
-  ctx.strokeStyle = 'rgba(148,163,184,0.6)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(absX, rodTop); ctx.lineTo(absX, tipY); ctx.stroke(); ctx.lineCap = 'butt';
-  ctx.beginPath(); ctx.arc(absX, tipY, rr*scale, 0, PI*2);
-  ctx.fillStyle = 'rgba(52,211,153,1)'; ctx.fill();
-  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3; ctx.stroke();
-  ctx.beginPath(); ctx.arc(absX, tipY, 2.5, 0, PI*2); ctx.fillStyle = '#34d399'; ctx.fill();
+  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(absX, tipY, rr*scale, 0, PI*2); ctx.stroke();
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(absX, tipY, 3, 0, PI*2); ctx.stroke();
+  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(absX, tipY); ctx.lineTo(absX, tipY - 80); ctx.stroke();
   const cpMath = getRollerContactMath(degNow, actualProfile);
   const cosA = Math.cos(camAngle), sinA = Math.sin(camAngle);
   const contactX = cx + (cpMath.x * cosA + cpMath.y * sinA) * scale;
   const contactY = cy + (cpMath.x * sinA - cpMath.y * cosA) * scale;
-  ctx.beginPath(); ctx.arc(contactX, contactY, 4, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
-  ctx.beginPath(); ctx.arc(contactX, contactY, 2, 0, PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.beginPath(); ctx.arc(contactX, contactY, 3, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
 }
 
 function drawFlatAt(absX, tipY, baseY, dsOffset) {
-  const rodTop = baseY - 40, blockW = 14, blockH = 12, blockGap = 8, halfFlat = flatHalfWidth;
-  drawGuideBlock(absX - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
-  drawGuideBlock(absX + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
-  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 4;
+  const halfFlat = flatHalfWidth;
+  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(absX-halfFlat, tipY); ctx.lineTo(absX+halfFlat, tipY); ctx.stroke();
-  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(absX, rodTop); ctx.lineTo(absX, tipY - 2); ctx.stroke(); ctx.lineCap = 'butt';
-  ctx.beginPath(); ctx.arc(absX + dsOffset, tipY, 3, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(absX - 8, tipY - 5); ctx.lineTo(absX - 8, tipY + 5);
+  ctx.moveTo(absX + 8, tipY - 5); ctx.lineTo(absX + 8, tipY + 5); ctx.stroke();
+  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(absX, tipY); ctx.lineTo(absX, tipY - 80); ctx.stroke();
+  ctx.beginPath(); ctx.arc(absX + dsOffset, tipY, 2.5, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
 }
 
 // ===== 从动件绘制（局部坐标，反转法模式）=====
 function drawPencilInLocal(lx, tipY, baseY) {
-  const stemW = 6, rodTop = baseY - 40, blockW = 14, blockH = 12, blockGap = stemW + 6;
-  drawGuideBlock(lx - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
-  drawGuideBlock(lx + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
-  const grad = ctx.createLinearGradient(lx-stemW, 0, lx+stemW, 0);
-  grad.addColorStop(0, '#4a5568'); grad.addColorStop(0.5, '#a0aec0'); grad.addColorStop(1, '#4a5568');
-  ctx.fillStyle = grad;
+  const tipSize = 6;
+  ctx.fillStyle = '#34d399';
   ctx.beginPath();
-  ctx.moveTo(lx-stemW, rodTop); ctx.lineTo(lx+stemW, rodTop);
-  ctx.lineTo(lx+stemW, tipY-14); ctx.lineTo(lx+3, tipY-4);
-  ctx.lineTo(lx, tipY); ctx.lineTo(lx-3, tipY-4);
-  ctx.lineTo(lx-stemW, tipY-14); ctx.closePath();
-  ctx.fill(); ctx.strokeStyle='rgba(52,211,153,0.6)'; ctx.lineWidth=1; ctx.stroke();
-  ctx.beginPath(); ctx.arc(lx, tipY, 3, 0, PI*2); ctx.fillStyle='#fbbf24'; ctx.fill();
+  ctx.moveTo(lx, tipY);
+  ctx.lineTo(lx - tipSize/2, tipY - tipSize);
+  ctx.lineTo(lx + tipSize/2, tipY - tipSize);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(lx, tipY - tipSize); ctx.lineTo(lx, tipY - 80); ctx.stroke();
+  ctx.beginPath(); ctx.arc(lx, tipY, 2.5, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
 }
 
 function drawRollerInLocal(lx, tipY, baseY) {
-  const rodTop = baseY - 40, blockW = 14, blockH = 12, blockGap = 8;
-  drawGuideBlock(lx - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
-  drawGuideBlock(lx + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
-  ctx.strokeStyle = 'rgba(148,163,184,0.6)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(lx, rodTop); ctx.lineTo(lx, tipY); ctx.stroke(); ctx.lineCap = 'butt';
-  ctx.beginPath(); ctx.arc(lx, tipY, rr*scale, 0, PI*2);
-  ctx.fillStyle = 'rgba(52,211,153,1)'; ctx.fill();
-  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3; ctx.stroke();
-  ctx.beginPath(); ctx.arc(lx, tipY, 2.5, 0, PI*2); ctx.fillStyle = '#34d399'; ctx.fill();
+  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(lx, tipY, rr*scale, 0, PI*2); ctx.stroke();
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(lx, tipY, 3, 0, PI*2); ctx.stroke();
+  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(lx, tipY); ctx.lineTo(lx, tipY - 80); ctx.stroke();
 }
 
 function drawFlatInLocal(lx, tipY, baseY, dsOffset) {
-  const rodTop = baseY - 40, blockW = 14, blockH = 12, blockGap = 8, halfFlat = flatHalfWidth;
-  drawGuideBlock(lx - blockGap - blockW/2, baseY - blockH/2, blockW, blockH);
-  drawGuideBlock(lx + blockGap + blockW/2, baseY - blockH/2, blockW, blockH);
-  ctx.strokeStyle='#34d399'; ctx.lineWidth=4;
-  ctx.beginPath(); ctx.moveTo(lx-halfFlat,tipY); ctx.lineTo(lx+halfFlat,tipY); ctx.stroke();
-  ctx.strokeStyle='#94a3b8'; ctx.lineWidth=4; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(lx,rodTop); ctx.lineTo(lx,tipY-2); ctx.stroke(); ctx.lineCap='butt';
-  ctx.beginPath(); ctx.arc(lx+dsOffset,tipY,3,0,PI*2); ctx.fillStyle='#fbbf24'; ctx.fill();
+  const halfFlat = flatHalfWidth;
+  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(lx-halfFlat, tipY); ctx.lineTo(lx+halfFlat, tipY); ctx.stroke();
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(lx - 8, tipY - 5); ctx.lineTo(lx - 8, tipY + 5);
+  ctx.moveTo(lx + 8, tipY - 5); ctx.lineTo(lx + 8, tipY + 5); ctx.stroke();
+  ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(lx, tipY); ctx.lineTo(lx, tipY - 80); ctx.stroke();
+  ctx.beginPath(); ctx.arc(lx + dsOffset, tipY, 2.5, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
 }
 
 // ===== 主绘制 =====
@@ -434,7 +423,7 @@ function drawOscillatingActual(degNow, psiNow, camAngle) {
   ctx.strokeStyle = '#52525b'; ctx.lineWidth = 1; ctx.stroke();
   ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(pivot.x, pivot.y); ctx.lineTo(contact.x, contact.y); ctx.stroke(); ctx.lineCap = 'butt';
-  ctx.beginPath(); ctx.arc(contact.x, contact.y, 3, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
+  ctx.beginPath(); ctx.arc(contact.x, contact.y, 2.5, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
 }
 
 function drawInversionMode(profile, actualProfile, degNow, sNow, camFill, camStroke) {
@@ -480,7 +469,7 @@ function drawInversionMode(profile, actualProfile, degNow, sNow, camFill, camStr
     ctx.beginPath(); ctx.arc(pivotX, pivotY, 4, 0, PI*2); ctx.fillStyle='#71717a'; ctx.fill();
     ctx.strokeStyle='#34d399'; ctx.lineWidth=3; ctx.lineCap='round';
     ctx.beginPath(); ctx.moveTo(pivotX, pivotY); ctx.lineTo(tipX, tipY); ctx.stroke(); ctx.lineCap='butt';
-    ctx.beginPath(); ctx.arc(tipX, tipY, 3, 0, PI*2); ctx.fillStyle='#fbbf24'; ctx.fill();
+    ctx.beginPath(); ctx.arc(tipX, tipY, 2.5, 0, PI*2); ctx.fillStyle='#f97316'; ctx.fill();
   } else {
     const guideLocalX = e * scale, tipLocalY = -totalS * scale;
     const guideBlockLocalY = -(r0 + h + 30) * scale;
@@ -494,8 +483,7 @@ function drawInversionMode(profile, actualProfile, degNow, sNow, camFill, camStr
   if (followerType === 'roller') {
     const cpMath = getRollerContactMath(degNow, actualProfile);
     const contactGx = cx + cpMath.x * scale, contactGy = cy - cpMath.y * scale;
-    ctx.beginPath(); ctx.arc(contactGx, contactGy, 4, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
-    ctx.beginPath(); ctx.arc(contactGx, contactGy, 2, 0, PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.beginPath(); ctx.arc(contactGx, contactGy, 3, 0, PI*2); ctx.fillStyle = '#fbbf24'; ctx.fill();
   }
 
   drawRotationArrow(cx, cy, 20, true);
