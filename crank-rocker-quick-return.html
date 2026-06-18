@@ -4,956 +4,356 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <title>曲柄摇杆急回运动对比</title>
-    <style>
-        :root {
-            --bg-dark: #0f1117;
-            --bg-card: #1a1d27;
-            --border: #252833;
-            --text: #e4e4e7;
-            --text-dim: #a1a1aa;
-            --accent: #6366f1;
-            --success: #34d399;
-            --warning: #fbbf24;
-            --work-color: #3b82f6;
-            --return-color: #34d399;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background: var(--bg-dark);
-            color: var(--text);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-        }
-        .back-btn {
-            position: fixed;
-            top: 16px;
-            left: 16px;
-            padding: 6px 14px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-dim);
-            text-decoration: none;
-            font-size: 13px;
-            transition: all 0.2s;
-        }
-        .back-btn:hover { border-color: var(--accent); color: var(--text); }
-        .header { text-align: center; margin-bottom: 20px; }
-        .header h1 {
-            font-size: 1.5rem;
-            background: linear-gradient(135deg, var(--accent), var(--success));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .header p { font-size: 0.85rem; color: var(--text-dim); margin-top: 4px; }
-        .container {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 20px;
-            max-width: 960px;
-            width: 100%;
-        }
-        .canvas-wrapper {
-            position: relative;
-            width: 100%;
-            padding-bottom: 70%;
-            margin-bottom: 16px;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        canvas {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: #12141d;
-        }
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 16px;
-        }
-        .control-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .control-group label { font-size: 0.8rem; color: var(--text-dim); }
-        .control-group input[type="range"] { width: 100px; accent-color: var(--accent); }
-        .control-group .value { font-size: 0.8rem; color: var(--text); min-width: 30px; }
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-primary:hover { background: #4f46e5; }
-        .btn-secondary { background: var(--border); color: var(--text); }
-        .btn-secondary:hover { background: #3a3d4d; }
-        .btn-accent { background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.3); }
-        .btn-accent:hover { background: rgba(249,115,22,0.25); }
-        .info-panel {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px;
-            padding: 14px;
-            background: var(--bg-dark);
-            border-radius: 10px;
-            margin-bottom: 12px;
-        }
-        .info-item { text-align: center; }
-        .info-item .label { font-size: 0.7rem; color: var(--text-dim); margin-bottom: 2px; }
-        .info-item .value { font-size: 1.1rem; font-weight: 600; color: var(--text); }
-        .info-item.work .value { color: var(--work-color); }
-        .info-item.return .value { color: var(--return-color); }
-        .legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 14px;
-            justify-content: center;
-            padding: 10px;
-            background: var(--bg-dark);
-            border-radius: 8px;
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.75rem;
-            color: var(--text-dim);
-        }
-        .legend-item .dot {
-            width: 10px; height: 10px;
-            border-radius: 50%;
-        }
-        @media (max-width: 600px) {
-            .header h1 { font-size: 1.2rem; }
-            .controls { flex-direction: column; }
-            .control-group input[type="range"] { width: 80px; }
-        }
-    </style>
+    <link rel="stylesheet" href="mech.css">
 </head>
 <body>
     <a href="ch3-linkage.html" class="back-btn">← 返回章节</a>
-    
+
     <div class="header">
-        <h1>曲柄摇杆急回运动对比 <span style="font-size:12px;background:#1e293b;color:#f97316;padding:2px 8px;border-radius:10px;vertical-align:middle;font-weight:bold;">v5.6</span></h1>
+        <h1>曲柄摇杆急回运动对比 <span class="version-badge">v6.0</span></h1>
         <p>直观展示工作行程（慢）与空回行程（快）的差异</p>
     </div>
-    
+
     <div class="container">
         <div class="canvas-wrapper">
             <canvas id="canvas"></canvas>
         </div>
-        
-        <div class="controls">
-            <button class="btn btn-primary" id="playBtn">▶ 播放</button>
-            <button class="btn btn-secondary" id="resetBtn">重置</button>
-            <button class="btn btn-accent" id="limit1Btn">极位₁</button>
-            <button class="btn btn-accent" id="limit2Btn">极位₂</button>
-            <div class="control-group">
-                <label>曲柄速度:</label>
-                <input type="range" id="speedSlider" min="1" max="30" value="8">
-                <span class="value" id="speedValue">1.0x</span>
-            </div>
-            <div class="control-group">
-                <label>曲柄 r₁:</label>
-                <input type="range" id="crankSlider" min="35" max="70" value="50">
-                <span class="value" id="crankValue">50</span>
-            </div>
-            <div class="control-group">
-                <label>摇杆 r₃:</label>
-                <input type="range" id="rockerSlider" min="90" max="140" value="110">
-                <span class="value" id="rockerValue">110</span>
-            </div>
-        </div>
-        
-        <div class="info-panel">
-            <div class="info-item">
-                <div class="label">极位夹角 θ</div>
-                <div class="value" id="thetaValue">0°</div>
-            </div>
-            <div class="info-item">
-                <div class="label">摆角 ψ</div>
-                <div class="value" id="psiValue">0°</div>
-            </div>
-            <div class="info-item">
-                <div class="label">行程速比系数 K</div>
-                <div class="value" id="kValue">1.00</div>
-            </div>
-            <div class="info-item work">
-                <div class="label">推程转角 φ₁</div>
-                <div class="value" id="workAngle">180°+θ</div>
-            </div>
-            <div class="info-item return">
-                <div class="label">回程转角 φ₂</div>
-                <div class="value" id="returnAngle">180°-θ</div>
-            </div>
-        </div>
-        
-        <div class="legend">
-            <div class="legend-item"><div class="dot" style="background: #e4e4e7;"></div><span>机构杆件</span></div>
-            <div class="legend-item"><div class="dot" style="background: #71717a;"></div><span>机架</span></div>
-            <div class="legend-item"><div class="dot" style="background: #fbbf24;"></div><span>DC₁ 虚线</span></div>
-            <div class="legend-item"><div class="dot" style="background: #f97316;"></div><span>DC₂ 虚线</span></div>
-            <div class="legend-item"><div class="dot" style="background: #3b82f6;"></div><span>推程（慢）</span></div>
-            <div class="legend-item"><div class="dot" style="background: #34d399;"></div><span>回程（快）</span></div>
-        </div>
+        <div class="controls" id="controls"></div>
+        <div id="infoPanel"></div>
+        <div id="legend"></div>
     </div>
 
+    <script src="mech.js"></script>
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        let params = { r1: 50, r2: 160, r3: 110, r4: 170, speedFactor: 1.0 };
-        let angle = 0;
-        let isPlaying = false;
-        let animationId = null;
-        
-        let geo = {
-            A: { x: 0, y: 0 },
-            D: { x: 0, y: 0 },
-            limit1: null,
-            limit2: null,
-            theta: 0,
-            psi: 0
-        };
-        
-        let isPush = true; // 当前是否处于推程
-        let lastTimestamp = null; // 上一帧时间戳
-        
-        function resizeCanvas() {
-            const rect = canvas.getBoundingClientRect();
-            canvas.width = rect.width * window.devicePixelRatio;
-            canvas.height = rect.height * window.devicePixelRatio;
-            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-            
-            const cx = rect.width / 2;
-            const cy = rect.height / 2 + 20;
-            geo.A = { x: cx - params.r4 / 2, y: cy };
-            geo.D = { x: cx + params.r4 / 2, y: cy };
-            
-            calculateLimits();
+    // ===== 模块状态 =====
+    const params = { r1: 50, r2: 160, r3: 110, r4: 170, speedFactor: 1.0 };
+    let angle = 0;
+    let isPush = true;
+    const geo = { A: {x:0,y:0}, D: {x:0,y:0}, limit1: null, limit2: null, theta: 0, psi: 0 };
+
+    // ===== Canvas + 动画 =====
+    const { ctx, getDimensions, canvas } = Mech.setupCanvas(document.getElementById('canvas'));
+    const anim = Mech.createAnimator(
+        dt => { angle += 0.48 * params.speedFactor * dt; updatePhase(); },
+        () => draw()
+    );
+
+    // ===== 机构求解（模块特有）=====
+    function solveC(B, D) {
+        const dx = D.x - B.x, dy = D.y - B.y;
+        const bd = Math.sqrt(dx * dx + dy * dy);
+        const cosAlpha = (params.r2 * params.r2 + bd * bd - params.r3 * params.r3) / (2 * params.r2 * bd);
+        if (Math.abs(cosAlpha) > 1) return null;
+        const alpha = Math.acos(cosAlpha);
+        const beta = Math.atan2(dy, dx);
+        return { x: B.x + params.r2 * Math.cos(beta - alpha), y: B.y + params.r2 * Math.sin(beta - alpha) };
+    }
+
+    function findCfromAC(A, D, acDist, r3) {
+        const dx = D.x - A.x, dy = D.y - A.y;
+        const ad = Math.sqrt(dx * dx + dy * dy);
+        const cosDAC = (acDist * acDist + ad * ad - r3 * r3) / (2 * acDist * ad);
+        if (Math.abs(cosDAC) > 1) return null;
+        const angleDAC = Math.acos(cosDAC);
+        const angleAD = Math.atan2(dy, dx);
+        const angleAC = angleAD - angleDAC;
+        return { x: A.x + acDist * Math.cos(angleAC), y: A.y + acDist * Math.sin(angleAC) };
+    }
+
+    function calculateLimits() {
+        const A = geo.A, D = geo.D;
+        geo.limit1 = null; geo.limit2 = null;
+
+        // 极位1：曲柄与连杆拉直共线
+        const C1 = findCfromAC(A, D, params.r1 + params.r2, params.r3);
+        if (C1) {
+            const dir1 = Math.atan2(C1.y - A.y, C1.x - A.x);
+            const B1 = { x: A.x + params.r1 * Math.cos(dir1), y: A.y + params.r1 * Math.sin(dir1) };
+            geo.limit1 = { angle: Math.atan2(-(B1.y - A.y), B1.x - A.x), B: B1, C: C1 };
         }
-        
-        function solveC(B, D) {
-            const dx = D.x - B.x;
-            const dy = D.y - B.y;
-            const bd = Math.sqrt(dx * dx + dy * dy);
-            
-            const cosAlpha = (params.r2 * params.r2 + bd * bd - params.r3 * params.r3) / (2 * params.r2 * bd);
-            if (Math.abs(cosAlpha) > 1) return null;
-            
-            const alpha = Math.acos(cosAlpha);
-            const beta = Math.atan2(dy, dx);
-            
-            return {
-                x: B.x + params.r2 * Math.cos(beta - alpha),
-                y: B.y + params.r2 * Math.sin(beta - alpha)
-            };
+
+        // 极位2：曲柄与连杆折叠共线
+        const C2 = findCfromAC(A, D, params.r2 - params.r1, params.r3);
+        if (C2) {
+            const dir2 = Math.atan2(C2.y - A.y, C2.x - A.x);
+            const B2 = { x: A.x - params.r1 * Math.cos(dir2), y: A.y - params.r1 * Math.sin(dir2) };
+            geo.limit2 = { angle: Math.atan2(-(B2.y - A.y), B2.x - A.x), B: B2, C: C2 };
         }
-        
-        function calculateLimits() {
-            const A = geo.A, D = geo.D;
-            geo.limit1 = null;
-            geo.limit2 = null;
-            
-            // 极位1：曲柄与连杆拉直共线，AC1 = r1 + r2
-            const AC1 = params.r1 + params.r2;
-            const C1 = findCfromAC(A, D, AC1, params.r3);
-            if (C1) {
-                // B1 在 AC1 线上，距 A 为 r1
-                const dir1 = Math.atan2(C1.y - A.y, C1.x - A.x);
-                const B1 = {
-                    x: A.x + params.r1 * Math.cos(dir1),
-                    y: A.y + params.r1 * Math.sin(dir1)
-                };
-                const angle1 = Math.atan2(-(B1.y - A.y), B1.x - A.x);
-                geo.limit1 = { angle: angle1, B: B1, C: C1 };
-            }
-            
-            // 极位2：曲柄与连杆折叠共线，AC2 = r2 - r1
-            const AC2 = params.r2 - params.r1;
-            const C2 = findCfromAC(A, D, AC2, params.r3);
-            if (C2) {
-                // B2 在 A 远离 C2 的一侧（折叠时 B 在 A 的对面）
-                const dir2 = Math.atan2(C2.y - A.y, C2.x - A.x);
-                const B2 = {
-                    x: A.x - params.r1 * Math.cos(dir2),
-                    y: A.y - params.r1 * Math.sin(dir2)
-                };
-                const angle2 = Math.atan2(-(B2.y - A.y), B2.x - A.x);
-                geo.limit2 = { angle: angle2, B: B2, C: C2 };
-            }
-            
-            // 计算极位夹角 θ 和摆角 ψ
-            if (geo.limit1 && geo.limit2) {
-                // 极位夹角 θ：曲柄两个极限位置所夹的锐角
-                if (geo.limit1.B && geo.limit2.B) {
-                    // 计算 ∠B₁AB₂ 的短弧角度
-                    let diff = geo.limit1.angle - geo.limit2.angle;
-                    while (diff > Math.PI) diff -= 2 * Math.PI;
-                    while (diff < -Math.PI) diff += 2 * Math.PI;
-                    
-                    // θ 是锐角：如果短弧是钝角，取补角
-                    let thetaVal = Math.abs(diff);
-                    if (thetaVal > Math.PI / 2) {
-                        thetaVal = Math.PI - thetaVal;
-                    }
-                    geo.theta = thetaVal;
-                }
-                // 摆角 ψ = ∠C₁DC₂
-                if (geo.limit1.C && geo.limit2.C) {
-                    const c1d = Math.atan2(-(geo.limit1.C.y - D.y), geo.limit1.C.x - D.x);
-                    const c2d = Math.atan2(-(geo.limit2.C.y - D.y), geo.limit2.C.x - D.x);
-                    geo.psi = Math.abs(c1d - c2d);
-                    if (geo.psi > Math.PI) geo.psi = 2 * Math.PI - geo.psi;
-                }
+
+        // 极位夹角 θ
+        if (geo.limit1 && geo.limit2) {
+            let diff = Mech.math.diff(geo.limit1.angle, geo.limit2.angle);
+            let thetaVal = Math.abs(diff);
+            if (thetaVal > Math.PI / 2) thetaVal = Math.PI - thetaVal;
+            geo.theta = thetaVal;
+
+            // 摆角 ψ = ∠C₁DC₂
+            if (geo.limit1.C && geo.limit2.C) {
+                const c1d = Math.atan2(-(geo.limit1.C.y - D.y), geo.limit1.C.x - D.x);
+                const c2d = Math.atan2(-(geo.limit2.C.y - D.y), geo.limit2.C.x - D.x);
+                geo.psi = Math.abs(Mech.math.diff(c1d, c2d));
             }
         }
-        
-        // 已知 AC 距离和 DC=r3，求 C 点坐标
-        function findCfromAC(A, D, acDist, r3) {
-            const dx = D.x - A.x;
-            const dy = D.y - A.y;
-            const ad = Math.sqrt(dx * dx + dy * dy);
-            
-            // 在三角形 ADC 中用余弦定理求角 DAC
-            const cosDAC = (acDist * acDist + ad * ad - r3 * r3) / (2 * acDist * ad);
-            if (Math.abs(cosDAC) > 1) return null;
-            
-            const angleDAC = Math.acos(cosDAC);
-            const angleAD = Math.atan2(dy, dx);
-            
-            // 取上方的解（负号是因为 canvas y 轴向下）
-            const angleAC = angleAD - angleDAC;
-            
-            return {
-                x: A.x + acDist * Math.cos(angleAC),
-                y: A.y + acDist * Math.sin(angleAC)
-            };
-        }
-        
-        function solveFourBar(theta) {
-            const A = geo.A, D = geo.D;
-            const B = {
-                x: A.x + params.r1 * Math.cos(theta),
-                y: A.y - params.r1 * Math.sin(theta)
-            };
-            const C = solveC(B, D);
-            if (!C) return null;
-            return { B, C };
-        }
-        
-        function updatePhase() {
-            if (!geo.limit1 || !geo.limit2) return;
-            
-            // 计算从limit1逆时针到limit2的角度差
-            let d12 = geo.limit2.angle - geo.limit1.angle;
-            while (d12 < 0) d12 += 2 * Math.PI;
-            while (d12 >= 2 * Math.PI) d12 -= 2 * Math.PI;
-            
-            // 当前曲柄angle相对于limit1的逆时针偏移
-            let rel = angle - geo.limit1.angle;
-            rel = ((rel % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-            
-            // d12 > π → 从limit1到limit2是推程(180°+θ)
-            // d12 < π → 从limit1到limit2是回程(180°-θ)
+    }
+
+    function solveFourBar(theta) {
+        const A = geo.A;
+        const B = { x: A.x + params.r1 * Math.cos(theta), y: A.y - params.r1 * Math.sin(theta) };
+        const C = solveC(B, geo.D);
+        return C ? { B, C } : null;
+    }
+
+    function updatePhase() {
+        if (!geo.limit1 || !geo.limit2) return;
+        let d12 = Mech.math.norm(geo.limit2.angle - geo.limit1.angle);
+        let rel = Mech.math.norm(angle - geo.limit1.angle);
+        if (d12 > Math.PI) { isPush = rel < d12; }
+        else { isPush = rel >= d12; }
+    }
+
+    // ===== 绘制 =====
+    function draw() {
+        const { w, h } = getDimensions();
+        ctx.clearRect(0, 0, w, h);
+        const A = geo.A, D = geo.D;
+        const C = Mech.colors;
+
+        // 曲柄轨迹圆
+        ctx.beginPath();
+        ctx.arc(A.x, A.y, params.r1, 0, Math.PI * 2);
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = '#3a3d4d';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // φ₁/φ₂ 弧段（曲柄圆内，细虚线）
+        if (geo.limit1 && geo.limit2) {
+            const r = params.r1 * 0.7, textR = params.r1 * 0.55;
+            let d12 = Mech.math.norm(geo.limit2.angle - geo.limit1.angle);
+
             if (d12 > Math.PI) {
-                // 从limit1逆时针到limit2 = 推程
-                isPush = rel < d12;
+                // limit1→limit2 = 推程(蓝)，limit2→limit1 = 回程(绿)
+                Mech.draw.dashedArc(ctx, A.x, A.y, r, -geo.limit1.angle, -geo.limit2.angle, true, { color: 'rgba(59,130,246,0.6)' });
+                Mech.draw.dashedArc(ctx, A.x, A.y, r, -geo.limit2.angle, -geo.limit1.angle, true, { color: 'rgba(52,211,153,0.6)' });
+                const m1 = geo.limit1.angle + d12 / 2, m2 = geo.limit2.angle + (2*Math.PI - d12) / 2;
+                Mech.draw.text(ctx, 'φ₁', A.x + textR*Math.cos(m1), A.y - textR*Math.sin(m1), { color: 'rgba(59,130,246,0.9)', font: 'bold 12px sans-serif', baseline: 'middle' });
+                Mech.draw.text(ctx, 'φ₂', A.x + textR*Math.cos(m2), A.y - textR*Math.sin(m2), { color: 'rgba(52,211,153,0.9)', font: 'bold 12px sans-serif', baseline: 'middle' });
             } else {
-                // 从limit1逆时针到limit2 = 回程
-                isPush = rel >= d12;
+                Mech.draw.dashedArc(ctx, A.x, A.y, r, -geo.limit1.angle, -geo.limit2.angle, true, { color: 'rgba(52,211,153,0.6)' });
+                Mech.draw.dashedArc(ctx, A.x, A.y, r, -geo.limit2.angle, -geo.limit1.angle, true, { color: 'rgba(59,130,246,0.6)' });
+                const m2 = geo.limit1.angle + d12 / 2, m1 = geo.limit2.angle + (2*Math.PI - d12) / 2;
+                Mech.draw.text(ctx, 'φ₂', A.x + textR*Math.cos(m2), A.y - textR*Math.sin(m2), { color: 'rgba(52,211,153,0.9)', font: 'bold 12px sans-serif', baseline: 'middle' });
+                Mech.draw.text(ctx, 'φ₁', A.x + textR*Math.cos(m1), A.y - textR*Math.sin(m1), { color: 'rgba(59,130,246,0.9)', font: 'bold 12px sans-serif', baseline: 'middle' });
             }
         }
-        
-        function drawHingedSupport(x, y) {
-            const triH = 9;   // 三角形高度
-            const triW = 7;   // 三角形半宽
-            const baseW = triW + 3; // 底线半宽
-            const hatchCount = 4;
-            const hatchLen = 6;
-            
-            ctx.strokeStyle = '#71717a';
-            
-            // 倒三角（顶点在铰链点，向下）
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.lineTo(x - triW, y + triH);
-            ctx.lineTo(x + triW, y + triH);
-            ctx.closePath();
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            
-            // 底线
-            ctx.beginPath();
-            ctx.moveTo(x - baseW, y + triH);
-            ctx.lineTo(x + baseW, y + triH);
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            
-            // 斜杠（底线下方短斜线）
-            for (let i = 0; i < hatchCount; i++) {
-                const hx = x - baseW + 2 + i * ((2 * baseW - 4) / (hatchCount - 1));
-                ctx.beginPath();
-                ctx.moveTo(hx, y + triH);
-                ctx.lineTo(hx - hatchLen * 0.6, y + triH + hatchLen * 0.6);
-                ctx.lineWidth = 1;
-                ctx.stroke();
-            }
+
+        // C₁-C₂ 摇杆轨迹弧
+        if (geo.limit1 && geo.limit2 && geo.limit1.C && geo.limit2.C) {
+            const phi1 = Math.atan2(geo.limit1.C.y - D.y, geo.limit1.C.x - D.x);
+            const phi2 = Math.atan2(geo.limit2.C.y - D.y, geo.limit2.C.x - D.x);
+            Mech.draw.dashedArc(ctx, D.x, D.y, params.r3, phi1, phi2, true, { color: '#a78bfa', width: 1.5, dash: [5, 4] });
         }
-        
-        function draw() {
-            const rect = canvas.getBoundingClientRect();
-            ctx.clearRect(0, 0, rect.width, rect.height);
-            
-            const A = geo.A, D = geo.D;
-            
-            // 曲柄轨迹圆
-            ctx.beginPath();
-            ctx.arc(A.x, A.y, params.r1, 0, Math.PI * 2);
-            ctx.setLineDash([4, 4]);
-            ctx.strokeStyle = '#3a3d4d';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            ctx.setLineDash([]);
-            
-            // φ₁/φ₂ 弧段（在曲柄圆内部）
-            if (geo.limit1 && geo.limit2) {
-                const r = params.r1 * 0.7; // 曲柄圆内部半径（比θ弧r=25大一圈，避免重叠）
-                const textR = params.r1 * 0.55; // 标签半径
-                
-                // limit.angle 是canvas角度（atan2(-dy,dx)），ctx.arc 用数学角度取负即可
-                // canvas arc(x,y,r,start,end,ccw): start/end是数学角度取负 = canvas角度
-                // 所以我们直接用 geo.limit.angle 作为 canvas角度
-                
-                // 从 limit1 逆时针到 limit2 的角度差（在canvas角度空间）
-                let d12 = geo.limit2.angle - geo.limit1.angle;
-                while (d12 < 0) d12 += 2 * Math.PI;
-                while (d12 >= 2 * Math.PI) d12 -= 2 * Math.PI;
-                
-                if (d12 > Math.PI) {
-                    // limit1→limit2 是推程（角度大=180°+θ）
-                    // φ₁ 弧段：limit1 到 limit2（蓝色虚线）
-                    ctx.beginPath();
-                    ctx.setLineDash([4, 3]);
-                    ctx.arc(A.x, A.y, r, -geo.limit1.angle, -geo.limit2.angle, true);
-                    ctx.strokeStyle = 'rgba(59,130,246,0.6)';
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                    
-                    const phi1Mid = geo.limit1.angle + d12 / 2;
-                    const phi1X = A.x + textR * Math.cos(phi1Mid);
-                    const phi1Y = A.y - textR * Math.sin(phi1Mid);
-                    ctx.fillStyle = 'rgba(59,130,246,0.9)';
-                    ctx.font = 'bold 12px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('φ₁', phi1X, phi1Y);
-                    
-                    // φ₂ 弧段：limit2 到 limit1（绿色虚线）
-                    ctx.beginPath();
-                    ctx.setLineDash([4, 3]);
-                    ctx.arc(A.x, A.y, r, -geo.limit2.angle, -geo.limit1.angle, true);
-                    ctx.strokeStyle = 'rgba(52,211,153,0.6)';
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                    
-                    const d21 = 2 * Math.PI - d12;
-                    const phi2Mid = geo.limit2.angle + d21 / 2;
-                    const phi2X = A.x + textR * Math.cos(phi2Mid);
-                    const phi2Y = A.y - textR * Math.sin(phi2Mid);
-                    ctx.fillStyle = 'rgba(52,211,153,0.9)';
-                    ctx.font = 'bold 12px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('φ₂', phi2X, phi2Y);
-                } else {
-                    // limit1→limit2 是回程（角度小=180°-θ）
-                    // φ₂ 弧段：limit1 到 limit2（绿色虚线）
-                    ctx.beginPath();
-                    ctx.setLineDash([4, 3]);
-                    ctx.arc(A.x, A.y, r, -geo.limit1.angle, -geo.limit2.angle, true);
-                    ctx.strokeStyle = 'rgba(52,211,153,0.6)';
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                    
-                    const phi2Mid = geo.limit1.angle + d12 / 2;
-                    const phi2X = A.x + textR * Math.cos(phi2Mid);
-                    const phi2Y = A.y - textR * Math.sin(phi2Mid);
-                    ctx.fillStyle = 'rgba(52,211,153,0.9)';
-                    ctx.font = 'bold 12px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('φ₂', phi2X, phi2Y);
-                    
-                    // φ₁ 弧段：limit2 到 limit1（蓝色虚线）
-                    ctx.beginPath();
-                    ctx.setLineDash([4, 3]);
-                    ctx.arc(A.x, A.y, r, -geo.limit2.angle, -geo.limit1.angle, true);
-                    ctx.strokeStyle = 'rgba(59,130,246,0.6)';
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                    
-                    const d21 = 2 * Math.PI - d12;
-                    const phi1Mid = geo.limit2.angle + d21 / 2;
-                    const phi1X = A.x + textR * Math.cos(phi1Mid);
-                    const phi1Y = A.y - textR * Math.sin(phi1Mid);
-                    ctx.fillStyle = 'rgba(59,130,246,0.9)';
-                    ctx.font = 'bold 12px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('φ₁', phi1X, phi1Y);
-                }
-            }
-            
-            // ① C₁-C₂ 虚线圆弧（摇杆末端运动轨迹）
-            if (geo.limit1 && geo.limit2 && geo.limit1.C && geo.limit2.C) {
-                const phi1 = Math.atan2(geo.limit1.C.y - D.y, geo.limit1.C.x - D.x);
-                const phi2 = Math.atan2(geo.limit2.C.y - D.y, geo.limit2.C.x - D.x);
-                const arcR = params.r3;
+
+        // DC₁ 虚线 + B₁/C₁ 标注
+        if (geo.limit1 && geo.limit1.C) {
+            Mech.draw.dashedLine(ctx, D.x, D.y, geo.limit1.C.x, geo.limit1.C.y, { color: C.warning, width: 2, dash: [6, 4] });
+            Mech.draw.point(ctx, geo.limit1.B.x, geo.limit1.B.y, { color: C.work });
+            Mech.draw.text(ctx, 'C₁', geo.limit1.C.x + 8, geo.limit1.C.y - 8, { color: C.warning, font: 'bold 13px sans-serif', align: 'left' });
+            Mech.draw.text(ctx, 'B₁', geo.limit1.B.x - 20, geo.limit1.B.y - 8, { color: C.work, font: 'bold 13px sans-serif', align: 'left' });
+        }
+
+        // DC₂ 虚线 + B₂/C₂ 标注
+        if (geo.limit2 && geo.limit2.C) {
+            Mech.draw.dashedLine(ctx, D.x, D.y, geo.limit2.C.x, geo.limit2.C.y, { color: C.orange, width: 2, dash: [6, 4] });
+            Mech.draw.point(ctx, geo.limit2.B.x, geo.limit2.B.y, { color: C.work });
+            Mech.draw.text(ctx, 'C₂', geo.limit2.C.x + 8, geo.limit2.C.y - 8, { color: C.orange, font: 'bold 13px sans-serif', align: 'left' });
+            Mech.draw.text(ctx, 'B₂', geo.limit2.B.x - 20, geo.limit2.B.y - 8, { color: C.work, font: 'bold 13px sans-serif', align: 'left' });
+        }
+
+        // AB₁/AB₂ 虚线
+        if (geo.limit1 && geo.limit1.B)
+            Mech.draw.dashedLine(ctx, A.x, A.y, geo.limit1.B.x, geo.limit1.B.y, { color: 'rgba(251,191,36,0.4)', dash: [4, 4] });
+        if (geo.limit2 && geo.limit2.B)
+            Mech.draw.dashedLine(ctx, A.x, A.y, geo.limit2.B.x, geo.limit2.B.y, { color: 'rgba(249,115,22,0.4)', dash: [4, 4] });
+
+        // 摆角 ψ（D点处）
+        if (geo.limit1 && geo.limit2 && geo.limit1.C && geo.limit2.C) {
+            const a1 = Math.atan2(-(geo.limit1.C.y - D.y), geo.limit1.C.x - D.x);
+            const a2 = Math.atan2(-(geo.limit2.C.y - D.y), geo.limit2.C.x - D.x);
+            Mech.draw.arc(ctx, D.x, D.y, 30, -Math.min(a1, a2), -Math.max(a1, a2), true, { color: C.warning, width: 2 });
+            const mid = (a1 + a2) / 2;
+            Mech.draw.text(ctx, 'ψ', D.x + 45*Math.cos(mid), D.y - 45*Math.sin(mid), { color: C.warning, font: 'bold 14px sans-serif', baseline: 'middle' });
+        }
+
+        // AB₂ 反向延长虚线
+        if (geo.limit2 && geo.limit2.B) {
+            const extAngle = geo.limit2.angle + Math.PI;
+            Mech.draw.dashedLine(ctx, A.x, A.y, A.x + params.r1*Math.cos(extAngle), A.y - params.r1*Math.sin(extAngle), { color: 'rgba(249,115,22,0.3)', dash: [3, 3] });
+        }
+
+        // 极位夹角 θ（B₂'与B₁之间，锐角）
+        if (geo.limit1 && geo.limit2 && geo.limit1.B && geo.limit2.B && geo.theta > 0.01) {
+            const B1 = geo.limit1.B, B2 = geo.limit2.B;
+            const B2p = { x: 2*A.x - B2.x, y: 2*A.y - B2.y };
+            const aB2p = Math.atan2(B2p.y - A.y, B2p.x - A.x);
+            const aB1 = Math.atan2(B1.y - A.y, B1.x - A.x);
+            const d = Mech.math.diff(aB1, aB2p);
+            Mech.draw.arc(ctx, A.x, A.y, 25, aB2p, aB1, d < 0, { color: C.orange, width: 2 });
+            const mid = aB2p + d / 2;
+            Mech.draw.text(ctx, 'θ', A.x + 40*Math.cos(mid), A.y + 40*Math.sin(mid), { color: C.orange, font: 'bold 14px sans-serif', baseline: 'middle' });
+        }
+
+        // 推程/回程箭头
+        if (geo.limit1 && geo.limit2 && geo.limit1.C && geo.limit2.C) {
+            const phi1 = Math.atan2(geo.limit1.C.y - D.y, geo.limit1.C.x - D.x);
+            const phi2 = Math.atan2(geo.limit2.C.y - D.y, geo.limit2.C.x - D.x);
+            const arrowR = params.r3 * 0.55;
+            let delta = phi2 - phi1;
+            if (delta > 0) delta -= 2 * Math.PI;
+            const midPhi = phi1 + delta / 2;
+            const mx = D.x + arrowR * Math.cos(midPhi), my = D.y + arrowR * Math.sin(midPhi);
+            const arrowSize = 8;
+            const hasQR = geo.theta > 0.01;
+            const pushLabel = hasQR ? '慢推' : '推', returnLabel = hasQR ? '快回' : '回';
+
+            if (isPush) {
+                const tx = Math.sin(midPhi), ty = -Math.cos(midPhi);
+                const bx = mx - arrowSize * tx, by = my - arrowSize * ty;
+                Mech.draw.arc(ctx, D.x, D.y, arrowR, phi1, phi2, true, { color: C.work, width: 2 });
                 ctx.beginPath();
-                // canvas坐标系中逆时针 = C1到C2上方路径
-                ctx.arc(D.x, D.y, arcR, phi1, phi2, true);
-                ctx.setLineDash([5, 4]);
-                ctx.strokeStyle = '#a78bfa';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-            
-            // DC₁ 虚线（黄色）
-            if (geo.limit1 && geo.limit1.C) {
-                ctx.beginPath();
-                ctx.setLineDash([6, 4]);
-                ctx.moveTo(D.x, D.y);
-                ctx.lineTo(geo.limit1.C.x, geo.limit1.C.y);
-                ctx.strokeStyle = '#fbbf24';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                ctx.setLineDash([]);
-                
-                // B₁ 点
-                ctx.beginPath();
-                ctx.arc(geo.limit1.B.x, geo.limit1.B.y, 3, 0, Math.PI * 2);
-                ctx.fillStyle = '#3b82f6';
+                ctx.moveTo(mx, my);
+                ctx.lineTo(bx - arrowSize * 0.5 * (-ty), by - arrowSize * 0.5 * tx);
+                ctx.lineTo(bx + arrowSize * 0.5 * (-ty), by + arrowSize * 0.5 * tx);
+                ctx.closePath();
+                ctx.fillStyle = C.work;
                 ctx.fill();
-                
-                // C₁ 标签
-                ctx.fillStyle = '#fbbf24';
-                ctx.font = 'bold 13px sans-serif';
-                ctx.textAlign = 'left';
-                ctx.fillText('C₁', geo.limit1.C.x + 8, geo.limit1.C.y - 8);
-                
-                // B₁ 标签
-                ctx.fillStyle = '#3b82f6';
-                ctx.fillText('B₁', geo.limit1.B.x - 20, geo.limit1.B.y - 8);
-            }
-            
-            // DC₂ 虚线（橙色）
-            if (geo.limit2 && geo.limit2.C) {
-                ctx.beginPath();
-                ctx.setLineDash([6, 4]);
-                ctx.moveTo(D.x, D.y);
-                ctx.lineTo(geo.limit2.C.x, geo.limit2.C.y);
-                ctx.strokeStyle = '#f97316';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                ctx.setLineDash([]);
-                
-                // B₂ 点
-                ctx.beginPath();
-                ctx.arc(geo.limit2.B.x, geo.limit2.B.y, 3, 0, Math.PI * 2);
-                ctx.fillStyle = '#3b82f6';
-                ctx.fill();
-                
-                // C₂ 标签
-                ctx.fillStyle = '#f97316';
-                ctx.font = 'bold 13px sans-serif';
-                ctx.textAlign = 'left';
-                ctx.fillText('C₂', geo.limit2.C.x + 8, geo.limit2.C.y - 8);
-                
-                // B₂ 标签
-                ctx.fillStyle = '#3b82f6';
-                ctx.fillText('B₂', geo.limit2.B.x - 20, geo.limit2.B.y - 8);
-            }
-            
-            // ③ AB₁ 和 AB₂ 虚线连接
-            if (geo.limit1 && geo.limit1.B) {
-                ctx.beginPath();
-                ctx.setLineDash([4, 4]);
-                ctx.moveTo(A.x, A.y);
-                ctx.lineTo(geo.limit1.B.x, geo.limit1.B.y);
-                ctx.strokeStyle = 'rgba(251,191,36,0.4)';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-            if (geo.limit2 && geo.limit2.B) {
-                ctx.beginPath();
-                ctx.setLineDash([4, 4]);
-                ctx.moveTo(A.x, A.y);
-                ctx.lineTo(geo.limit2.B.x, geo.limit2.B.y);
-                ctx.strokeStyle = 'rgba(249,115,22,0.4)';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-            
-            // 摆角 ψ（在D点处，∠C₁DC₂）
-            if (geo.limit1 && geo.limit2 && geo.limit1.C && geo.limit2.C) {
-                const a1 = Math.atan2(-(geo.limit1.C.y - D.y), geo.limit1.C.x - D.x);
-                const a2 = Math.atan2(-(geo.limit2.C.y - D.y), geo.limit2.C.x - D.x);
-                
-                ctx.beginPath();
-                ctx.arc(D.x, D.y, 30, -Math.min(a1, a2), -Math.max(a1, a2), true);
-                ctx.strokeStyle = '#fbbf24';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                
-                // ψ 标签
-                const midAngle = (a1 + a2) / 2;
-                const lx = D.x + 45 * Math.cos(midAngle);
-                const ly = D.y - 45 * Math.sin(midAngle);
-                ctx.fillStyle = '#fbbf24';
-                ctx.font = 'bold 14px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('ψ', lx, ly);
-            }
-            
-            // AB₂ 反向延长虚线（到圆的另一边 B₂'，不标注）
-            if (geo.limit2 && geo.limit2.B) {
-                const extAngle2 = geo.limit2.angle + Math.PI; // 反向延长方向
-                ctx.beginPath();
-                ctx.setLineDash([3, 3]);
-                ctx.moveTo(A.x, A.y);
-                ctx.lineTo(A.x + params.r1 * Math.cos(extAngle2), A.y - params.r1 * Math.sin(extAngle2));
-                ctx.strokeStyle = 'rgba(249,115,22,0.3)';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-            
-            // 极位夹角 θ = ∠B₂'AB₁（始终是锐角）
-            if (geo.limit1 && geo.limit2 && geo.limit1.B && geo.limit2.B && geo.theta > 0.01) {
-                const B1 = geo.limit1.B;
-                const B2 = geo.limit2.B;
-                // B₂' 是 B₂ 关于 A 的对称点
-                const B2p = { x: 2 * A.x - B2.x, y: 2 * A.y - B2.y };
-                
-                // 直接用坐标算画布角度（atan2(y向下),x）
-                const aB2p = Math.atan2(B2p.y - A.y, B2p.x - A.x);
-                const aB1 = Math.atan2(B1.y - A.y, B1.x - A.x);
-                
-                // 短弧：从 aB2p 到 aB1，取短路径
-                let d = aB1 - aB2p;
-                while (d > Math.PI) d -= 2 * Math.PI;
-                while (d < -Math.PI) d += 2 * Math.PI;
-                
-                ctx.beginPath();
-                ctx.arc(A.x, A.y, 25, aB2p, aB1, d < 0);
-                ctx.strokeStyle = '#f97316';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                
-                // θ 标签（弧段中点）
-                const mid = aB2p + d / 2;
-                const lx2 = A.x + 40 * Math.cos(mid);
-                const ly2 = A.y + 40 * Math.sin(mid);
-                ctx.fillStyle = '#f97316';
-                ctx.font = 'bold 14px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('θ', lx2, ly2);
-            }
-            
-            // ④ 摇杆圆弧上的推程/回程箭头
-            if (geo.limit1 && geo.limit2 && geo.limit1.C && geo.limit2.C) {
-                const phi1 = Math.atan2(geo.limit1.C.y - D.y, geo.limit1.C.x - D.x);
-                const phi2 = Math.atan2(geo.limit2.C.y - D.y, geo.limit2.C.x - D.x);
-                const arrowR = params.r3 * 0.55; // 在摇杆长度约一半处画箭头
-                
-                // 弧段中点角度（C1→C2 的中点，取逆时针方向的中点）
-                let delta = phi2 - phi1;
-                if (delta > 0) delta -= 2 * Math.PI; // 确保逆时针方向为负增量
-                const midPhi = phi1 + delta / 2;
-                const mx = D.x + arrowR * Math.cos(midPhi);
-                const my = D.y + arrowR * Math.sin(midPhi);
-                
-                // 箭头方向：切线方向
-                // 推程(C1→C2逆时针): canvas切线 = (sin(midPhi), -cos(midPhi))
-                // 回程(C2→C1顺时针): canvas切线 = (-sin(midPhi), cos(midPhi))
-                const arrowSize = 8;
-                
-                // 根据θ判断快慢：θ>0时推程慢(180°+θ)，回程快(180°-θ)
-                const hasQuickReturn = geo.theta > 0.01;
-                const pushLabel = hasQuickReturn ? '慢推' : '推';
-                const returnLabel = hasQuickReturn ? '快回' : '回';
-                
-                if (isPush) {
-                    // 推程箭头（蓝色，C1→C2方向）
-                    const tx = Math.sin(midPhi);
-                    const ty = -Math.cos(midPhi);
-                    const baseX = mx - arrowSize * tx;
-                    const baseY = my - arrowSize * ty;
-                    
-                    // 画推程弧段
-                    ctx.beginPath();
-                    ctx.arc(D.x, D.y, arrowR, phi1, phi2, true);
-                    ctx.strokeStyle = '#3b82f6';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                    
-                    // 箭头
-                    ctx.beginPath();
-                    ctx.moveTo(mx, my);
-                    ctx.lineTo(baseX - arrowSize * 0.5 * (-ty), baseY - arrowSize * 0.5 * tx);
-                    ctx.lineTo(baseX + arrowSize * 0.5 * (-ty), baseY + arrowSize * 0.5 * tx);
-                    ctx.closePath();
-                    ctx.fillStyle = '#3b82f6';
-                    ctx.fill();
-                    
-                    // 推程标签
-                    ctx.fillStyle = '#3b82f6';
-                    ctx.font = 'bold 12px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    const labelR = arrowR + 16;
-                    ctx.fillText(pushLabel, D.x + labelR * Math.cos(midPhi), D.y + labelR * Math.sin(midPhi));
-                } else {
-                    // 回程箭头（绿色，C2→C1方向）
-                    const tx = -Math.sin(midPhi);
-                    const ty = Math.cos(midPhi);
-                    const baseX = mx - arrowSize * tx;
-                    const baseY = my - arrowSize * ty;
-                    
-                    // 画回程弧段
-                    ctx.beginPath();
-                    ctx.arc(D.x, D.y, arrowR, phi2, phi1, false);
-                    ctx.strokeStyle = '#34d399';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                    
-                    // 箭头
-                    ctx.beginPath();
-                    ctx.moveTo(mx, my);
-                    ctx.lineTo(baseX - arrowSize * 0.5 * (-ty), baseY - arrowSize * 0.5 * tx);
-                    ctx.lineTo(baseX + arrowSize * 0.5 * (-ty), baseY + arrowSize * 0.5 * tx);
-                    ctx.closePath();
-                    ctx.fillStyle = '#34d399';
-                    ctx.fill();
-                    
-                    // 回程标签
-                    ctx.fillStyle = '#34d399';
-                    ctx.font = 'bold 12px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    const labelR = arrowR + 16;
-                    ctx.fillText(returnLabel, D.x + labelR * Math.cos(midPhi), D.y + labelR * Math.sin(midPhi));
-                }
-            }
-            
-            // 绘制机构
-            const result = solveFourBar(angle);
-            if (!result) return;
-            
-            const { B, C } = result;
-            
-            // 机架
-            ctx.beginPath();
-            ctx.moveTo(A.x, A.y);
-            ctx.lineTo(D.x, D.y);
-            ctx.strokeStyle = '#71717a';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            // 铰支座符号（三角形+斜杠，表示固定铰链）
-            drawHingedSupport(A.x, A.y);
-            drawHingedSupport(D.x, D.y);
-            
-            // 曲柄
-            ctx.beginPath();
-            ctx.moveTo(A.x, A.y);
-            ctx.lineTo(B.x, B.y);
-            ctx.strokeStyle = '#e4e4e7';
-            ctx.lineWidth = 2.5;
-            ctx.stroke();
-            
-            // 连杆
-            ctx.beginPath();
-            ctx.moveTo(B.x, B.y);
-            ctx.lineTo(C.x, C.y);
-            ctx.strokeStyle = '#e4e4e7';
-            ctx.lineWidth = 2.5;
-            ctx.stroke();
-            
-            // 摇杆
-            ctx.beginPath();
-            ctx.moveTo(D.x, D.y);
-            ctx.lineTo(C.x, C.y);
-            ctx.strokeStyle = '#e4e4e7';
-            ctx.lineWidth = 2.5;
-            ctx.stroke();
-            
-            // 铰链
-            [A, D].forEach(p => {
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-                ctx.fillStyle = '#71717a';
-                ctx.fill();
-                ctx.strokeStyle = '#12141d';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-            });
-            
-            [B, C].forEach(p => {
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-                ctx.fillStyle = '#e4e4e7';
-                ctx.fill();
-                ctx.strokeStyle = '#12141d';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-            });
-            
-            // 标签
-            ctx.fillStyle = '#a1a1aa';
-            ctx.font = '12px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('A', A.x, A.y + 28);
-            ctx.fillText('D', D.x, D.y + 28);
-            ctx.fillText('B', B.x + 12, B.y - 10);
-            ctx.fillText('C', C.x + 12, C.y - 10);
-        }
-        
-        function animate(timestamp) {
-            if (!isPlaying) return;
-            if (lastTimestamp !== null) {
-                const dt = (timestamp - lastTimestamp) / 1000; // 秒
-                // 基准：speedFactor=1 时约 0.48 rad/s（与原0.008rad/帧@60fps等效）
-                angle += 0.48 * params.speedFactor * dt;
-            }
-            lastTimestamp = timestamp;
-            updatePhase();
-            draw();
-            animationId = requestAnimationFrame(animate);
-        }
-        
-        function updateInfoPanel() {
-            const thetaDeg = geo.theta * 180 / Math.PI;
-            const psiDeg = geo.psi * 180 / Math.PI;
-            const K = thetaDeg > 0.1 ? (180 + thetaDeg) / (180 - thetaDeg) : 1;
-            
-            document.getElementById('thetaValue').textContent = thetaDeg.toFixed(1) + '°';
-            document.getElementById('psiValue').textContent = psiDeg.toFixed(1) + '°';
-            document.getElementById('kValue').textContent = K.toFixed(2);
-            document.getElementById('workAngle').textContent = (180 + thetaDeg).toFixed(1) + '°';
-            document.getElementById('returnAngle').textContent = (180 - thetaDeg).toFixed(1) + '°';
-        }
-        
-        document.getElementById('playBtn').addEventListener('click', () => {
-            const btn = document.getElementById('playBtn');
-            if (isPlaying) {
-                isPlaying = false;
-                cancelAnimationFrame(animationId);
-                btn.textContent = '▶ 播放';
+                Mech.draw.text(ctx, pushLabel, D.x + (arrowR+16)*Math.cos(midPhi), D.y + (arrowR+16)*Math.sin(midPhi), { color: C.work, font: 'bold 12px sans-serif', baseline: 'middle' });
             } else {
-                isPlaying = true;
-                lastTimestamp = null; // 重置时间戳，避免暂停后恢复时跳帧
-                btn.textContent = '⏸ 暂停';
-                animate(performance.now());
+                const tx = -Math.sin(midPhi), ty = Math.cos(midPhi);
+                const bx = mx - arrowSize * tx, by = my - arrowSize * ty;
+                Mech.draw.arc(ctx, D.x, D.y, arrowR, phi2, phi1, false, { color: C.return, width: 2 });
+                ctx.beginPath();
+                ctx.moveTo(mx, my);
+                ctx.lineTo(bx - arrowSize * 0.5 * (-ty), by - arrowSize * 0.5 * tx);
+                ctx.lineTo(bx + arrowSize * 0.5 * (-ty), by + arrowSize * 0.5 * tx);
+                ctx.closePath();
+                ctx.fillStyle = C.return;
+                ctx.fill();
+                Mech.draw.text(ctx, returnLabel, D.x + (arrowR+16)*Math.cos(midPhi), D.y + (arrowR+16)*Math.sin(midPhi), { color: C.return, font: 'bold 12px sans-serif', baseline: 'middle' });
             }
-        });
-        
-        document.getElementById('resetBtn').addEventListener('click', () => {
-            angle = 0;
-            isPlaying = false;
-            lastTimestamp = null;
-            cancelAnimationFrame(animationId);
-            document.getElementById('playBtn').textContent = '▶ 播放';
-            draw();
-        });
-        
-        document.getElementById('speedSlider').addEventListener('input', (e) => {
-            params.speedFactor = parseInt(e.target.value) / 8;
-            document.getElementById('speedValue').textContent = params.speedFactor.toFixed(1) + 'x';
-        });
-        
-        document.getElementById('limit1Btn').addEventListener('click', () => {
-            if (geo.limit1) {
-                isPlaying = false;
-                cancelAnimationFrame(animationId);
-                document.getElementById('playBtn').textContent = '▶ 播放';
-                angle = geo.limit1.angle;
-                updatePhase();
-                draw();
-            }
-        });
-        
-        document.getElementById('limit2Btn').addEventListener('click', () => {
-            if (geo.limit2) {
-                isPlaying = false;
-                cancelAnimationFrame(animationId);
-                document.getElementById('playBtn').textContent = '▶ 播放';
-                angle = geo.limit2.angle;
-                updatePhase();
-                draw();
-            }
-        });
-        
-        document.getElementById('crankSlider').addEventListener('input', (e) => {
-            params.r1 = parseInt(e.target.value);
-            document.getElementById('crankValue').textContent = params.r1;
-            calculateLimits();
-            updateInfoPanel();
-            updatePhase();
-            draw();
-        });
-        
-        document.getElementById('rockerSlider').addEventListener('input', (e) => {
-            params.r3 = parseInt(e.target.value);
-            document.getElementById('rockerValue').textContent = params.r3;
-            calculateLimits();
-            updateInfoPanel();
-            updatePhase();
-            draw();
-        });
-        
-        window.addEventListener('resize', () => {
-            resizeCanvas();
-            draw();
-        });
-        
-        resizeCanvas();
-        updateInfoPanel();
-        updatePhase();
-        draw();
-        
-        console.log('v5.6 loaded');
-        console.log('limit1:', geo.limit1);
-        console.log('limit2:', geo.limit2);
-        console.log('theta:', geo.theta * 180 / Math.PI);
-        console.log('psi:', geo.psi * 180 / Math.PI);
+        }
+
+        // 机构杆件
+        const result = solveFourBar(angle);
+        if (!result) return;
+        const { B, C: Cpt } = result;
+
+        // 机架 + 铰支座
+        Mech.draw.link(ctx, A.x, A.y, D.x, D.y, { color: C.hinge, width: 2 });
+        Mech.draw.hingedSupport(ctx, A.x, A.y);
+        Mech.draw.hingedSupport(ctx, D.x, D.y);
+
+        // 曲柄、连杆、摇杆
+        Mech.draw.link(ctx, A.x, A.y, B.x, B.y);
+        Mech.draw.link(ctx, B.x, B.y, Cpt.x, Cpt.y);
+        Mech.draw.link(ctx, D.x, D.y, Cpt.x, Cpt.y);
+
+        // 铰链点
+        Mech.draw.fixedHinge(ctx, A.x, A.y);
+        Mech.draw.fixedHinge(ctx, D.x, D.y);
+        Mech.draw.hinge(ctx, B.x, B.y);
+        Mech.draw.hinge(ctx, Cpt.x, Cpt.y);
+
+        // 标签
+        Mech.draw.text(ctx, 'A', A.x, A.y + 28);
+        Mech.draw.text(ctx, 'D', D.x, D.y + 28);
+        Mech.draw.text(ctx, 'B', B.x + 12, B.y - 10, { align: 'left' });
+        Mech.draw.text(ctx, 'C', Cpt.x + 12, Cpt.y - 10, { align: 'left' });
+    }
+
+    // ===== 信息面板更新 =====
+    function updateInfoPanel() {
+        const thetaDeg = Mech.math.rad2deg(geo.theta);
+        const psiDeg = Mech.math.rad2deg(geo.psi);
+        const K = thetaDeg > 0.1 ? (180 + thetaDeg) / (180 - thetaDeg) : 1;
+        infoRefs.theta.textContent = thetaDeg.toFixed(1) + '°';
+        infoRefs.psi.textContent = psiDeg.toFixed(1) + '°';
+        infoRefs.k.textContent = K.toFixed(2);
+        infoRefs.work.textContent = (180 + thetaDeg).toFixed(1) + '°';
+        infoRefs.return.textContent = (180 - thetaDeg).toFixed(1) + '°';
+    }
+
+    // ===== 响应式布局 =====
+    function onResize() {
+        const { w, h } = getDimensions();
+        const cx = w / 2, cy = h / 2 + 20;
+        geo.A = { x: cx - params.r4 / 2, y: cy };
+        geo.D = { x: cx + params.r4 / 2, y: cy };
+        calculateLimits();
+    }
+
+    // ===== 初始化 UI =====
+    const controls = document.getElementById('controls');
+    const playBtn = Mech.ui.button(controls, {
+        text: '▶ 播放', variant: 'primary',
+        onClick: () => {
+            if (anim.isPlaying()) { anim.pause(); playBtn.textContent = '▶ 播放'; }
+            else { anim.play(); playBtn.textContent = '⏸ 暂停'; }
+        }
+    });
+    Mech.ui.button(controls, {
+        text: '重置', variant: 'secondary',
+        onClick: () => { angle = 0; anim.pause(); playBtn.textContent = '▶ 播放'; updatePhase(); draw(); }
+    });
+    Mech.ui.button(controls, {
+        text: '极位₁', variant: 'accent',
+        onClick: () => { if (geo.limit1) { anim.pause(); playBtn.textContent = '▶ 播放'; angle = geo.limit1.angle; updatePhase(); draw(); } }
+    });
+    Mech.ui.button(controls, {
+        text: '极位₂', variant: 'accent',
+        onClick: () => { if (geo.limit2) { anim.pause(); playBtn.textContent = '▶ 播放'; angle = geo.limit2.angle; updatePhase(); draw(); } }
+    });
+    Mech.ui.slider(controls, {
+        label: '曲柄速度', min: 1, max: 30, value: 8,
+        format: v => (v / 8).toFixed(1) + 'x',
+        onChange: v => { params.speedFactor = v / 8; }
+    });
+    Mech.ui.slider(controls, {
+        label: '曲柄 r₁', min: 35, max: 70, value: 50,
+        onChange: v => { params.r1 = v; calculateLimits(); updateInfoPanel(); updatePhase(); draw(); }
+    });
+    Mech.ui.slider(controls, {
+        label: '摇杆 r₃', min: 90, max: 140, value: 110,
+        onChange: v => { params.r3 = v; calculateLimits(); updateInfoPanel(); updatePhase(); draw(); }
+    });
+
+    const infoRefs = Mech.ui.infoPanel(document.getElementById('infoPanel'), [
+        { id: 'theta', label: '极位夹角 θ' },
+        { id: 'psi', label: '摆角 ψ' },
+        { id: 'k', label: '行程速比系数 K' },
+        { id: 'work', label: '推程转角 φ₁', variant: 'work' },
+        { id: 'return', label: '回程转角 φ₂', variant: 'return' },
+    ]);
+
+    Mech.ui.legend(document.getElementById('legend'), [
+        { color: '#e4e4e7', label: '机构杆件' },
+        { color: '#71717a', label: '机架' },
+        { color: '#fbbf24', label: 'DC₁ 虚线' },
+        { color: '#f97316', label: 'DC₂ 虚线' },
+        { color: '#3b82f6', label: '推程（慢）' },
+        { color: '#34d399', label: '回程（快）' },
+    ]);
+
+    // ===== 启动 =====
+    window.addEventListener('resize', () => { onResize(); draw(); });
+    onResize();
+    updateInfoPanel();
+    updatePhase();
+    draw();
+
+    console.log('v6.0 loaded (refactored with mech.js)');
     </script>
 </body>
 </html>
