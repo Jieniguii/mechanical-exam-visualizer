@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>瞬心法求速度 — 机械考研可视化</title>
+<link rel="stylesheet" href="mech.css">
+</head>
+<body>
+<a href="ch2-kinematics.html" class="back-btn">← 返回章节</a>
+
+<div class="header">
+  <h1>瞬心法求速度 <span class="version-badge">v1.0</span></h1>
+  <p>铰链四杆机构速度瞬心分析与求解 — Kennedy定理可视化</p>
+</div>
+
+<div class="app">
+  <div class="main-layout">
+    <div>
+      <div class="canvas-card">
+        <div class="canvas-wrapper">
+          <canvas id="canvas"></canvas>
+        </div>
+        <div class="canvas-toolbar" id="toolbar"></div>
+      </div>
+    </div>
+    <div class="sidebar" id="sidebar"></div>
+  </div>
+</div>
+
+<script src="mech.js"></script>
+<script>
+/* ===== 瞬心法求速度 v1.0 ===== */
+const RAD = Math.PI / 180;
+
+// ===== 状态 =====
+const state = {
+  l1: 80, l2: 200, l3: 160, l4: 220,
+  theta2: 0,
+  speed: 0.8,
+  omega2: 1.0,
+  showIC: true,
+  showTrace: false,
+  showVelocity: false,
+  stepLevel: 0,
+};
+
+const traceP13 = [];
+const traceP24 = [];
+const MAX_TRACE = 600;
+
+// ===== Canvas + 动画 =====
+const { ctx, getDimensions, canvas } = Mech.setupCanvas(document.getElementById('canvas'));
+const anim = Mech.createAnimator(
+  dt => { state.theta2 += state.speed * dt; },
+  () => draw()
+);
+
+// ===== 四杆求解 =====
+function solveFB(a, b, c, d, th) {
+  const Bx = a * Math.cos(th), By = a * Math.sin(th);
+  const dx = d - Bx, dy = -By;
+  const BD = Math.sqrt(dx * dx + dy * dy);
+  if (BD > b + c || BD < Math.abs(b - c) || BD < 1e-6) return null;
+  const phi = Math.atan2(dy, dx);
+  const cosB = (BD * BD + b * b - c * c) / (2 * BD * b);
+  if (Math.abs(cosB) > 1) return null;
+  const beta = Math.acos(Math.max(-1, Math.min(1, cosB)));
+  const th3 = phi + beta;
+  return { Bx, By, Cx: Bx + b * Math.cos(th3), Cy: By + b * Math.sin(th3), th3 };
+}
+
+// ===== 线线交点 =====
+function lineIntersect(p1x, p1y, d1x, d1y, p2x, p2y, d2x, d2y) {
+  const denom = d1x * d2y - d1y * d2x;
+  if (Math.abs(denom) < 1e-8) return null;
+  const t = ((p2x - p1x) * d2y - (p2y - p1y) * d2x) / denom;
+  return { x: p1x + t * d1x, y: p1y + t * d1y };
+}
+
+function findP13(Bx, By, Cx, Cy, d) {
+  return lineIntersect(0, 0, Bx, By, d, 0, Cx - d, Cy);
+}
+function findP24(Bx, By, Cx, Cy) {
+  return lineIntersect(0, 0, 1, 0, Bx, By, Cx - Bx, Cy - By);
+}
+
+// ===== 速度计算 =====
+function calcVelocity(fb, p13, p24) {
+  const w2 = state.omega2;
+  const { Bx, By, Cx, Cy } = fb;
+  const d = state.l4;
+  const vBx = -w2 * By, vBy = w2 * Bx;
+  const vB = Math.abs(w2) * state.l1;
+  let w3 = 0, vC = 0, vCx = 0, vCy = 0;
+  if (p13) {
+    const rx = Bx - p13.x, ry = By - p13.y;
+    const rLen2 = rx * rx + ry * ry;
+    if (rLen2 > 1e-4) {
+      w3 = w2 * (Bx * rx + By * ry) / rLen2;
+    }
+    const rcx = Cx - p13.x, rcy = Cy - p13.y;
+    vCx = -w3 * rcy;
+    vCy = w3 * rcx;
+    vC = Math.abs(w3) * Math.sqrt(rcx * rcx + rcy * rcy);
+  }
+  let w4 = 0;
+  if (p24) {
+    const denom = p24.x - d;
+    if (Math.abs(denom) > 1e-4) {
+      w4 = w2 * p24.x / denom;
+    }
+  }
+  return { w2, w3, w4, vB, vC, vBx, vBy, vCx, vCy };
+}
+
+// ===== 显示判断 =====
+function shouldShow(elem) {
+  const g = state.stepLevel > 0;
+  switch (elem) {
+    case 'pinIC': return g ? state.stepLevel >= 1 : state.showIC;
+    case 'p13Line': return g ? state.stepLevel >= 2 : state.showIC;
+    case 'p13': return g ? state.stepLevel >= 2 : state.showIC;
+    case 'p24Line': return g ? state.stepLevel >= 3 : state.showIC;
+    case 'p24': return g ? state.stepLevel >= 3 : state.showIC;
+    case 'velocity': return g ? state.stepLevel >= 4 : state.showVelocity;
+    default: return true;
+  }
+}
+
+// ===== 延长线绘制 =====
+function drawExtendedLine(x1, y1, x2, y2, w, h, color, dash) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.sqrt(dx*dx + dy*dy);
+  if (len < 1) return;
+  const ux = dx / len, uy = dy / len;
+  const ext = Math.max(w, h);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.setLineDash(dash);
+  ctx.beginPath();
+  ctx.moveTo(x1 - ux * ext, y1 - uy * ext);
+  ctx.lineTo(x2 + ux * ext, y2 + uy * ext);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// 瞬心标记
+function drawIC(x, y, label, color, ox, oy) {
+  ox = ox || 0; oy = oy || 0;
+  ctx.beginPath();
+  ctx.arc(x, y, 5, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = '#0f1117';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  if (label) {
+    Mech.draw.text(ctx, label, x + ox, y + oy, { color, font: 'bold 11px sans-serif' });
+  }
+}
+
+// 速度箭头
+function drawVelArrow(x, y, vx, vy, color, label) {
+  const mag = Math.sqrt(vx*vx + vy*vy);
+  if (mag < 0.01) return;
+  const scale = 40;
+  const ex = x + vx * scale, ey = y - vy * scale;
+  Mech.draw.arrow(ctx, x, y, ex, ey, { color, size: 7, width: 2.5 });
+  Mech.draw.text(ctx, label, ex + 6, ey - 6, { color, font: 'bold 11px sans-serif', align: 'left' });
+}
+
+// ===== 主绘制 =====
+function draw() {
+  const { w, h } = getDimensions();
+  ctx.clearRect(0, 0, w, h);
+  const C = Mech.colors;
+
+  const fb = solveFB(state.l1, state.l2, state.l3, state.l4, state.theta2);
+  if (!fb) return;
+
+  const p13 = findP13(fb.Bx, fb.By, fb.Cx, fb.Cy, state.l4);
+  const p24 = findP24(fb.Bx, fb.By, fb.Cx, fb.Cy);
+  const vel = calcVelocity(fb, p13, p24);
+
+  if (state.showTrace && p13) {
+    traceP13.push({ x: p13.x, y: p13.y });
+    if (traceP13.length > MAX_TRACE) traceP13.shift();
+  }
+  if (state.showTrace && p24) {
+    traceP24.push({ x: p24.x, y: p24.y });
+    if (traceP24.length > MAX_TRACE) traceP24.shift();
+  }
+
+  const maxR = state.l1 + state.l2 + state.l4;
+  const sc = Math.min(w * 0.85 / maxR, h * 0.7 / maxR) * 0.8;
+  const cx = w * 0.5, cy = h * 0.55;
+  const tx = x => cx + x * sc;
+  const ty = y => cy - y * sc;
+
+  const Ax = tx(0), Ay = ty(0);
+  const Bx = tx(fb.Bx), By = ty(fb.By);
+  const Cx = tx(fb.Cx), Cy = ty(fb.Cy);
+  const Dx = tx(state.l4), Dy = ty(0);
+
+  // 轨迹
+  if (state.showTrace) {
+    ctx.lineWidth = 1.5;
+    for (let i = 1; i < traceP13.length; i++) {
+      const a = i / traceP13.length;
+      ctx.strokeStyle = 'rgba(249,115,22,' + (a * 0.4) + ')';
+      ctx.beginPath();
+      ctx.moveTo(tx(traceP13[i-1].x), ty(traceP13[i-1].y));
+      ctx.lineTo(tx(traceP13[i].x), ty(traceP13[i].y));
+      ctx.stroke();
+    }
+    for (let i = 1; i < traceP24.length; i++) {
+      const a = i / traceP24.length;
+      ctx.strokeStyle = 'rgba(251,191,36,' + (a * 0.4) + ')';
+      ctx.beginPath();
+      ctx.moveTo(tx(traceP24[i-1].x), ty(traceP24[i-1].y));
+      ctx.lineTo(tx(traceP24[i].x), ty(traceP24[i].y));
+      ctx.stroke();
+    }
+  }
+
+  // 构造线
+  if (shouldShow('p13Line')) {
+    drawExtendedLine(Ax, Ay, Bx, By, w, h, 'rgba(99,102,241,0.3)', [5,4]);
+    drawExtendedLine(Dx, Dy, Cx, Cy, w, h, 'rgba(52,211,153,0.3)', [5,4]);
+  }
+  if (shouldShow('p24Line')) {
+    drawExtendedLine(Ax, Ay, Dx, Dy, w, h, 'rgba(113,113,122,0.3)', [5,4]);
+    drawExtendedLine(Bx, By, Cx, Cy, w, h, 'rgba(249,115,22,0.3)', [5,4]);
+  }
+
+  // 机架
+  Mech.draw.dashedLine(ctx, Ax, Ay, Dx, Dy, { color: C.hinge, width: 2, dash: [6,4] });
+  Mech.draw.hingedSupport(ctx, Ax, Ay);
+  Mech.draw.hingedSupport(ctx, Dx, Dy);
+
+  // 杆件
+  Mech.draw.link(ctx, Ax, Ay, Bx, By, { color: C.accent, width: 4, label: '2' });
+  Mech.draw.link(ctx, Bx, By, Cx, Cy, { color: C.return, width: 4, label: '3' });
+  Mech.draw.link(ctx, Dx, Dy, Cx, Cy, { color: C.work, width: 4, label: '4' });
+
+  // 铰链
+  Mech.draw.fixedHinge(ctx, Ax, Ay, { r: 6 });
+  Mech.draw.fixedHinge(ctx, Dx, Dy, { r: 6 });
+  Mech.draw.hinge(ctx, Bx, By, { color: C.accent, r: 5 });
+  Mech.draw.hinge(ctx, Cx, Cy, { color: C.return, r: 5 });
+
+  // 点标签
+  Mech.draw.text(ctx, 'A', Ax - 14, Ay + 20, { color: C.textDim, font: 'bold 12px sans-serif' });
+  Mech.draw.text(ctx, 'D', Dx + 14, Dy + 20, { color: C.textDim, font: 'bold 12px sans-serif' });
+  Mech.draw.text(ctx, 'B', Bx + 14, By - 10, { color: C.accent, font: 'bold 12px sans-serif', align: 'left' });
+  Mech.draw.text(ctx, 'C', Cx + 14, Cy - 10, { color: C.return, font: 'bold 12px sans-serif', align: 'left' });
+
+  // 瞬心标记
+  if (shouldShow('pinIC')) {
+    drawIC(Ax, Ay, 'P12', '#3b82f6');
+    drawIC(Bx, By, 'P23', '#3b82f6', 18, -20);
+    drawIC(Cx, Cy, 'P34', '#3b82f6', 18, 18);
+    drawIC(Dx, Dy, 'P14', '#3b82f6', -18, 18);
+  }
+  if (shouldShow('p13') && p13) {
+    const px = tx(p13.x), py = ty(p13.y);
+    const dist = Math.sqrt(p13.x*p13.x + p13.y*p13.y);
+    if (dist < maxR * 4) {
+      drawIC(px, py, 'P13', '#f97316');
+    } else {
+      const ang = Math.atan2(p13.y, p13.x);
+      const ex = cx + Math.cos(ang) * 150, ey = cy - Math.sin(ang) * 150;
+      ctx.fillStyle = '#f97316';
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('P13 -> inf', ex, ey);
+    }
+  }
+  if (shouldShow('p24') && p24) {
+    const px = tx(p24.x), py = ty(p24.y);
+    drawIC(px, py, 'P24', '#fbbf24', 0, -20);
+  }
+
+  // 速度矢量
+  if (shouldShow('velocity')) {
+    drawVelArrow(Bx, By, vel.vBx, vel.vBy, '#3b82f6', 'vB');
+    drawVelArrow(Cx, Cy, vel.vCx, vel.vCy, '#fbbf24', 'vC');
+  }
+
+  updateInfo(fb, p13, p24, vel);
+  updateTip();
+}
+
+// ===== UI 构建 =====
+const sidebar = document.getElementById('sidebar');
+const ui = {};
+
+const paramPanel = Mech.ui.panel(sidebar, '机构参数');
+ui.l1 = Mech.ui.sidebarSlider(paramPanel, { label: 'l1 曲柄', min: 30, max: 120, value: 80, onChange: v => { state.l1 = v; draw(); } });
+ui.l2 = Mech.ui.sidebarSlider(paramPanel, { label: 'l2 连杆', min: 100, max: 280, value: 200, onChange: v => { state.l2 = v; draw(); } });
+ui.l3 = Mech.ui.sidebarSlider(paramPanel, { label: 'l3 摇杆', min: 80, max: 220, value: 160, onChange: v => { state.l3 = v; draw(); } });
+ui.l4 = Mech.ui.sidebarSlider(paramPanel, { label: 'l4 机架', min: 120, max: 300, value: 220, onChange: v => { state.l4 = v; draw(); } });
+ui.w2 = Mech.ui.sidebarSlider(paramPanel, { label: 'w2 (rad/s)', min: 0.2, max: 3, value: 1, step: 0.1, onChange: v => { state.omega2 = v; draw(); } });
+
+// 分步标注
+const stepPanel = Mech.ui.panel(sidebar, '分步标注');
+const stepList = document.createElement('div');
+stepList.className = 'step-list';
+stepPanel.appendChild(stepList);
+
+const steps = [
+  { num: '*', text: '全部显示' },
+  { num: '1', text: '标注铰链瞬心' },
+  { num: '2', text: 'Kennedy定理找P13' },
+  { num: '3', text: '找P24' },
+  { num: '4', text: '求速度' },
+];
+const stepBtns = [];
+steps.forEach(function(s, i) {
+  const btn = document.createElement('button');
+  btn.className = 'step-btn' + (i === 0 ? ' active' : '');
+  btn.innerHTML = '<span class="step-num">' + s.num + '</span><span class="step-text">' + s.text + '</span>';
+  btn.addEventListener('click', function() {
+    state.stepLevel = i;
+    stepBtns.forEach(function(b, j) {
+      b.className = 'step-btn';
+      if (j === i) b.classList.add('active');
+      else if (j > 0 && j < i) b.classList.add('done');
+    });
+    draw();
+  });
+  stepList.appendChild(btn);
+  stepBtns.push(btn);
+});
+
+// 显示选项
+const optPanel = Mech.ui.panel(sidebar, '显示选项');
+ui.cbIC = Mech.ui.checkbox(optPanel, { label: '显示瞬心', checked: true, onChange: v => { state.showIC = v; draw(); } });
+ui.cbTrace = Mech.ui.checkbox(optPanel, { label: '显示瞬心轨迹', checked: false, onChange: v => { state.showTrace = v; if (!v) { traceP13.length = 0; traceP24.length = 0; } draw(); } });
+ui.cbVel = Mech.ui.checkbox(optPanel, { label: '显示速度方向', checked: false, onChange: v => { state.showVelocity = v; draw(); } });
+
+// 实时信息
+const infoPanel = Mech.ui.panel(sidebar, '实时信息');
+ui.icGrid = document.createElement('div');
+ui.icGrid.className = 'info-grid';
+infoPanel.appendChild(ui.icGrid);
+ui.velGrid = document.createElement('div');
+ui.velGrid.className = 'info-grid';
+ui.velGrid.style.marginTop = '6px';
+infoPanel.appendChild(ui.velGrid);
+
+function updateInfo(fb, p13, p24, vel) {
+  var fmt = function(v) { return v ? '(' + v.x.toFixed(1) + ', ' + v.y.toFixed(1) + ')' : 'inf'; };
+  ui.icGrid.innerHTML =
+    '<div class="info-item"><div class="label">P12(A)</div><div class="value" style="font-size:12px;color:#3b82f6">(0, 0)</div></div>' +
+    '<div class="info-item"><div class="label">P14(D)</div><div class="value" style="font-size:12px;color:#3b82f6">(' + state.l4 + ', 0)</div></div>' +
+    '<div class="info-item"><div class="label">P23(B)</div><div class="value" style="font-size:12px;color:#3b82f6">(' + fb.Bx.toFixed(1) + ', ' + fb.By.toFixed(1) + ')</div></div>' +
+    '<div class="info-item"><div class="label">P34(C)</div><div class="value" style="font-size:12px;color:#3b82f6">(' + fb.Cx.toFixed(1) + ', ' + fb.Cy.toFixed(1) + ')</div></div>' +
+    '<div class="info-item"><div class="label">P13</div><div class="value" style="font-size:12px;color:#f97316">' + fmt(p13) + '</div></div>' +
+    '<div class="info-item"><div class="label">P24</div><div class="value" style="font-size:12px;color:#fbbf24">' + fmt(p24) + '</div></div>';
+  var wc = function(v) { return v > 0 ? '#34d399' : v < 0 ? '#f97316' : '#71717a'; };
+  ui.velGrid.innerHTML =
+    '<div class="info-item"><div class="label">w2</div><div class="value" style="color:#6366f1">' + vel.w2.toFixed(3) + '</div></div>' +
+    '<div class="info-item"><div class="label">theta2</div><div class="value" style="color:var(--text-dim)">' + (state.theta2 * 180 / Math.PI % 360).toFixed(1) + ' deg</div></div>' +
+    '<div class="info-item"><div class="label">w3</div><div class="value" style="color:' + wc(vel.w3) + '">' + vel.w3.toFixed(3) + '</div></div>' +
+    '<div class="info-item"><div class="label">w4</div><div class="value" style="color:' + wc(vel.w4) + '">' + vel.w4.toFixed(3) + '</div></div>' +
+    '<div class="info-item"><div class="label">vB</div><div class="value" style="color:#3b82f6">' + vel.vB.toFixed(1) + '</div></div>' +
+    '<div class="info-item"><div class="label">vC</div><div class="value" style="color:#fbbf24">' + vel.vC.toFixed(1) + '</div></div>';
+}
+
+// 知识点
+const tipPanel = Mech.ui.panel(sidebar, '知识点');
+const tipEl = document.createElement('div');
+tipEl.className = 'tip';
+tipEl.style.whiteSpace = 'pre-wrap';
+tipPanel.appendChild(tipEl);
+
+function updateTip() {
+  var tips = [
+    '四杆机构共有6个瞬心。\n4个铰链瞬心(P12 P23 P34 P14)直接在运动副处，2个相对瞬心(P13 P24)用Kennedy定理求解。\n利用瞬心可求各构件角速度和关键点速度。',
+    '铰链瞬心：两构件以转动副连接时，瞬心就在铰链中心。\nP12=A P23=B P34=C P14=D，共4个。\n这些是最容易确定的瞬心。',
+    'Kennedy定理（三心定理）：\n三个构件的三个瞬心必共线。\n对构件1-2-3：P13在P12-P23连线(AB线)上\n对构件1-3-4：P13在P14-P34连线(DC线)上\n两线交点即为P13',
+    '同理求P24：\n对构件1-2-4：P24在P12-P14连线(AD线)上\n对构件2-3-4：P24在P23-P34连线(BC线)上\n两线交点即为P24',
+    '利用瞬心求速度：\nvB = w2 * |AB|（P12为构件2绝对瞬心）\nw3 = vB / |P13B|（P13为构件3绝对瞬心）\nvC = w3 * |P13C|\nw4 = vC / |DC|（P14为构件4绝对瞬心）',
+  ];
+  tipEl.textContent = tips[state.stepLevel] || tips[0];
+}
+
+// 工具栏
+const toolbar = document.getElementById('toolbar');
+const playBtn = Mech.ui.button(toolbar, {
+  text: 'Pause', variant: 'primary',
+  onClick: function() {
+    if (anim.isPlaying()) { anim.pause(); playBtn.textContent = 'Play'; }
+    else { anim.play(); playBtn.textContent = 'Pause'; }
+  }
+});
+Mech.ui.button(toolbar, {
+  text: 'Reset', variant: 'secondary',
+  onClick: function() {
+    state.theta2 = 0;
+    state.l1 = 80; state.l2 = 200; state.l3 = 160; state.l4 = 220;
+    state.omega2 = 1; state.stepLevel = 0;
+    state.showIC = true; state.showTrace = false; state.showVelocity = false;
+    traceP13.length = 0; traceP24.length = 0;
+    ui.l1.set(80); ui.l2.set(200); ui.l3.set(160); ui.l4.set(220); ui.w2.set(1);
+    ui.cbIC.set(true); ui.cbTrace.set(false); ui.cbVel.set(false);
+    stepBtns.forEach(function(b, j) { b.className = 'step-btn' + (j === 0 ? ' active' : ''); });
+    draw();
+  }
+});
+Mech.ui.slider(toolbar, {
+  label: 'Speed', min: 0.1, max: 3, value: 0.8, step: 0.1,
+  format: function(v) { return v.toFixed(1) + 'x'; },
+  onChange: function(v) { state.speed = v; }
+});
+
+window.addEventListener('resize', function() { draw(); });
+anim.play();
+console.log('instant-center v1.0 loaded');
+</script>
+</body>
+</html>
