@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>自由度计算器 — 机械考研可视化</title>
+<link rel="stylesheet" href="mech.css">
+</head>
+<body>
+<a href="ch1-structure.html" class="back-btn">← 返回章节</a>
+
+<div class="header">
+  <h1>自由度计算器 <span class="version-badge">v1.0</span></h1>
+  <p>平面机构自由度公式 F = 3n − 2P<sub>L</sub> − P<sub>H</sub> — 交互式计算与可视化</p>
+</div>
+
+<div class="app">
+  <div class="main-layout">
+    <div>
+      <div class="canvas-card">
+        <div class="canvas-wrapper">
+          <canvas id="canvas"></canvas>
+        </div>
+        <div class="canvas-toolbar" id="toolbar"></div>
+      </div>
+    </div>
+    <div class="sidebar" id="sidebar"></div>
+  </div>
+</div>
+
+<script src="mech.js"></script>
+<script>
+/* ===== 自由度计算器 v1.0 ===== */
+
+// ===== 状态 =====
+const state = {
+  n: 3, PL: 4, PH: 0,
+  compoundHinge: false,
+  localDOF: false,
+  virtualConstraint: false,
+  compoundM: 3,
+  localDOFCount: 1,
+  virtualCount: 1,
+  theta: 0,
+  speed: 0.6,
+};
+
+// 四杆机构参数（示意图用，保证曲柄摇杆）
+const FB = { a: 55, b: 140, c: 110, d: 150 };
+
+// ===== Canvas + 动画 =====
+const { ctx, getDimensions, canvas } = Mech.setupCanvas(document.getElementById('canvas'));
+const anim = Mech.createAnimator(
+  dt => {
+    state.theta += state.speed * dt;
+    if (state.theta > 2 * Math.PI) state.theta -= 2 * Math.PI;
+  },
+  () => draw()
+);
+
+// ===== 辅助：圆角矩形 =====
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ===== 四杆求解 =====
+function solveFB(a, b, c, d, th) {
+  const Bx = a * Math.cos(th), By = a * Math.sin(th);
+  const dx = d - Bx, dy = -By;
+  const BD = Math.sqrt(dx * dx + dy * dy);
+  if (BD > b + c || BD < Math.abs(b - c) || BD < 1e-6) return null;
+  const phi = Math.atan2(dy, dx);
+  const cosB = (BD * BD + b * b - c * c) / (2 * BD * b);
+  if (Math.abs(cosB) > 1) return null;
+  const beta = Math.acos(Math.max(-1, Math.min(1, cosB)));
+  const th3 = phi + beta;
+  return { Bx, By, Cx: Bx + b * Math.cos(th3), Cy: By + b * Math.sin(th3) };
+}
+
+// ===== 自由度计算 =====
+function calcDOF() {
+  let n = state.n, PL = state.PL, PH = state.PH;
+  let corrections = [];
+
+  // 复合铰链修正：m构件汇交 = (m-1)个转动副，原来只计1个，需补 (m-2)
+  if (state.compoundHinge) {
+    const add = state.compoundM - 2;
+    PL += add;
+    corrections.push({
+      type: 'compound',
+      text: `复合铰链: ${state.compoundM}构件汇交 → ${state.compoundM - 1}个转动副`,
+      detail: `P_L +${add}`
+    });
+  }
+
+  // 局部自由度修正：减去局部自由度
+  let Fl = 0;
+  if (state.localDOF) {
+    Fl = state.localDOFCount;
+    corrections.push({
+      type: 'local',
+      text: `局部自由度: F' = ${Fl}`,
+      detail: `F − ${Fl}`
+    });
+  }
+
+  // 虚约束修正：虚约束不产生实际约束，应加回
+  let Pv = 0;
+  if (state.virtualConstraint) {
+    Pv = state.virtualCount;
+    corrections.push({
+      type: 'virtual',
+      text: `虚约束: ${Pv}个`,
+      detail: `F + ${Pv}`
+    });
+  }
+
+  const F = 3 * n - 2 * PL - PH - Fl + Pv;
+  return { n, PL, PH, F, Fl, Pv, corrections };
+}
+
+// ===== 绘制总入口 =====
+function draw() {
+  const { w, h } = getDimensions();
+  ctx.clearRect(0, 0, w, h);
+  const C = Mech.colors;
+
+  Mech.draw.grid(ctx, w * 0.32, h * 0.55, w, h, 1);
+
+  const result = calcDOF();
+  drawMechanism(w, h, result);
+  drawResultBox(w, h, result);
+  updateInfoPanel(result);
+  updateTip(result);
+}
+
+// ===== 绘制机构示意图 =====
+function drawMechanism(w, h, result) {
+  const C = Mech.colors;
+
+  // 机构绘制区域：左 58%
+  const areaW = w * 0.56;
+  const cx = areaW * 0.48;
+  const cy = h * 0.54;
+
+  // 自适应缩放
+  const maxDim = (FB.a + FB.b) * 1.25;
+  const sc = Math.min(areaW, h * 0.85) / (maxDim * 2);
+  const tx = x => cx + x * sc;
+  const ty = y => cy - y * sc;
+
+  const fb = solveFB(FB.a, FB.b, FB.c, FB.d, state.theta);
+  if (!fb) return;
+
+  const Ax = tx(0), Ay = ty(0);
+  const Bxp = tx(fb.Bx), Byp = ty(fb.By);
+  const Cxp = tx(fb.Cx), Cyp = ty(fb.Cy);
+  const Dx = tx(FB.d), Dy = ty(0);
+
+  // ---------- 虚约束：平行杆 ----------
+  if (state.virtualConstraint) {
+    const t = 0.42;
+    const Ex = Ax + t * (Bxp - Ax), Ey = Ay + t * (Byp - Ay);
+    const Fx = Dx + t * (Cxp - Dx), Fy = Dy + t * (Cyp - Dy);
+
+    ctx.save();
+    ctx.shadowColor = '#fbbf24';
+    ctx.shadowBlur = 14;
+    Mech.draw.link(ctx, Ex, Ey, Fx, Fy, { color: C.warning, width: 3.5, label: "5'" });
+    ctx.restore();
+
+    Mech.draw.hinge(ctx, Ex, Ey, { color: C.warning, r: 4 });
+    Mech.draw.hinge(ctx, Fx, Fy, { color: C.warning, r: 4 });
+
+    // 标注
+    Mech.draw.text(ctx, '虚约束', (Ex + Fx) / 2 - 6, (Ey + Fy) / 2 - 18,
+      { color: C.warning, font: 'bold 11px sans-serif', align: 'center' });
+    Mech.draw.text(ctx, '(对运动无独立限制)', (Ex + Fx) / 2 - 6, (Ey + Fy) / 2 - 4,
+      { color: C.textDim, font: '10px sans-serif', align: 'center' });
+  }
+
+  // ---------- 机架虚线 ----------
+  Mech.draw.dashedLine(ctx, Ax, Ay, Dx, Dy, { color: C.hinge, width: 2, dash: [6, 4] });
+  Mech.draw.text(ctx, '1(机架)', (Ax + Dx) / 2, (Ay + Dy) / 2 + 20,
+    { color: C.hinge, font: '11px sans-serif' });
+
+  // ---------- 杆件 ----------
+  Mech.draw.link(ctx, Ax, Ay, Bxp, Byp, { color: C.accent, width: 4, label: '2' });
+  Mech.draw.link(ctx, Bxp, Byp, Cxp, Cyp, { color: C.return, width: 4, label: '3' });
+  Mech.draw.link(ctx, Dx, Dy, Cxp, Cyp, { color: C.work, width: 4, label: '4' });
+
+  // ---------- 铰支座 ----------
+  Mech.draw.hingedSupport(ctx, Ax, Ay);
+  Mech.draw.hingedSupport(ctx, Dx, Dy);
+
+  // ---------- 复合铰链：在C点增加构件5 ----------
+  if (state.compoundHinge) {
+    const ang = Math.atan2(fb.Cy - fb.By, fb.Cx - fb.Bx) + Math.PI * 0.55;
+    const len = FB.b * 0.45;
+    const Ep = tx(fb.Cx + len * Math.cos(ang));
+    const Eyp = ty(fb.Cy + len * Math.sin(ang));
+
+    ctx.save();
+    ctx.shadowColor = '#fbbf24';
+    ctx.shadowBlur = 14;
+    Mech.draw.link(ctx, Cxp, Cyp, Ep, Eyp, { color: C.warning, width: 3.5, label: '5' });
+    ctx.restore();
+
+    Mech.draw.hinge(ctx, Ep, Eyp, { color: C.warning, r: 4 });
+
+    // 高亮C点
+    ctx.save();
+    ctx.shadowColor = '#fbbf24';
+    ctx.shadowBlur = 20;
+    Mech.draw.circle(ctx, Cxp, Cyp, 12, { color: C.warning, width: 2.5 });
+    ctx.restore();
+
+    // 标注
+    Mech.draw.text(ctx, `${state.compoundM}构件汇交`, Cxp + 20, Cyp - 26,
+      { color: C.warning, font: 'bold 11px sans-serif', align: 'left' });
+    Mech.draw.text(ctx, `= ${state.compoundM - 1}个转动副`, Cxp + 20, Cyp - 12,
+      { color: C.textDim, font: '10px sans-serif', align: 'left' });
+  }
+
+  // ---------- 局部自由度：在B点显示滚子 ----------
+  if (state.localDOF) {
+    const rr = 11;
+    ctx.save();
+    ctx.shadowColor = '#fbbf24';
+    ctx.shadowBlur = 14;
+    Mech.draw.circle(ctx, Bxp, Byp, rr, { color: C.warning, width: 2.5 });
+    ctx.restore();
+
+    // 滚子旋转箭头
+    const ar = rr * 0.55;
+    Mech.draw.arc(ctx, Bxp, Byp, ar, -0.4, Math.PI * 1.1, false,
+      { color: C.warning, width: 1.5 });
+    const aAng = Math.PI * 1.1;
+    const arx = Bxp + ar * Math.cos(aAng);
+    const ary = Byp + ar * Math.sin(aAng);
+    Mech.draw.arrow(ctx, arx + 3 * Math.cos(aAng + 0.8), ary + 3 * Math.sin(aAng + 0.8),
+      arx, ary, { color: C.warning, size: 5 });
+
+    Mech.draw.text(ctx, '滚子', Bxp - 20, Byp - 22,
+      { color: C.warning, font: 'bold 11px sans-serif', align: 'right' });
+    Mech.draw.text(ctx, '局部自由度', Bxp - 20, Byp - 8,
+      { color: C.textDim, font: '10px sans-serif', align: 'right' });
+  }
+
+  // ---------- 铰链点 ----------
+  Mech.draw.fixedHinge(ctx, Ax, Ay, { r: 6 });
+  Mech.draw.fixedHinge(ctx, Dx, Dy, { r: 6 });
+
+  if (state.localDOF) {
+    // B点已有滚子，只画中心点
+    Mech.draw.point(ctx, Bxp, Byp, { color: C.accent, r: 2.5 });
+  } else {
+    Mech.draw.hinge(ctx, Bxp, Byp, { color: C.accent, r: 5 });
+  }
+
+  if (state.compoundHinge) {
+    Mech.draw.hinge(ctx, Cxp, Cyp, { color: C.warning, r: 5 });
+  } else {
+    Mech.draw.hinge(ctx, Cxp, Cyp, { color: C.return, r: 5 });
+  }
+
+  // ---------- 铰链标签 ----------
+  Mech.draw.text(ctx, 'A', Ax - 14, Ay + 22, { color: C.textDim });
+  Mech.draw.text(ctx, 'D', Dx + 14, Dy + 22, { color: C.textDim });
+  Mech.draw.text(ctx, 'B', Bxp + 16, Byp + (state.localDOF ? 16 : -12),
+    { color: C.accent, align: 'left' });
+  Mech.draw.text(ctx, 'C', Cxp + 16, Cyp - 12,
+    { color: state.compoundHinge ? C.warning : C.return, align: 'left' });
+
+  // ---------- 运动副类型标注 ----------
+  Mech.draw.text(ctx, '低副', Ax - 24, Ay - 10,
+    { color: C.textDim, font: '9px sans-serif', align: 'right' });
+  Mech.draw.text(ctx, '低副', Dx + 24, Dy - 10,
+    { color: C.textDim, font: '9px sans-serif', align: 'left' });
+
+  if (state.localDOF) {
+    Mech.draw.text(ctx, '高副', Bxp + 16, Byp + 28,
+      { color: C.warning, font: '9px sans-serif', align: 'left' });
+  }
+
+  // 示意图说明
+  Mech.draw.text(ctx, '示意图: 铰链四杆机构', w * 0.28, h - 12,
+    { color: C.textDim, font: '10px sans-serif' });
+}
+
+// ===== 绘制右侧结果面板 =====
+function drawResultBox(w, h, result) {
+  const C = Mech.colors;
+
+  // 结果框位置
+  const bw = Math.min(w * 0.38, 270);
+  const bh = Math.min(h * 0.78, 380);
+  const bx = w - bw - 16;
+  const by = (h - bh) / 2;
+
+  // 半透明背景
+  ctx.fillStyle = 'rgba(15, 17, 23, 0.90)';
+  roundRect(ctx, bx, by, bw, bh, 12);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(99, 102, 241, 0.25)';
+  ctx.lineWidth = 1;
+  roundRect(ctx, bx, by, bw, bh, 12);
+  ctx.stroke();
+
+  const midX = bx + bw / 2;
+  let yy = by + 26;
+
+  // 标题
+  Mech.draw.text(ctx, '自由度计算', midX, yy,
+    { color: C.textDim, font: 'bold 13px sans-serif' });
+  yy += 28;
+
+  // ---------- 大字 F = X ----------
+  const fSize = Math.min(bw * 0.32, 58);
+  const fColor = result.F > 0 ? C.return : result.F === 0 ? C.warning : '#f87171';
+  ctx.fillStyle = fColor;
+  ctx.font = `bold ${fSize}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(`F = ${result.F}`, midX, yy + fSize * 0.45);
+  yy += fSize + 16;
+
+  // ---------- 公式推导 ----------
+  const ss = 13;
+  ctx.textBaseline = 'alphabetic';
+
+  // 第1行：公式
+  ctx.fillStyle = C.text;
+  ctx.font = `${ss}px sans-serif`;
+  ctx.fillText('F = 3n − 2PL − PH', midX, yy);
+  yy += 22;
+
+  // 第2行：代入值
+  ctx.fillStyle = C.textDim;
+  ctx.font = `${ss}px sans-serif`;
+  let sub2 = `= 3×${result.n} − 2×${result.PL} − ${result.PH}`;
+  ctx.fillText(sub2, midX, yy);
+  yy += 20;
+
+  // 第3行：计算
+  ctx.fillStyle = C.text;
+  ctx.font = `${ss}px sans-serif`;
+  ctx.fillText(`= ${3 * result.n} − ${2 * result.PL} − ${result.PH}`, midX, yy);
+  yy += 20;
+
+  // 第4行：基础结果
+  const baseF = 3 * result.n - 2 * result.PL - result.PH;
+  ctx.fillStyle = C.textDim;
+  ctx.font = `${ss}px sans-serif`;
+  ctx.fillText(`= ${baseF}`, midX, yy);
+  yy += 24;
+
+  // ---------- 特殊情况修正 ----------
+  if (result.corrections.length > 0) {
+    // 分割线
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.beginPath();
+    ctx.moveTo(bx + 18, yy - 6);
+    ctx.lineTo(bx + bw - 18, yy - 6);
+    ctx.stroke();
+    yy += 8;
+
+    ctx.fillStyle = C.warning;
+    ctx.font = `bold ${ss}px sans-serif`;
+    ctx.fillText('⚡ 特殊情况修正', midX, yy);
+    yy += 22;
+
+    result.corrections.forEach(c => {
+      ctx.fillStyle = C.warning;
+      ctx.font = `${ss - 1}px sans-serif`;
+      ctx.fillText(c.text, midX, yy);
+      yy += 18;
+      ctx.fillStyle = C.textDim;
+      ctx.font = `${ss - 2}px sans-serif`;
+      ctx.fillText(c.detail, midX, yy);
+      yy += 20;
+    });
+
+    // 最终结果
+    yy += 6;
+    ctx.fillStyle = fColor;
+    ctx.font = `bold ${ss + 4}px sans-serif`;
+    ctx.fillText(`F = ${result.F}`, midX, yy);
+  }
+
+  // ---------- 含义说明 ----------
+  yy = by + bh - 28;
+  ctx.font = `${ss - 1}px sans-serif`;
+  if (result.F > 0) {
+    ctx.fillStyle = C.return;
+    ctx.fillText(`✓ 机构有 ${result.F} 个独立运动`, midX, yy);
+  } else if (result.F === 0) {
+    ctx.fillStyle = C.warning;
+    ctx.fillText('⚠ 静定结构，无独立运动', midX, yy);
+  } else {
+    ctx.fillStyle = '#f87171';
+    ctx.fillText('✗ 超静定，约束冗余', midX, yy);
+  }
+}
+
+// ===== UI 构建 =====
+const sidebar = document.getElementById('sidebar');
+const ui = {};
+
+// ---------- 面板1：基本参数 ----------
+const paramPanel = Mech.ui.panel(sidebar, '基本参数');
+ui.nSlider = Mech.ui.sidebarSlider(paramPanel, {
+  label: '活动构件数 n', min: 1, max: 10, value: 3,
+  onChange: v => { state.n = v; draw(); }
+});
+ui.plSlider = Mech.ui.sidebarSlider(paramPanel, {
+  label: '低副数 P_L', min: 0, max: 15, value: 4,
+  onChange: v => { state.PL = v; draw(); }
+});
+ui.phSlider = Mech.ui.sidebarSlider(paramPanel, {
+  label: '高副数 P_H', min: 0, max: 10, value: 0,
+  onChange: v => { state.PH = v; draw(); }
+});
+
+// ---------- 面板2：特殊情况 ----------
+const specialPanel = Mech.ui.panel(sidebar, '特殊情况');
+
+// 复合铰链
+ui.compoundCb = Mech.ui.checkbox(specialPanel, {
+  label: '复合铰链', checked: false,
+  onChange: v => { state.compoundHinge = v; toggleSub('compound', v); draw(); }
+});
+const compoundWrap = document.createElement('div');
+compoundWrap.style.cssText = 'display:none; margin-left:22px;';
+specialPanel.appendChild(compoundWrap);
+ui.compoundSlider = Mech.ui.sidebarSlider(compoundWrap, {
+  label: '汇交构件数 m', min: 3, max: 6, value: 3,
+  onChange: v => { state.compoundM = v; draw(); }
+});
+
+// 局部自由度
+ui.localCb = Mech.ui.checkbox(specialPanel, {
+  label: '局部自由度', checked: false,
+  onChange: v => { state.localDOF = v; toggleSub('local', v); draw(); }
+});
+const localWrap = document.createElement('div');
+localWrap.style.cssText = 'display:none; margin-left:22px;';
+specialPanel.appendChild(localWrap);
+ui.localSlider = Mech.ui.sidebarSlider(localWrap, {
+  label: "局部自由度数 F'", min: 1, max: 3, value: 1,
+  onChange: v => { state.localDOFCount = v; draw(); }
+});
+
+// 虚约束
+ui.virtualCb = Mech.ui.checkbox(specialPanel, {
+  label: '虚约束', checked: false,
+  onChange: v => { state.virtualConstraint = v; toggleSub('virtual', v); draw(); }
+});
+const virtualWrap = document.createElement('div');
+virtualWrap.style.cssText = 'display:none; margin-left:22px;';
+specialPanel.appendChild(virtualWrap);
+ui.virtualSlider = Mech.ui.sidebarSlider(virtualWrap, {
+  label: '虚约束数', min: 1, max: 3, value: 1,
+  onChange: v => { state.virtualCount = v; draw(); }
+});
+
+function toggleSub(type, show) {
+  const map = { compound: compoundWrap, local: localWrap, virtual: virtualWrap };
+  map[type].style.display = show ? 'block' : 'none';
+}
+
+// ---------- 面板3：计算过程 ----------
+const calcPanel = Mech.ui.panel(sidebar, '计算过程');
+ui.calcInfo = document.createElement('div');
+ui.calcInfo.className = 'info-grid';
+calcPanel.appendChild(ui.calcInfo);
+
+function updateInfoPanel(result) {
+  const fColor = result.F > 0 ? 'var(--success)' : result.F === 0 ? 'var(--warning)' : '#f87171';
+  let html = `
+    <div class="info-item"><div class="label">3n</div><div class="value" style="color:var(--accent)">${3 * result.n}</div></div>
+    <div class="info-item"><div class="label">2P<sub>L</sub></div><div class="value" style="color:var(--work-color)">${2 * result.PL}</div></div>
+    <div class="info-item"><div class="label">P<sub>H</sub></div><div class="value" style="color:var(--orange)">${result.PH}</div></div>
+    <div class="info-item"><div class="label">F</div><div class="value" style="color:${fColor}">${result.F}</div></div>`;
+
+  if (result.Fl > 0) {
+    html += `<div class="info-item" style="grid-column:span 2"><div class="label">局部自由度修正</div><div class="value" style="color:var(--warning);font-size:13px">−${result.Fl}</div></div>`;
+  }
+  if (result.Pv > 0) {
+    html += `<div class="info-item" style="grid-column:span 2"><div class="label">虚约束修正</div><div class="value" style="color:var(--warning);font-size:13px">+${result.Pv}</div></div>`;
+  }
+  ui.calcInfo.innerHTML = html;
+}
+
+// ---------- 面板4：知识点 ----------
+const tipPanel = Mech.ui.panel(sidebar, '知识点提示');
+ui.tip = document.createElement('div');
+ui.tip.className = 'tip';
+ui.tip.style.whiteSpace = 'pre-wrap';
+tipPanel.appendChild(ui.tip);
+
+function updateTip(result) {
+  let text = '';
+  if (result.F === 1) {
+    text = '当前 F=1，机构具有确定运动（原动件数 = 自由度 = 1），这是最常见的机构形式。';
+  } else if (result.F > 1) {
+    text = `当前 F=${result.F}，机构自由度大于1，需要 ${result.F} 个原动件才能具有确定运动。自由度数 = 机构独立运动参数个数。`;
+  } else if (result.F === 0) {
+    text = '当前 F=0，机构为静定结构，各构件间无相对运动可能。自由度为零意味着独立运动数与约束数相等。';
+  } else {
+    text = `当前 F=${result.F}，机构为超静定结构，约束数多于独立运动参数，存在冗余约束。`;
+  }
+
+  if (state.compoundHinge) {
+    text += `\n\n📌 复合铰链注意：${state.compoundM}个构件汇交构成复合铰链时，计算为${state.compoundM - 1}个转动副（非1个）。漏算会导致自由度结果偏大。`;
+  }
+  if (state.localDOF) {
+    text += `\n\n📌 局部自由度注意：滚子等构件的局部转动不影响机构整体运动，计算时应减去。常见于凸轮机构的滚子从动件。`;
+  }
+  if (state.virtualConstraint) {
+    text += `\n\n📌 虚约束注意：对运动不起独立限制作用的重复约束应去除。常见情况：①两构件构成多个同向移动副；②轴线重合的多个转动副；③对称结构中的重复部分。`;
+  }
+
+  ui.tip.textContent = text;
+}
+
+// ---------- 工具栏 ----------
+const toolbar = document.getElementById('toolbar');
+
+const playBtn = Mech.ui.button(toolbar, {
+  text: '⏸ 暂停', variant: 'primary',
+  onClick: () => {
+    if (anim.isPlaying()) { anim.pause(); playBtn.textContent = '▶ 播放'; }
+    else { anim.play(); playBtn.textContent = '⏸ 暂停'; }
+  }
+});
+
+Mech.ui.button(toolbar, {
+  text: '重置', variant: 'secondary',
+  onClick: () => {
+    state.n = 3; state.PL = 4; state.PH = 0;
+    state.compoundHinge = false; state.localDOF = false; state.virtualConstraint = false;
+    state.compoundM = 3; state.localDOFCount = 1; state.virtualCount = 1;
+    state.theta = 0;
+    ui.nSlider.set(3); ui.plSlider.set(4); ui.phSlider.set(0);
+    ui.compoundCb.set(false); ui.localCb.set(false); ui.virtualCb.set(false);
+    toggleSub('compound', false); toggleSub('local', false); toggleSub('virtual', false);
+    draw();
+  }
+});
+
+Mech.ui.slider(toolbar, {
+  label: '转速', min: 0.1, max: 3, value: 0.6, step: 0.1,
+  format: v => v.toFixed(1) + 'x',
+  onChange: v => { state.speed = v; }
+});
+
+// ===== 拖拽交互（暂停时可拖拽曲柄）=====
+let dragging = false;
+canvas.addEventListener('mousedown', () => { if (!anim.isPlaying()) dragging = true; });
+canvas.addEventListener('mouseup', () => { dragging = false; });
+canvas.addEventListener('mouseleave', () => { dragging = false; });
+canvas.addEventListener('mousemove', e => {
+  if (!dragging || anim.isPlaying()) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const { w, h } = getDimensions();
+  const areaW = w * 0.56;
+  const cx = areaW * 0.48, cy = h * 0.54;
+  const maxDim = (FB.a + FB.b) * 1.25;
+  const sc = Math.min(areaW, h * 0.85) / (maxDim * 2);
+  let angle = Math.atan2(-(my - cy), mx - cx);
+  if (angle < 0) angle += 2 * Math.PI;
+  state.theta = angle;
+  draw();
+});
+
+canvas.addEventListener('touchstart', e => {
+  if (!anim.isPlaying()) { dragging = true; e.preventDefault(); }
+}, { passive: false });
+canvas.addEventListener('touchend', () => { dragging = false; });
+canvas.addEventListener('touchmove', e => {
+  if (!dragging || anim.isPlaying()) return;
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches[0];
+  const mx = touch.clientX - rect.left;
+  const my = touch.clientY - rect.top;
+  const { w, h } = getDimensions();
+  const areaW = w * 0.56;
+  const cx = areaW * 0.48, cy = h * 0.54;
+  const maxDim = (FB.a + FB.b) * 1.25;
+  const sc = Math.min(areaW, h * 0.85) / (maxDim * 2);
+  let angle = Math.atan2(-(my - cy), mx - cx);
+  if (angle < 0) angle += 2 * Math.PI;
+  state.theta = angle;
+  draw();
+}, { passive: false });
+
+// ===== 启动 =====
+window.addEventListener('resize', () => draw());
+anim.play();
+console.log('自由度计算器 v1.0 loaded');
+</script>
+</body>
+</html>

@@ -13,12 +13,21 @@ body{background:#0f1117;color:#e4e4e7;font-family:system-ui,-apple-system,sans-s
 .chapter-num{font-size:13px;font-weight:700;color:#6366f1;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);border-radius:8px;padding:4px 12px;display:inline-block;margin-bottom:12px}
 h1{font-size:24px;font-weight:600;margin-bottom:8px;background:linear-gradient(135deg,#6366f1,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .chapter-desc{font-size:13px;color:#71717a;max-width:600px}
-.empty-state{text-align:center;margin-top:60px;padding:40px;background:#1a1d27;border:1px solid #252833;border-radius:16px;max-width:480px}
-.empty-icon{font-size:48px;margin-bottom:16px;opacity:0.6}
-.empty-title{font-size:16px;font-weight:600;color:#a1a1aa;margin-bottom:8px}
-.empty-desc{font-size:13px;color:#71717a;line-height:1.6}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;max-width:960px;width:100%}
+.card{background:#1a1d27;border:1px solid #252833;border-radius:14px;padding:24px 20px;text-decoration:none;color:#e4e4e7;transition:all .25s ease;position:relative;overflow:hidden}
+.card:hover{border-color:#6366f1;transform:translateY(-3px);box-shadow:0 8px 32px rgba(99,102,241,0.15)}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#6366f1,#34d399);opacity:0;transition:opacity .25s}
+.card:hover::before{opacity:1}
+.card.disabled{pointer-events:none;opacity:0.45}
+.card-icon{font-size:32px;margin-bottom:14px}
+.card-title{font-size:17px;font-weight:600;margin-bottom:6px}
+.card-desc{font-size:12px;color:#a1a1aa;line-height:1.6}
+.card-tag{display:inline-block;margin-top:10px;padding:3px 10px;border-radius:12px;font-size:11px}
+.card-tag.done{background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.3);color:#6ee7b7}
+.card-tag.soon{background:rgba(251,191,36,0.10);border:1px solid rgba(251,191,36,0.25);color:#fbbf24}
 footer{margin-top:40px;font-size:12px;color:#52525b}
 footer a{color:#6366f1;text-decoration:none}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -28,10 +37,19 @@ footer a{color:#6366f1;text-decoration:none}
   <h1>平面机构的结构分析</h1>
   <p class="chapter-desc">自由度计算、复合铰链、虚约束、高副低代</p>
 </div>
-<div class="empty-state">
-  <div class="empty-icon">🚧</div>
-  <div class="empty-title">可视化模块开发中</div>
-  <div class="empty-desc">本章节的可视化模块正在开发中，敬请期待。</div>
+<div class="grid">
+  <a class="card" href="freedom-calculator.html">
+    <div class="card-icon">📐</div>
+    <div class="card-title">自由度计算器</div>
+    <div class="card-desc">平面机构自由度公式 F = 3n − 2P<sub>L</sub> − P<sub>H</sub> 交互式计算，支持复合铰链、局部自由度、虚约束三种特殊情况修正，画布实时展示机构与计算过程。</div>
+    <span class="card-tag done">已完成</span>
+  </a>
+  <a class="card disabled">
+    <div class="card-icon">🔗</div>
+    <div class="card-title">复合铰链与虚约束识别</div>
+    <div class="card-desc">通过多个典型机构图例，交互式识别复合铰链、局部自由度和虚约束的位置与修正方法，强化考研解题能力。</div>
+    <span class="card-tag soon">开发中</span>
+  </a>
 </div>
 <footer>Made with ❤️ by Sparksah & Agent</footer>
 </body>
