@@ -329,5 +329,17 @@ const Mech = {
       });
       return { input, valSpan, labelSpan, set(v) { input.value = v; valSpan.textContent = fmt(v); } };
     },
+
+    // 复选框开关
+    checkbox(parent, config) {
+      const { label, checked = false, onChange } = config;
+      const row = document.createElement('label');
+      row.className = 'toggle-row';
+      row.innerHTML = `<input type="checkbox"${checked ? ' checked' : ''}><span>${label}</span>`;
+      parent.appendChild(row);
+      const input = row.querySelector('input');
+      input.addEventListener('change', e => { if (onChange) onChange(e.target.checked); });
+      return { input, set(v) { input.checked = v; } };
+    },
   },
 };
