@@ -166,14 +166,14 @@ canvas {
   padding: 16px;
 }
 .main-layout {
-  display: grid;
-  grid-template-columns: 1fr 320px;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
   margin-top: 12px;
 }
 .sidebar {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 12px;
 }
 .canvas-card {
@@ -181,12 +181,18 @@ canvas {
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
 .canvas-card .canvas-wrapper {
   margin-bottom: 0;
   border-radius: 0;
-  padding-bottom: 65%;
+  padding-bottom: 0;
+  height: 55vh;
+  max-height: 520px;
+  min-height: 300px;
 }
 .canvas-card canvas {
   cursor: grab;
@@ -327,25 +333,13 @@ canvas {
   margin-left: auto;
 }
 @media (max-width: 768px) {
-  .main-layout { grid-template-columns: 1fr; }
-
-  /* 画布置顶：滚动时始终可见 */
-  .canvas-card {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-  }
-
-  /* 移动端画布高度固定为视口的45%，留空间给控制区 */
   .canvas-card .canvas-wrapper {
-    padding-bottom: 0;
-    height: 45vh;
+    height: 42vh;
     max-height: 320px;
+    min-height: 240px;
   }
-
-  /* 返回按钮压在画布上方 */
   .back-btn { z-index: 60; top: 8px; left: 8px; }
+  .sidebar { grid-template-columns: 1fr; }
 }
 .toggle-row {
   display: flex;
