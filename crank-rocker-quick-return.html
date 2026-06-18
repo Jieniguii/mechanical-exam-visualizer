@@ -151,7 +151,7 @@
     <a href="ch3-linkage.html" class="back-btn">← 返回章节</a>
     
     <div class="header">
-        <h1>曲柄摇杆急回运动对比 <span style="font-size:12px;background:#1e293b;color:#f97316;padding:2px 8px;border-radius:10px;vertical-align:middle;font-weight:bold;">v5.4</span></h1>
+        <h1>曲柄摇杆急回运动对比 <span style="font-size:12px;background:#1e293b;color:#f97316;padding:2px 8px;border-radius:10px;vertical-align:middle;font-weight:bold;">v5.6</span></h1>
         <p>直观展示工作行程（慢）与空回行程（快）的差异</p>
     </div>
     
@@ -234,6 +234,7 @@
         };
         
         let isPush = true; // 当前是否处于推程
+        let lastTimestamp = null; // 上一帧时间戳
         
         function resizeCanvas() {
             const rect = canvas.getBoundingClientRect();
@@ -378,6 +379,42 @@
             } else {
                 // 从limit1逆时针到limit2 = 回程
                 isPush = rel >= d12;
+            }
+        }
+        
+        function drawHingedSupport(x, y) {
+            const triH = 9;   // 三角形高度
+            const triW = 7;   // 三角形半宽
+            const baseW = triW + 3; // 底线半宽
+            const hatchCount = 4;
+            const hatchLen = 6;
+            
+            ctx.strokeStyle = '#71717a';
+            
+            // 倒三角（顶点在铰链点，向下）
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x - triW, y + triH);
+            ctx.lineTo(x + triW, y + triH);
+            ctx.closePath();
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            
+            // 底线
+            ctx.beginPath();
+            ctx.moveTo(x - baseW, y + triH);
+            ctx.lineTo(x + baseW, y + triH);
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            
+            // 斜杠（底线下方短斜线）
+            for (let i = 0; i < hatchCount; i++) {
+                const hx = x - baseW + 2 + i * ((2 * baseW - 4) / (hatchCount - 1));
+                ctx.beginPath();
+                ctx.moveTo(hx, y + triH);
+                ctx.lineTo(hx - hatchLen * 0.6, y + triH + hatchLen * 0.6);
+                ctx.lineWidth = 1;
+                ctx.stroke();
             }
         }
         
@@ -747,8 +784,12 @@
             ctx.moveTo(A.x, A.y);
             ctx.lineTo(D.x, D.y);
             ctx.strokeStyle = '#71717a';
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 2;
             ctx.stroke();
+            
+            // 铰支座符号（三角形+斜杠，表示固定铰链）
+            drawHingedSupport(A.x, A.y);
+            drawHingedSupport(D.x, D.y);
             
             // 曲柄
             ctx.beginPath();
@@ -799,15 +840,20 @@
             ctx.fillStyle = '#a1a1aa';
             ctx.font = '12px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('A', A.x, A.y + 18);
-            ctx.fillText('D', D.x, D.y + 18);
+            ctx.fillText('A', A.x, A.y + 28);
+            ctx.fillText('D', D.x, D.y + 28);
             ctx.fillText('B', B.x + 12, B.y - 10);
             ctx.fillText('C', C.x + 12, C.y - 10);
         }
         
-        function animate() {
+        function animate(timestamp) {
             if (!isPlaying) return;
-            angle += 0.008 * params.speedFactor;
+            if (lastTimestamp !== null) {
+                const dt = (timestamp - lastTimestamp) / 1000; // 秒
+                // 基准：speedFactor=1 时约 0.48 rad/s（与原0.008rad/帧@60fps等效）
+                angle += 0.48 * params.speedFactor * dt;
+            }
+            lastTimestamp = timestamp;
             updatePhase();
             draw();
             animationId = requestAnimationFrame(animate);
@@ -833,14 +879,16 @@
                 btn.textContent = '▶ 播放';
             } else {
                 isPlaying = true;
+                lastTimestamp = null; // 重置时间戳，避免暂停后恢复时跳帧
                 btn.textContent = '⏸ 暂停';
-                animate();
+                animate(performance.now());
             }
         });
         
         document.getElementById('resetBtn').addEventListener('click', () => {
             angle = 0;
             isPlaying = false;
+            lastTimestamp = null;
             cancelAnimationFrame(animationId);
             document.getElementById('playBtn').textContent = '▶ 播放';
             draw();
@@ -901,7 +949,7 @@
         updatePhase();
         draw();
         
-        console.log('v5.4 loaded');
+        console.log('v5.6 loaded');
         console.log('limit1:', geo.limit1);
         console.log('limit2:', geo.limit2);
         console.log('theta:', geo.theta * 180 / Math.PI);
