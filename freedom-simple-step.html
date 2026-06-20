@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>简单自由度分步解题 — 机械考研可视化</title>
+<link rel="stylesheet" href="mech.css">
+<style>
+.step-progress {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.step-dot {
+  flex: 1;
+  min-width: 28px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  transition: background 0.3s;
+}
+.step-dot.active { background: var(--accent); }
+.step-dot.done { background: var(--success); }
+.step-desc {
+  padding: 10px 12px;
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.6;
+  margin-bottom: 10px;
+  min-height: 44px;
+}
+.step-desc .highlight { color: var(--warning); font-weight: 600; }
+.step-desc .green { color: var(--success); font-weight: 600; }
+.step-desc .blue { color: var(--accent); font-weight: 600; }
+.step-desc .orange { color: var(--orange); font-weight: 600; }
+.step-nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.step-nav .btn { flex: 1; }
+.problem-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.problem-tab {
+  padding: 5px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.problem-tab.active {
+  border-color: var(--accent);
+  color: var(--text);
+  background: rgba(99, 102, 241, 0.08);
+}
+.problem-tab:hover { border-color: var(--accent); }
+.formula-display {
+  padding: 12px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 2;
+  text-align: center;
+  margin-top: 10px;
+}
+.formula-display .row { display: block; }
+.formula-display .dim { color: var(--text-dim); }
+.formula-display .result { color: var(--success); font-weight: 700; font-size: 18px; }
+</style>
+</head>
+<body>
+<a href="ch1-structure.html" class="back-btn">&larr; 返回章节</a>
+
+<div class="header">
+  <h1>简单自由度分步解题 <span class="version-badge">v1.0</span></h1>
+  <p>系统引导式逐步标注 &mdash; 掌握标准解题流程</p>
+</div>
+
+<div class="app">
+  <div class="main-layout">
+    <div>
+      <div class="canvas-card">
+        <div class="canvas-wrapper">
+          <canvas id="canvas"></canvas>
+        </div>
+        <div class="canvas-toolbar" id="toolbar"></div>
+      </div>
+    </div>
+    <div class="sidebar" id="sidebar"></div>
+  </div>
+</div>
+
+<script src="mech.js"></script>
+<script>
+/* ===== 简单自由度分步解题 v1.0 ===== */
+/* 交互：侧边栏"下一步"按钮控制，画布渐进式高亮标注 */
+
+var { ctx, getDimensions, canvas } = Mech.setupCanvas(document.getElementById('canvas'));
+
+// ===== 题目数据 =====
+var problems = [
+  {
+    name: '铰链四杆机构',
+    n: 3, PL: 4, PH: 0, F: 1, driving: 1,
+    // 画布坐标
+    frame: [{x: 120, y: 300, label: 'A'}, {x: 400, y: 300, label: 'D'}],
+    links: [
+      {from: 0, to: 1, x1: 120, y1: 300, x2: 200, y2: 160, label: '2', partId: 2},
+      {from: 1, to: 2, x1: 200, y1: 160, x2: 350, y2: 190, label: '3', partId: 3},
+      {from: 3, to: 2, x1: 400, y1: 300, x2: 350, y2: 190, label: '4', partId: 4},
+    ],
+    pairs: [
+      {x: 120, y: 300, label: 'A', type: 'low', parts: '1,2'},
+      {x: 200, y: 160, label: 'B', type: 'low', parts: '2,3'},
+      {x: 350, y: 190, label: 'C', type: 'low', parts: '3,4'},
+      {x: 400, y: 300, label: 'D', type: 'low', parts: '1,4'},
+    ],
+    drawExtra: function(ctx, sc) {
+      // 机架虚线
+      Mech.draw.dashedLine(ctx, 120, 300, 400, 300, {color: Mech.colors.hinge, width: 2, dash: [6,4]});
+      Mech.draw.text(ctx, '1', 260, 320, {color: Mech.colors.hinge, font: '12px sans-serif'});
+    }
+  },
+  {
+    name: '凸轮机构',
+    n: 2, PL: 2, PH: 1, F: 1, driving: 1,
+    frame: [{x: 200, y: 300, label: 'O'}],
+    links: [
+      // 凸轮（圆）
+      {isCam: true, cx: 200, cy: 300, r: 45, label: '2', partId: 2},
+      // 从动件（杆+平底）
+      {isFollower: true, cx: 200, cy: 180, label: '3', partId: 3},
+    ],
+    pairs: [
+      {x: 200, y: 300, label: 'O', type: 'low', parts: '1,2', isRevolute: true},
+      {x: 200, y: 150, label: '', type: 'low', parts: '1,3', isPrismatic: true},
+      {x: 200, y: 255, label: 'T', type: 'high', parts: '2,3'},
+    ],
+    drawExtra: function(ctx, sc) {
+      // 机架符号在凸轮转轴
+      Mech.draw.hingedSupport(ctx, 200, 300);
+      // 导路（滑槽）
+      ctx.strokeStyle = Mech.colors.hinge;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(175, 130); ctx.lineTo(175, 260);
+      ctx.moveTo(225, 130); ctx.lineTo(225, 260);
+      ctx.stroke();
+      // 斜线
+      for (var i = 0; i < 5; i++) {
+        var y = 140 + i * 24;
+        ctx.beginPath();
+        ctx.moveTo(175, y); ctx.lineTo(167, y + 6);
+        ctx.moveTo(225, y); ctx.lineTo(233, y + 6);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      Mech.draw.text(ctx, '1', 160, 130, {color: Mech.colors.hinge, font: '12px sans-serif', align: 'right'});
+    }
+  },
+];
+
+// ===== 状态 =====
+var problemIdx = 0;
+var stepIdx = 0;  // 0 = blank, then progressively annotate
+
+function getProblem() { return problems[problemIdx]; }
+
+function getMaxStep() {
+  var p = getProblem();
+  return p.links.length + p.pairs.length + 2; // parts + pairs + formula + conclusion
+}
+
+function getStepInfo() {
+  var p = getProblem();
+  var nParts = p.links.length;
+  var nPairs = p.pairs.length;
+  
+  if (stepIdx === 0) return {phase: 'start', text: '点击"下一步"开始解题。题目：计算图示' + p.name + '的自由度。'};
+  if (stepIdx <= nParts) {
+    var idx = stepIdx - 1;
+    var part = p.links[idx];
+    var partName = part.label || ('part ' + part.partId);
+    return {phase: 'parts', idx: idx, text: 'Step 1: 识别活动构件 (' + stepIdx + '/' + nParts + ')<br>构件 <span class="blue">' + partName + '</span>，活动构件数 n = ' + stepIdx};
+  }
+  if (stepIdx <= nParts + nPairs) {
+    var idx2 = stepIdx - nParts - 1;
+    var pair = p.pairs[idx2];
+    var typeName = pair.type === 'low' ? '低副' : '高副';
+    var pairCount = stepIdx - nParts;
+    var colorClass = pair.type === 'low' ? 'blue' : 'orange';
+    return {phase: 'pairs', idx: idx2, text: 'Step 2: 标记运动副 (' + pairCount + '/' + nPairs + ')<br>运动副 <span class="' + colorClass + '">' + pair.label + '</span> = <span class="' + colorClass + '">' + typeName + '</span>（构件' + pair.parts + '）'};
+  }
+  if (stepIdx === nParts + nPairs + 1) {
+    return {phase: 'formula', text: 'Step 3: 代入公式<br>F = 3n - 2P<sub>L</sub> - P<sub>H</sub> = 3 x ' + p.n + ' - 2 x ' + p.PL + ' - ' + p.PH + ' = ' + (3*p.n) + ' - ' + (2*p.PL) + ' - ' + p.PH + ' = <span class="green">' + p.F + '</span>'};
+  }
+  return {phase: 'conclusion', text: 'Step 4: 判断<br>F = <span class="green">' + p.F + '</span>，原动件数 = ' + p.driving + '。F = 原动件数，机构具有确定运动。'};
+}
+
+// ===== 绘制 =====
+function draw() {
+  var dims = getDimensions();
+  var w = dims.w, h = dims.h;
+  var C = Mech.colors;
+  ctx.clearRect(0, 0, w, h);
+  
+  var p = getProblem();
+  var info = getStepInfo();
+  
+  // grid
+  Mech.draw.grid(ctx, w * 0.3, h * 0.5, w, h, 1);
+  
+  // Draw extra (frame symbols etc)
+  if (p.drawExtra) p.drawExtra(ctx, 1);
+  
+  // Draw all links (base, dim if not yet highlighted)
+  for (var i = 0; i < p.links.length; i++) {
+    var link = p.links[i];
+    var highlighted = (info.phase === 'parts' && info.idx >= i) || 
+                       (info.phase === 'pairs' || info.phase === 'formula' || info.phase === 'conclusion');
+    var color = highlighted ? C.accent : 'rgba(99,102,241,0.3)';
+    var width = highlighted ? 4 : 2.5;
+    
+    if (link.isCam) {
+      // 凸轮
+      ctx.beginPath();
+      ctx.arc(link.cx, link.cy, link.r, 0, Math.PI * 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.stroke();
+      if (highlighted) {
+        ctx.fillStyle = 'rgba(99,102,241,0.08)';
+        ctx.fill();
+        Mech.draw.text(ctx, link.label, link.cx + link.r + 8, link.cy, {color: color, font: 'bold 12px sans-serif', align: 'left'});
+      }
+    } else if (link.isFollower) {
+      // 从动件
+      var fw = 30; // 平底宽度
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(link.cx - 5, link.cy);
+      ctx.lineTo(link.cx - 5, link.cy - 40);
+      ctx.moveTo(link.cx + 5, link.cy);
+      ctx.lineTo(link.cx + 5, link.cy - 40);
+      ctx.stroke();
+      // 平底
+      ctx.beginPath();
+      ctx.moveTo(link.cx - fw/2, link.cy);
+      ctx.lineTo(link.cx + fw/2, link.cy);
+      ctx.lineWidth = width + 1;
+      ctx.stroke();
+      if (highlighted) {
+        Mech.draw.text(ctx, link.label, link.cx + fw/2 + 8, link.cy - 20, {color: color, font: 'bold 12px sans-serif', align: 'left'});
+      }
+    } else {
+      Mech.draw.link(ctx, link.x1, link.y1, link.x2, link.y2, {color: color, width: width, label: highlighted ? link.label : ''});
+    }
+  }
+  
+  // Draw all hinges/points
+  for (var j = 0; j < p.pairs.length; j++) {
+    var pair = p.pairs[j];
+    var pairHi = (info.phase === 'pairs' && info.idx >= j) ||
+                 (info.phase === 'formula' || info.phase === 'conclusion');
+    var pairColor = pairHi ? (pair.type === 'low' ? C.accent : C.orange) : 'rgba(161,161,170,0.3)';
+    var pairR = pairHi ? 6 : 4;
+    
+    if (pair.isRevolute || (!pair.isPrismatic && !pair.isHighPair)) {
+      if (pairHi && pair.type === 'low') {
+        // 低副：蓝色圈
+        ctx.save();
+        ctx.shadowColor = C.accent;
+        ctx.shadowBlur = 10;
+        Mech.draw.circle(ctx, pair.x, pair.y, pairR + 3, {color: C.accent, width: 2, fill: 'rgba(99,102,241,0.12)'});
+        ctx.restore();
+      } else if (pairHi && pair.type === 'high') {
+        // 高副：橙色点 + 光环
+        ctx.save();
+        ctx.shadowColor = C.orange;
+        ctx.shadowBlur = 12;
+        Mech.draw.point(ctx, pair.x, pair.y, {color: C.orange, r: 5});
+        ctx.restore();
+        Mech.draw.circle(ctx, pair.x, pair.y, 8, {color: C.orange, width: 1.5});
+      } else {
+        Mech.draw.hinge(ctx, pair.x, pair.y, {color: pairColor, r: pairR});
+      }
+    }
+    
+    // 标签
+    if (pairHi && pair.label) {
+      var lblColor = pair.type === 'low' ? C.accent : C.orange;
+      Mech.draw.text(ctx, pair.label, pair.x + 12, pair.y - 12, {color: lblColor, font: 'bold 12px sans-serif', align: 'left'});
+      
+      // 运动副类型标注
+      var typeText = pair.type === 'low' ? 'PL' : 'PH';
+      var typeColor = pair.type === 'low' ? C.accent : C.orange;
+      Mech.draw.text(ctx, typeText, pair.x + 12, pair.y + 4, {color: typeColor, font: '10px sans-serif', align: 'left'});
+    }
+  }
+  
+  // 固定铰支座
+  for (var k = 0; k < p.frame.length; k++) {
+    var fp = p.frame[k];
+    if (stepIdx > 0 || true) {
+      Mech.draw.hingedSupport(ctx, fp.x, fp.y);
+    }
+  }
+  
+  // 公式区域（右下角）
+  if (info.phase === 'formula' || info.phase === 'conclusion') {
+    drawFormulaBox(w, h, p);
+  }
+  
+  // 题目标题
+  Mech.draw.text(ctx, p.name, w * 0.5, 24, {color: C.textDim, font: '13px sans-serif', align: 'center'});
+}
+
+function drawFormulaBox(w, h, p) {
+  var C = Mech.colors;
+  var bw = 220, bh = 100;
+  var bx = w - bw - 12, by = h - bh - 12;
+  
+  ctx.fillStyle = 'rgba(26, 29, 39, 0.92)';
+  roundRect2(bx, by, bw, bh, 10);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(99,102,241,0.2)';
+  ctx.lineWidth = 1;
+  roundRect2(bx, by, bw, bh, 10);
+  ctx.stroke();
+  
+  var cx = bx + bw / 2;
+  var yy = by + 22;
+  
+  Mech.draw.text(ctx, 'F = 3n - 2PL - PH', cx, yy, {color: C.text, font: '13px sans-serif'});
+  yy += 22;
+  Mech.draw.text(ctx, '= 3 x ' + p.n + ' - 2 x ' + p.PL + ' - ' + p.PH, cx, yy, {color: C.textDim, font: '13px sans-serif'});
+  yy += 22;
+  Mech.draw.text(ctx, '= ' + (3*p.n) + ' - ' + (2*p.PL) + ' - ' + p.PH, cx, yy, {color: C.textDim, font: '13px sans-serif'});
+  yy += 22;
+  var fColor = p.F > 0 ? C.return : C.warning;
+  ctx.fillStyle = fColor;
+  ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('F = ' + p.F, cx, yy);
+}
+
+function roundRect2(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ===== UI =====
+var sidebar = document.getElementById('sidebar');
+var toolbar = document.getElementById('toolbar');
+
+// Problem tabs
+var tabPanel = Mech.ui.panel(sidebar, '题目选择');
+var tabContainer = document.createElement('div');
+tabContainer.className = 'problem-tabs';
+tabPanel.appendChild(tabContainer);
+
+problems.forEach(function(prob, i) {
+  var tab = document.createElement('div');
+  tab.className = 'problem-tab' + (i === 0 ? ' active' : '');
+  tab.textContent = prob.name;
+  tab.addEventListener('click', function() {
+    problemIdx = i;
+    stepIdx = 0;
+    document.querySelectorAll('.problem-tab').forEach(function(t) { t.classList.remove('active'); });
+    tab.classList.add('active');
+    updateUI();
+    draw();
+  });
+  tabContainer.appendChild(tab);
+});
+
+// Step progress
+var stepPanel = Mech.ui.panel(sidebar, '解题进度');
+var progressContainer = document.createElement('div');
+progressContainer.className = 'step-progress';
+stepPanel.appendChild(progressContainer);
+
+var stepDesc = document.createElement('div');
+stepDesc.className = 'step-desc';
+stepPanel.appendChild(stepDesc);
+
+var stepNav = document.createElement('div');
+stepNav.className = 'step-nav';
+stepPanel.appendChild(stepNav);
+
+var prevBtn = Mech.ui.button(stepNav, {
+  text: '上一步', variant: 'secondary',
+  onClick: function() {
+    if (stepIdx > 0) { stepIdx--; updateUI(); draw(); }
+  }
+});
+var nextBtn = Mech.ui.button(stepNav, {
+  text: '下一步', variant: 'primary',
+  onClick: function() {
+    if (stepIdx < getMaxStep()) { stepIdx++; updateUI(); draw(); }
+  }
+});
+
+// Formula display
+var formulaPanel = Mech.ui.panel(sidebar, '计算过程');
+var formulaDisplay = document.createElement('div');
+formulaDisplay.className = 'formula-display';
+formulaPanel.appendChild(formulaDisplay);
+
+function updateUI() {
+  var p = getProblem();
+  var info = getStepInfo();
+  var maxStep = getMaxStep();
+  
+  // Progress dots
+  progressContainer.innerHTML = '';
+  for (var i = 0; i <= maxStep; i++) {
+    var dot = document.createElement('div');
+    dot.className = 'step-dot';
+    if (i < stepIdx) dot.classList.add('done');
+    if (i === stepIdx) dot.classList.add('active');
+    progressContainer.appendChild(dot);
+  }
+  
+  // Step description
+  stepDesc.innerHTML = info.text;
+  
+  // Buttons
+  prevBtn.style.opacity = stepIdx === 0 ? '0.4' : '1';
+  prevBtn.style.pointerEvents = stepIdx === 0 ? 'none' : 'auto';
+  nextBtn.style.opacity = stepIdx >= maxStep ? '0.4' : '1';
+  nextBtn.style.pointerEvents = stepIdx >= maxStep ? 'none' : 'auto';
+  if (stepIdx >= maxStep) {
+    nextBtn.textContent = '已完成';
+  } else {
+    nextBtn.textContent = '下一步';
+  }
+  
+  // Formula
+  if (info.phase === 'formula' || info.phase === 'conclusion') {
+    var html = '<span class="row">F = 3n - 2P<sub>L</sub> - P<sub>H</sub></span>';
+    html += '<span class="row dim">= 3 x ' + p.n + ' - 2 x ' + p.PL + ' - ' + p.PH + '</span>';
+    html += '<span class="row dim">= ' + (3*p.n) + ' - ' + (2*p.PL) + ' - ' + p.PH + '</span>';
+    html += '<span class="row result">F = ' + p.F + '</span>';
+    if (info.phase === 'conclusion') {
+      html += '<span class="row dim" style="font-size:12px">原动件数 = ' + p.driving + ' = F, 机构有确定运动</span>';
+    }
+    formulaDisplay.innerHTML = html;
+  } else {
+    formulaDisplay.innerHTML = '<span class="row dim">完成标注后显示计算过程...</span>';
+  }
+}
+
+window.addEventListener('resize', function() { draw(); });
+updateUI();
+draw();
+console.log('freedom-simple-step loaded');
+</script>
+</body>
+</html>
