@@ -327,22 +327,28 @@ function draw() {
         Mech.draw.text(ctx, link.label, link.cx + link.r + 8, link.cy, {color: color, font: 'bold 12px sans-serif', align: 'left'});
       }
     } else if (link.isFollower) {
-      var fw = 30;
+      var fw = 34;
+      var sh = link.stemH || 40;
       ctx.strokeStyle = color;
       ctx.lineWidth = width;
       ctx.beginPath();
-      ctx.moveTo(link.cx - 5, link.cy);
-      ctx.lineTo(link.cx - 5, link.cy - 40);
-      ctx.moveTo(link.cx + 5, link.cy);
-      ctx.lineTo(link.cx + 5, link.cy - 40);
+      ctx.moveTo(link.cx - 6, link.cy);
+      ctx.lineTo(link.cx - 6, link.cy - sh);
+      ctx.moveTo(link.cx + 6, link.cy);
+      ctx.lineTo(link.cx + 6, link.cy - sh);
       ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(link.cx - fw/2, link.cy);
       ctx.lineTo(link.cx + fw/2, link.cy);
       ctx.lineWidth = width + 1;
       ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(link.cx - 6, link.cy - sh);
+      ctx.lineTo(link.cx + 6, link.cy - sh);
+      ctx.lineWidth = width;
+      ctx.stroke();
       if (partStep) {
-        Mech.draw.text(ctx, link.label, link.cx + fw/2 + 8, link.cy - 20, {color: color, font: 'bold 12px sans-serif', align: 'left'});
+        Mech.draw.text(ctx, link.label, link.cx + fw/2 + 8, link.cy - sh/2, {color: color, font: 'bold 12px sans-serif', align: 'left'});
       }
     } else {
       Mech.draw.link(ctx, link.x1, link.y1, link.x2, link.y2, {color: color, width: width, label: partStep ? link.label : ''});

@@ -137,38 +137,38 @@ var problems = [
   {
     name: '凸轮机构',
     n: 2, PL: 2, PH: 1, F: 1, driving: 1,
-    frame: [{x: 200, y: 300, label: 'O'}],
+    frame: [{x: 200, y: 290, label: 'O'}],
     links: [
-      // 凸轮（圆）
-      {isCam: true, cx: 200, cy: 300, r: 45, label: '2', partId: 2},
-      // 从动件（杆+平底）
-      {isFollower: true, cx: 200, cy: 180, label: '3', partId: 3},
+      // 凸轮
+      {isCam: true, cx: 200, cy: 290, r: 38, label: '2', partId: 2},
+      // 从动件（平底+杆）
+      {isFollower: true, cx: 200, cy: 252, stemH: 70, label: '3', partId: 3},
     ],
     pairs: [
-      {x: 200, y: 300, label: 'O', type: 'low', parts: '1,2', isRevolute: true},
-      {x: 200, y: 150, label: '', type: 'low', parts: '1,3', isPrismatic: true},
-      {x: 200, y: 255, label: 'T', type: 'high', parts: '2,3'},
+      {x: 200, y: 290, label: 'O', type: 'low', parts: '1,2', isRevolute: true},
+      {x: 200, y: 210, label: '', type: 'low', parts: '1,3', isPrismatic: true},
+      {x: 200, y: 252, label: 'T', type: 'high', parts: '2,3'},
     ],
     drawExtra: function(ctx, sc) {
       // 机架符号在凸轮转轴
-      Mech.draw.hingedSupport(ctx, 200, 300);
+      Mech.draw.hingedSupport(ctx, 200, 290);
       // 导路（滑槽）
       ctx.strokeStyle = Mech.colors.hinge;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(175, 130); ctx.lineTo(175, 260);
-      ctx.moveTo(225, 130); ctx.lineTo(225, 260);
+      ctx.moveTo(183, 160); ctx.lineTo(183, 245);
+      ctx.moveTo(217, 160); ctx.lineTo(217, 245);
       ctx.stroke();
       // 斜线
       for (var i = 0; i < 5; i++) {
-        var y = 140 + i * 24;
+        var y = 170 + i * 16;
         ctx.beginPath();
-        ctx.moveTo(175, y); ctx.lineTo(167, y + 6);
-        ctx.moveTo(225, y); ctx.lineTo(233, y + 6);
+        ctx.moveTo(183, y); ctx.lineTo(176, y + 5);
+        ctx.moveTo(217, y); ctx.lineTo(224, y + 5);
         ctx.lineWidth = 1;
         ctx.stroke();
       }
-      Mech.draw.text(ctx, '1', 160, 130, {color: Mech.colors.hinge, font: '12px sans-serif', align: 'right'});
+      Mech.draw.text(ctx, '1', 170, 160, {color: Mech.colors.hinge, font: '12px sans-serif', align: 'right'});
     }
   },
 ];
