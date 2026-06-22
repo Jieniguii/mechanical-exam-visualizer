@@ -6,116 +6,125 @@
 <title>元件调试 — 尖顶从动件</title>
 <link rel="stylesheet" href="../mech.css">
 <style>
-.comp-layout { display: flex; gap: 24px; padding: 20px; align-items: flex-start; flex-wrap: wrap; }
-.comp-canvas-area { flex: 0 0 auto; }
-.comp-ref { flex: 0 0 auto; max-width: 360px; }
-.comp-ref img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
-.comp-ref .caption { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
-.comp-controls { width: 100%; padding: 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; }
-.comp-controls h3 { margin: 0 0 12px; font-size: 14px; color: var(--text); }
-.ctrl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.ctrl-row label { flex: 0 0 140px; font-size: 12px; color: var(--text-dim); }
-.ctrl-row input[type=range] { flex: 1; }
-.ctrl-row .val { flex: 0 0 40px; font-size: 12px; color: var(--accent); text-align: right; font-family: monospace; }
+.comp-top { display: flex; gap: 20px; padding: 16px 20px; align-items: flex-start; }
+.comp-canvas-box { flex: 1; min-width: 300px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.comp-canvas-box canvas { display: block; width: 100%; height: 50vh; min-height: 280px; max-height: 480px; background: #12141d; }
+.comp-ref-box { flex: 0 0 280px; }
+.comp-ref-box img { width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+.comp-ref-box .caption { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+.comp-ctrls { padding: 16px 20px; }
+.comp-ctrls-inner { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.comp-ctrls h3 { margin: 0 0 12px; font-size: 14px; color: var(--text); }
+.cr { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.cr label { flex: 0 0 110px; font-size: 12px; color: var(--text-dim); }
+.cr input[type=range] { flex: 1; accent-color: var(--accent); }
+.cr .v { flex: 0 0 40px; font-size: 12px; color: var(--accent); text-align: right; font-family: monospace; }
 </style>
 </head>
 <body>
 <a href="index.html" class="back-btn">&larr; 返回元件列表</a>
 <div class="header">
   <h1>尖顶从动件 <span class="version-badge">comp</span></h1>
-  <p>教材3(c)标准 — 直杆+尖端接触凸轮</p>
+  <p>教材3(c)标准 — 直杆+尖端三角 | 拖滑块调整</p>
 </div>
-<div class="comp-layout">
-  <div class="comp-canvas-area">
-    <div class="canvas-card"><div class="canvas-wrapper"><canvas id="canvas"></canvas></div></div>
+<div class="comp-top">
+  <div class="comp-canvas-box">
+    <canvas id="canvas"></canvas>
   </div>
-  <div class="comp-ref">
+  <div class="comp-ref-box">
     <img src="ref/textbook-3c.png" alt="教材3(c)参考图">
-    <div class="caption">教材图3(c) — 处理完局部自由度后，从动件2的尖顶画法</div>
+    <div class="caption">教材图3(c) — 注意从动件2是尖顶（直杆+底部小三角尖端）</div>
   </div>
 </div>
-<div class="comp-controls">
-  <h3>参数调节</h3>
-  <div class="ctrl-row"><label>中心X cx</label><input type="range" id="cx" min="180" max="280" value="225"><span class="val" id="cx-val">225</span></div>
-  <div class="ctrl-row"><label>接触点Y contactY</label><input type="range" id="contactY" min="160" max="220" value="201"><span class="val" id="contactY-val">201</span></div>
-  <div class="ctrl-row"><label>杆顶Y stemTopY</label><input type="range" id="stemTopY" min="80" max="180" value="120"><span class="val" id="stemTopY-val">120</span></div>
-  <div class="ctrl-row"><label>尖端三角高度</label><input type="range" id="tipH" min="4" max="16" value="8"><span class="val" id="tipH-val">8</span></div>
-  <div class="ctrl-row"><label>尖端三角半宽</label><input type="range" id="tipW" min="2" max="8" value="4"><span class="val" id="tipW-val">4</span></div>
-  <div class="ctrl-row"><label>杆线宽</label><input type="range" id="lineW" min="15" max="45" value="28" step="1"><span class="val" id="lineW-val">2.8</span></div>
+<div class="comp-ctrls">
+  <div class="comp-ctrls-inner">
+    <h3>参数调节</h3>
+    <div class="cr"><label>中心X cx</label><input type="range" id="cx" min="80" max="300" value="180"><span class="v" id="cx-v">180</span></div>
+    <div class="cr"><label>接触点Y</label><input type="range" id="contactY" min="150" max="280" value="220"><span class="v" id="contactY-v">220</span></div>
+    <div class="cr"><label>杆顶Y</label><input type="range" id="stemTopY" min="60" max="200" value="120"><span class="v" id="stemTopY-v">120</span></div>
+    <div class="cr"><label>尖端高度 tipH</label><input type="range" id="tipH" min="3" max="16" value="7"><span class="v" id="tipH-v">7</span></div>
+    <div class="cr"><label>尖端半宽 tipW</label><input type="range" id="tipW" min="2" max="10" value="4"><span class="v" id="tipW-v">4</span></div>
+    <div class="cr"><label>线宽 lineW</label><input type="range" id="lineW" min="10" max="35" value="22" step="1"><span class="v" id="lineW-v">2.2</span></div>
+  </div>
 </div>
 
 <script src="../mech.js"></script>
 <script>
-var { ctx, getDimensions, canvas } = Mech.setupCanvas(document.getElementById('canvas'));
-var REF_W = 460, REF_H = 360;
+var canvasEl = document.getElementById('canvas');
+var ctx = canvasEl.getContext('2d');
+var P = { cx: 180, contactY: 220, stemTopY: 120, tipH: 7, tipW: 4, lineW: 2.2 };
 
-var P = { cx: 225, contactY: 201, stemTopY: 120, tipH: 8, tipW: 4, lineW: 2.8 };
+function resize() {
+  var dpr = window.devicePixelRatio || 1;
+  var rect = canvasEl.getBoundingClientRect();
+  canvasEl.width = rect.width * dpr;
+  canvasEl.height = rect.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { w: rect.width, h: rect.height };
+}
 
 function draw() {
-  var dims = getDimensions();
-  var w = dims.w, h = dims.h;
+  var dim = resize();
+  var w = dim.w, h = dim.h;
   ctx.clearRect(0, 0, w, h);
-
+  var REF_W = 360, REF_H = 320;
   var padX = 30, padY = 30;
-  var sx = (w - padX * 2) / REF_W;
-  var sy = (h - padY * 2) / REF_H;
+  var sx = (w-padX*2)/REF_W, sy = (h-padY*2)/REF_H;
   var sc = Math.min(sx, sy);
-  var ox = (w - REF_W * sc) / 2;
-  var oy = (h - REF_H * sc) / 2;
+  var ox = (w-REF_W*sc)/2, oy = (h-REF_H*sc)/2;
 
-  ctx.save();
-  ctx.translate(ox, oy);
-  ctx.scale(sc, sc);
-
+  ctx.save(); ctx.translate(ox,oy); ctx.scale(sc,sc);
   var C = Mech.colors;
-  var fColor = '#34d399';
 
-  // Reference: faint cam circle below
-  ctx.beginPath();
-  ctx.arc(225, 245, 44, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(99,102,241,0.15)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  // Dashed cam outline for reference
+  ctx.setLineDash([5,4]); ctx.strokeStyle='rgba(99,102,241,0.25)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(P.cx, P.contactY+30, 35, 0, Math.PI*2); ctx.stroke();
+  ctx.setLineDash([]);
 
-  // Stem (straight vertical line from tip up)
-  ctx.strokeStyle = fColor;
+  // Stem (vertical line)
+  ctx.strokeStyle = C.return;
   ctx.lineWidth = P.lineW;
   ctx.beginPath();
-  ctx.moveTo(P.cx, P.contactY);
-  ctx.lineTo(P.cx, P.stemTopY);
+  ctx.moveTo(P.cx, P.stemTopY);
+  ctx.lineTo(P.cx, P.contactY - P.tipH);
   ctx.stroke();
 
-  // Tip triangle (filled, pointing down)
-  ctx.fillStyle = fColor;
+  // Tip triangle (filled)
+  var tipTop = P.contactY;
+  var tipBase = P.contactY - P.tipH;
+  ctx.fillStyle = C.return;
   ctx.beginPath();
-  ctx.moveTo(P.cx, P.contactY);
-  ctx.lineTo(P.cx - P.tipW, P.contactY + P.tipH);
-  ctx.lineTo(P.cx + P.tipW, P.contactY + P.tipH);
+  ctx.moveTo(P.cx, tipTop);
+  ctx.lineTo(P.cx - P.tipW, tipBase);
+  ctx.lineTo(P.cx + P.tipW, tipBase);
   ctx.closePath();
   ctx.fill();
 
-  // Contact point (yellow dot)
-  Mech.draw.point(ctx, P.cx, P.contactY, { color: '#fbbf24', r: 3 });
+  // Tip outline
+  ctx.strokeStyle = C.return;
+  ctx.lineWidth = P.lineW * 0.8;
+  ctx.beginPath();
+  ctx.moveTo(P.cx, tipTop);
+  ctx.lineTo(P.cx - P.tipW, tipBase);
+  ctx.lineTo(P.cx + P.tipW, tipBase);
+  ctx.closePath();
+  ctx.stroke();
 
-  // Label
-  Mech.draw.text(ctx, '3', P.cx + 14, (P.contactY + P.stemTopY) / 2, { color: fColor, font: 'bold 14px sans-serif', align: 'left' });
-
-  // Dimension hints
-  var stemLen = P.contactY - P.stemTopY;
-  Mech.draw.text(ctx, '杆长=' + stemLen, P.cx + 30, P.stemTopY + 20, { color: 'rgba(161,161,170,0.6)', font: '10px sans-serif', align: 'left' });
-  Mech.draw.text(ctx, 'tipH=' + P.tipH + ' tipW=' + P.tipW, P.cx + 30, P.stemTopY + 34, { color: 'rgba(161,161,170,0.6)', font: '10px sans-serif', align: 'left' });
+  // Labels
+  Mech.draw.text(ctx, '尖顶', P.cx + P.tipW + 12, P.contactY - P.tipH/2, { color: C.textDim, font: '12px sans-serif', align: 'left' });
+  Mech.draw.text(ctx, '杆', P.cx + P.tipW + 12, (P.stemTopY + P.contactY)/2, { color: C.textDim, font: '12px sans-serif', align: 'left' });
 
   ctx.restore();
 }
 
-Object.keys(P).forEach(function(key) {
-  var el = document.getElementById(key);
+Object.keys(P).forEach(function(k) {
+  var el = document.getElementById(k);
   if (!el) return;
-  var valEl = document.getElementById(key + '-val');
+  var vEl = document.getElementById(k+'-v');
   el.addEventListener('input', function() {
     var v = parseFloat(el.value);
-    if (key === 'lineW') { P[key] = v / 10; valEl.textContent = (v / 10).toFixed(1); }
-    else { P[key] = v; valEl.textContent = Math.round(v); }
+    if (k==='lineW') { P[k]=v/10; vEl.textContent=(v/10).toFixed(1); }
+    else { P[k]=v; vEl.textContent=Math.round(v); }
     draw();
   });
 });

@@ -6,64 +6,74 @@
 <title>元件调试 — 固定支座</title>
 <link rel="stylesheet" href="../mech.css">
 <style>
-.comp-layout { display: flex; gap: 24px; padding: 20px; align-items: flex-start; flex-wrap: wrap; }
-.comp-canvas-area { flex: 0 0 auto; }
-.comp-ref { flex: 0 0 auto; max-width: 360px; }
-.comp-ref img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
-.comp-ref .caption { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
-.comp-controls { width: 100%; padding: 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; }
-.comp-controls h3 { margin: 0 0 12px; font-size: 14px; color: var(--text); }
-.ctrl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.ctrl-row label { flex: 0 0 120px; font-size: 12px; color: var(--text-dim); }
-.ctrl-row input[type=range] { flex: 1; }
-.ctrl-row .val { flex: 0 0 40px; font-size: 12px; color: var(--accent); text-align: right; font-family: monospace; }
-.func-output { margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; font-family: monospace; font-size: 11px; color: #a5f3fc; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
-.copy-btn { margin-top: 8px; }
+.comp-top { display: flex; gap: 20px; padding: 16px 20px; align-items: flex-start; }
+.comp-canvas-box { flex: 1; min-width: 300px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.comp-canvas-box canvas { display: block; width: 100%; height: 50vh; min-height: 280px; max-height: 480px; background: #12141d; }
+.comp-ref-box { flex: 0 0 280px; }
+.comp-ref-box img { width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+.comp-ref-box .caption { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+.comp-ctrls { padding: 16px 20px; }
+.comp-ctrls-inner { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.comp-ctrls h3 { margin: 0 0 12px; font-size: 14px; color: var(--text); }
+.cr { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.cr label { flex: 0 0 110px; font-size: 12px; color: var(--text-dim); }
+.cr input[type=range] { flex: 1; accent-color: var(--accent); }
+.cr .v { flex: 0 0 40px; font-size: 12px; color: var(--accent); text-align: right; font-family: monospace; }
+.func-out { margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; font-family: monospace; font-size: 11px; color: #a5f3fc; white-space: pre-wrap; max-height: 260px; overflow-y: auto; }
 </style>
 </head>
 <body>
 <a href="index.html" class="back-btn">&larr; 返回元件列表</a>
 <div class="header">
   <h1>固定支座 <span class="version-badge">comp</span></h1>
-  <p>教材3(c)标准 — 倒三角+底线+剖面线</p>
+  <p>教材3(c)标准 — 倒三角+底线+剖面线 | 拖滑块调整，让画法与教材图一致</p>
 </div>
-<div class="comp-layout">
-  <div class="comp-canvas-area">
-    <div class="canvas-card"><div class="canvas-wrapper"><canvas id="canvas"></canvas></div></div>
+<div class="comp-top">
+  <div class="comp-canvas-box">
+    <canvas id="canvas"></canvas>
   </div>
-  <div class="comp-ref">
+  <div class="comp-ref-box">
     <img src="ref/textbook-3c.png" alt="教材3(c)参考图">
-    <div class="caption">教材图3(c) — 局部自由度处理，注意机架1和3的固定支座画法</div>
+    <div class="caption">教材图3(c) — 注意机架1和3的固定支座画法</div>
   </div>
 </div>
-<div class="comp-controls">
-  <h3>参数调节</h3>
-  <div class="ctrl-row"><label>三角高度 triH</label><input type="range" id="triH" min="8" max="24" value="14"><span class="val" id="triH-val">14</span></div>
-  <div class="ctrl-row"><label>三角半宽 triW</label><input type="range" id="triW" min="6" max="20" value="12"><span class="val" id="triW-val">12</span></div>
-  <div class="ctrl-row"><label>底线额外宽度</label><input type="range" id="baseExtra" min="0" max="8" value="4"><span class="val" id="baseExtra-val">4</span></div>
-  <div class="ctrl-row"><label>剖面线数量</label><input type="range" id="hatchCount" min="2" max="9" value="5"><span class="val" id="hatchCount-val">5</span></div>
-  <div class="ctrl-row"><label>剖面线长度</label><input type="range" id="hatchLen" min="4" max="14" value="8"><span class="val" id="hatchLen-val">8</span></div>
-  <div class="ctrl-row"><label>整体缩放 scale</label><input type="range" id="scale" min="5" max="25" value="10" step="1"><span class="val" id="scale-val">1.0</span></div>
-  <div class="ctrl-row"><label>线宽 lineWidth</label><input type="range" id="lineW" min="1" max="4" value="18" step="1"><span class="val" id="lineW-val">1.8</span></div>
-  <h3>生成函数</h3>
-  <button class="btn" onclick="copyFunc()">复制函数代码</button>
-  <div class="func-output" id="funcOutput"></div>
+<div class="comp-ctrls">
+  <div class="comp-ctrls-inner">
+    <h3>参数调节</h3>
+    <div class="cr"><label>三角高度 triH</label><input type="range" id="triH" min="8" max="24" value="14"><span class="v" id="triH-v">14</span></div>
+    <div class="cr"><label>三角半宽 triW</label><input type="range" id="triW" min="6" max="20" value="12"><span class="v" id="triW-v">12</span></div>
+    <div class="cr"><label>底线额外宽度</label><input type="range" id="baseExtra" min="0" max="8" value="4"><span class="v" id="baseExtra-v">4</span></div>
+    <div class="cr"><label>剖面线数量</label><input type="range" id="hatchCount" min="2" max="9" value="5"><span class="v" id="hatchCount-v">5</span></div>
+    <div class="cr"><label>剖面线长度</label><input type="range" id="hatchLen" min="4" max="14" value="8"><span class="v" id="hatchLen-v">8</span></div>
+    <div class="cr"><label>整体缩放 scale</label><input type="range" id="scale" min="5" max="25" value="10" step="1"><span class="v" id="scale-v">1.0</span></div>
+    <div class="cr"><label>线宽 lineWidth</label><input type="range" id="lineW" min="10" max="40" value="18" step="1"><span class="v" id="lineW-v">1.8</span></div>
+    <h3>生成函数</h3>
+    <button class="btn" onclick="copyFunc()">复制函数代码</button>
+    <div class="func-out" id="funcOut"></div>
+  </div>
 </div>
 
 <script src="../mech.js"></script>
 <script>
-var { ctx, getDimensions, canvas } = Mech.setupCanvas(document.getElementById('canvas'));
-var REF_W = 460, REF_H = 300;
+var canvasEl = document.getElementById('canvas');
+var ctx = canvasEl.getContext('2d');
+var P = { triH: 14, triW: 12, baseExtra: 4, hatchCount: 5, hatchLen: 8, scale: 1.0, lineW: 1.8 };
 
-var params = {
-  triH: 14, triW: 12, baseExtra: 4, hatchCount: 5, hatchLen: 8, scale: 1.0, lineW: 1.8
-};
+function resize() {
+  var dpr = window.devicePixelRatio || 1;
+  var rect = canvasEl.getBoundingClientRect();
+  canvasEl.width = rect.width * dpr;
+  canvasEl.height = rect.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { w: rect.width, h: rect.height };
+}
 
 function draw() {
-  var dims = getDimensions();
-  var w = dims.w, h = dims.h;
+  var dim = resize();
+  var w = dim.w, h = dim.h;
   ctx.clearRect(0, 0, w, h);
 
+  var REF_W = 460, REF_H = 300;
   var padX = 40, padY = 40;
   var sx = (w - padX * 2) / REF_W;
   var sy = (h - padY * 2) / REF_H;
@@ -75,7 +85,6 @@ function draw() {
   ctx.translate(ox, oy);
   ctx.scale(sc, sc);
 
-  // Draw 3 examples at different positions
   var positions = [
     { x: 100, y: 180, label: '标准' },
     { x: 230, y: 180, label: '大号' },
@@ -84,15 +93,13 @@ function draw() {
 
   for (var i = 0; i < positions.length; i++) {
     var pos = positions[i];
-    var s = (i === 0) ? params.scale : (i === 1 ? params.scale * 1.4 : params.scale * 0.7);
-
-    var p = params;
-    var triH = p.triH * s;
-    var triW = p.triW * s;
+    var s = (i === 0) ? P.scale : (i === 1 ? P.scale * 1.4 : P.scale * 0.7);
+    var p = P;
+    var triH = p.triH * s, triW = p.triW * s;
     var baseW = triW + p.baseExtra * s;
     var color = Mech.colors.hinge;
 
-    // Vertical reference line (the thing the support is attached to)
+    // Vertical reference line
     ctx.strokeStyle = 'rgba(161,161,170,0.4)';
     ctx.lineWidth = 1;
     ctx.setLineDash([4, 3]);
@@ -129,89 +136,39 @@ function draw() {
       ctx.stroke();
     }
 
-    // Label
     Mech.draw.text(ctx, pos.label, pos.x, pos.y + triH + p.hatchLen * s + 16, {
       color: Mech.colors.textDim, font: '12px sans-serif', align: 'center'
     });
   }
 
   ctx.restore();
-  updateFuncOutput();
+  updateFunc();
 }
 
-function updateFuncOutput() {
-  var p = params;
-  var code = `function drawFixedSupport(ctx, x, y, opts) {
-  opts = opts || {};
-  var color = opts.color || Mech.colors.hinge;
-  var scale = opts.scale || 1;
-  var triH = ${p.triH} * scale, triW = ${p.triW} * scale;
-  var baseW = triW + ${p.baseExtra} * scale;
-  var hatchCount = ${p.hatchCount};
-  var hatchLen = ${p.hatchLen} * scale;
-
-  ctx.strokeStyle = color;
-  ctx.lineWidth = ${p.lineW} * scale;
-  // 倒三角
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(x - triW, y + triH);
-  ctx.lineTo(x + triW, y + triH);
-  ctx.closePath();
-  ctx.stroke();
-  // 底线
-  ctx.lineWidth = ${(p.lineW * 0.8).toFixed(1)} * scale;
-  ctx.beginPath();
-  ctx.moveTo(x - baseW, y + triH);
-  ctx.lineTo(x + baseW, y + triH);
-  ctx.stroke();
-  // 剖面线
-  ctx.lineWidth = ${(p.lineW * 0.5).toFixed(1)} * scale;
-  for (var i = 0; i < hatchCount; i++) {
-    var hx = x - baseW + 3 * scale + i * ((2 * baseW - 6 * scale) / (hatchCount - 1));
-    ctx.beginPath();
-    ctx.moveTo(hx, y + triH);
-    ctx.lineTo(hx - hatchLen * 0.6, y + triH + hatchLen * 0.6);
-    ctx.stroke();
-  }
-}`;
-  document.getElementById('funcOutput').textContent = code;
+function updateFunc() {
+  var p = P;
+  var code = `function drawFixedSupport(ctx, x, y, opts) {\n  opts = opts || {};\n  var color = opts.color || Mech.colors.hinge;\n  var scale = opts.scale || 1;\n  var triH = ${p.triH} * scale, triW = ${p.triW} * scale;\n  var baseW = triW + ${p.baseExtra} * scale;\n  var hatchCount = ${p.hatchCount};\n  var hatchLen = ${p.hatchLen} * scale;\n\n  ctx.strokeStyle = color;\n  ctx.lineWidth = ${p.lineW} * scale;\n  // 倒三角\n  ctx.beginPath();\n  ctx.moveTo(x, y);\n  ctx.lineTo(x - triW, y + triH);\n  ctx.lineTo(x + triW, y + triH);\n  ctx.closePath();\n  ctx.stroke();\n  // 底线\n  ctx.lineWidth = ${(p.lineW * 0.8).toFixed(1)} * scale;\n  ctx.beginPath();\n  ctx.moveTo(x - baseW, y + triH);\n  ctx.lineTo(x + baseW, y + triH);\n  ctx.stroke();\n  // 剖面线\n  ctx.lineWidth = ${(p.lineW * 0.5).toFixed(1)} * scale;\n  for (var i = 0; i < hatchCount; i++) {\n    var hx = x - baseW + 3 * scale + i * ((2 * baseW - 6 * scale) / (hatchCount - 1));\n    ctx.beginPath();\n    ctx.moveTo(hx, y + triH);\n    ctx.lineTo(hx - hatchLen * 0.6, y + triH + hatchLen * 0.6);\n    ctx.stroke();\n  }\n}`;
+  document.getElementById('funcOut').textContent = code;
 }
 
 function copyFunc() {
-  var code = document.getElementById('funcOutput').textContent;
-  navigator.clipboard.writeText(code).then(function() {
-    alert('已复制到剪贴板');
-  });
+  navigator.clipboard.writeText(document.getElementById('funcOut').textContent).then(function() { alert('已复制'); });
 }
 
 // Bind sliders
-var sliderIds = ['triH', 'triW', 'baseExtra', 'hatchCount', 'hatchLen', 'lineW'];
-sliderIds.forEach(function(id) {
+['triH','triW','baseExtra','hatchCount','hatchLen'].forEach(function(id) {
   var el = document.getElementById(id);
-  var valEl = document.getElementById(id + '-val');
-  el.addEventListener('input', function() {
-    params[id] = parseInt(el.value);
-    valEl.textContent = el.value;
-    draw();
-  });
+  var vEl = document.getElementById(id + '-v');
+  el.addEventListener('input', function() { P[id] = parseInt(el.value); vEl.textContent = el.value; draw(); });
 });
-
-// Scale slider (decimal)
-var scaleEl = document.getElementById('scale');
-var scaleVal = document.getElementById('scale-val');
-scaleEl.addEventListener('input', function() {
-  params.scale = parseInt(scaleEl.value) / 10;
-  scaleVal.textContent = params.scale.toFixed(1);
+document.getElementById('scale').addEventListener('input', function() {
+  P.scale = parseInt(this.value) / 10;
+  document.getElementById('scale-v').textContent = P.scale.toFixed(1);
   draw();
 });
-
-// LineW slider
-var lineWEl = document.getElementById('lineW');
-var lineWVal = document.getElementById('lineW-val');
-lineWEl.addEventListener('input', function() {
-  params.lineW = parseInt(lineWEl.value) / 10;
-  lineWVal.textContent = params.lineW.toFixed(1);
+document.getElementById('lineW').addEventListener('input', function() {
+  P.lineW = parseInt(this.value) / 10;
+  document.getElementById('lineW-v').textContent = P.lineW.toFixed(1);
   draw();
 });
 

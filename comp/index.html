@@ -3,80 +3,88 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>元件调试工作台 — 机械考研可视化</title>
+<title>元件调试工作台</title>
 <link rel="stylesheet" href="../mech.css">
 <style>
-.comp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; padding: 20px; }
-.comp-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; transition: all 0.2s; cursor: pointer; }
-.comp-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-.comp-card h3 { margin: 0 0 6px; font-size: 15px; color: var(--text); }
-.comp-card p { margin: 0; font-size: 12px; color: var(--text-dim); line-height: 1.5; }
-.comp-card .tag { display: inline-block; padding: 2px 8px; background: rgba(99,102,241,0.1); border-radius: 4px; font-size: 10px; color: var(--accent); margin-top: 8px; }
-.section-title { padding: 20px 20px 0; font-size: 13px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
+.comp-list { padding: 20px; max-width: 800px; margin: 0 auto; }
+.comp-list h2 { font-size: 16px; margin: 24px 0 12px; color: var(--accent); }
+.comp-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 8px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; text-decoration: none; color: var(--text); transition: border-color 0.2s; }
+.comp-item:hover { border-color: var(--accent); }
+.comp-item .status { flex: 0 0 60px; font-size: 11px; padding: 2px 8px; border-radius: 6px; text-align: center; }
+.comp-item .status.done { background: rgba(52,211,153,0.15); color: #34d399; }
+.comp-item .status.wip { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.comp-item .status.todo { background: rgba(161,161,170,0.1); color: #a1a1aa; }
+.comp-item .name { font-size: 14px; font-weight: 500; }
+.comp-item .desc { font-size: 12px; color: var(--text-dim); }
+.comp-intro { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; font-size: 13px; color: var(--text-dim); line-height: 1.8; }
+.comp-intro strong { color: var(--text); }
 </style>
 </head>
 <body>
-<a href="../ch1-structure.html" class="back-btn">&larr; 返回首页</a>
 <div class="header">
-  <h1>元件调试工作台</h1>
-  <p>对照教材原图，逐个调试每个元件的画法参数</p>
+  <h1>元件调试工作台 <span class="version-badge">comp</span></h1>
+  <p>对照教材原图，逐个调试元件参数 → 满意后写回 mech.js</p>
 </div>
+<div class="comp-list">
+  <div class="comp-intro">
+    <strong>工作流程：</strong>点进某个元件 → 左边canvas画元件，右边放教材参考图 → 拖滑块调参数让两者一致 → 调满意后告诉我，我把参数锁死写进 mech.js，所有模块直接调用。
+  </div>
 
-<div class="section-title">四、机架与固定类</div>
-<div class="comp-grid">
-  <a href="fix-support.html" class="comp-card">
-    <h3>固定支座</h3>
-    <p>倒三角+底线+剖面线<br>参考：教材3(c) 机架底座</p>
-    <span class="tag">表1-3</span>
+  <h2>机架与固定类</h2>
+  <a class="comp-item" href="fix-support.html">
+    <span class="status done">已创建</span>
+    <span class="name">固定支座</span>
+    <span class="desc">倒三角+底线+剖面线</span>
   </a>
-  <a href="guide.html" class="comp-card">
-    <h3>导路</h3>
-    <p>两条短平行线+顶部封闭+剖面线<br>参考：教材3(c) 机架3</p>
-    <span class="tag">表1-3</span>
+
+  <h2>传动与驱动类</h2>
+  <a class="comp-item" href="cam-disk.html">
+    <span class="status done">已创建</span>
+    <span class="name">偏心圆盘凸轮</span>
+    <span class="desc">偏心圆+转轴十字+固定支座</span>
+  </a>
+  <a class="comp-item" href="follower-pointed.html">
+    <span class="status done">已创建</span>
+    <span class="name">尖顶从动件</span>
+    <span class="desc">直杆+尖端三角</span>
+  </a>
+  <a class="comp-item" href="#">
+    <span class="status todo">待制作</span>
+    <span class="name">平底从动件</span>
+    <span class="desc">直杆+平底横线</span>
+  </a>
+  <a class="comp-item" href="#">
+    <span class="status todo">待制作</span>
+    <span class="name">滚子从动件</span>
+    <span class="desc">直杆+滚子圆</span>
+  </a>
+
+  <h2>运动副与辅助</h2>
+  <a class="comp-item" href="guide.html">
+    <span class="status done">已创建</span>
+    <span class="name">导路</span>
+    <span class="desc">两竖线+顶部封闭+短剖面线</span>
+  </a>
+  <a class="comp-item" href="#">
+    <span class="status todo">待制作</span>
+    <span class="name">滑块</span>
+    <span class="desc">矩形方块</span>
+  </a>
+  <a class="comp-item" href="#">
+    <span class="status todo">待制作</span>
+    <span class="name">齿轮</span>
+    <span class="desc">渐开线齿廓/简化圆</span>
+  </a>
+  <a class="comp-item" href="#">
+    <span class="status todo">待制作</span>
+    <span class="name">转动副</span>
+    <span class="desc">小空心圆</span>
+  </a>
+  <a class="comp-item" href="#">
+    <span class="status todo">待制作</span>
+    <span class="name">高副</span>
+    <span class="desc">两曲线切点</span>
   </a>
 </div>
-
-<div class="section-title">三、传动与驱动类</div>
-<div class="comp-grid">
-  <a href="cam-disk.html" class="comp-card">
-    <h3>偏心圆盘凸轮</h3>
-    <p>偏心整圆+转轴十字标记+固定支座<br>参考：教材3(c) 构件1</p>
-    <span class="tag">表1-1</span>
-  </a>
-  <a href="follower-pointed.html" class="comp-card">
-    <h3>尖顶从动件</h3>
-    <p>直杆+底部尖端三角<br>参考：教材3(c) 构件2</p>
-    <span class="tag">图1-22</span>
-  </a>
-</div>
-
-<div class="section-title" style="color: var(--text-dim); opacity: 0.5;">待制作</div>
-<div class="comp-grid" style="opacity: 0.4;">
-  <div class="comp-card">
-    <h3>平底从动件</h3>
-    <p>直杆+平底横线</p>
-  </div>
-  <div class="comp-card">
-    <h3>滚子从动件</h3>
-    <p>直杆+小圆滚子</p>
-  </div>
-  <div class="comp-card">
-    <h3>滑块</h3>
-    <p>矩形滑块</p>
-  </div>
-  <div class="comp-card">
-    <h3>齿轮</h3>
-    <p>外啮合/内啮合</p>
-  </div>
-  <div class="comp-card">
-    <h3>转动副</h3>
-    <p>空心圆○</p>
-  </div>
-  <div class="comp-card">
-    <h3>高副</h3>
-    <p>凸轮高副+齿轮高副</p>
-  </div>
-</div>
-
 </body>
 </html>
