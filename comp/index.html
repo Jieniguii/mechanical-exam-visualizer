@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>元件调试工作台 — 机械考研可视化</title>
+<link rel="stylesheet" href="../mech.css">
+<style>
+.comp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; padding: 20px; }
+.comp-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; transition: all 0.2s; cursor: pointer; }
+.comp-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.comp-card h3 { margin: 0 0 6px; font-size: 15px; color: var(--text); }
+.comp-card p { margin: 0; font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+.comp-card .tag { display: inline-block; padding: 2px 8px; background: rgba(99,102,241,0.1); border-radius: 4px; font-size: 10px; color: var(--accent); margin-top: 8px; }
+.section-title { padding: 20px 20px 0; font-size: 13px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<a href="../ch1-structure.html" class="back-btn">&larr; 返回首页</a>
+<div class="header">
+  <h1>元件调试工作台</h1>
+  <p>对照教材原图，逐个调试每个元件的画法参数</p>
+</div>
+
+<div class="section-title">四、机架与固定类</div>
+<div class="comp-grid">
+  <a href="fix-support.html" class="comp-card">
+    <h3>固定支座</h3>
+    <p>倒三角+底线+剖面线<br>参考：教材3(c) 机架底座</p>
+    <span class="tag">表1-3</span>
+  </a>
+  <a href="guide.html" class="comp-card">
+    <h3>导路</h3>
+    <p>两条短平行线+顶部封闭+剖面线<br>参考：教材3(c) 机架3</p>
+    <span class="tag">表1-3</span>
+  </a>
+</div>
+
+<div class="section-title">三、传动与驱动类</div>
+<div class="comp-grid">
+  <a href="cam-disk.html" class="comp-card">
+    <h3>偏心圆盘凸轮</h3>
+    <p>偏心整圆+转轴十字标记+固定支座<br>参考：教材3(c) 构件1</p>
+    <span class="tag">表1-1</span>
+  </a>
+  <a href="follower-pointed.html" class="comp-card">
+    <h3>尖顶从动件</h3>
+    <p>直杆+底部尖端三角<br>参考：教材3(c) 构件2</p>
+    <span class="tag">图1-22</span>
+  </a>
+</div>
+
+<div class="section-title" style="color: var(--text-dim); opacity: 0.5;">待制作</div>
+<div class="comp-grid" style="opacity: 0.4;">
+  <div class="comp-card">
+    <h3>平底从动件</h3>
+    <p>直杆+平底横线</p>
+  </div>
+  <div class="comp-card">
+    <h3>滚子从动件</h3>
+    <p>直杆+小圆滚子</p>
+  </div>
+  <div class="comp-card">
+    <h3>滑块</h3>
+    <p>矩形滑块</p>
+  </div>
+  <div class="comp-card">
+    <h3>齿轮</h3>
+    <p>外啮合/内啮合</p>
+  </div>
+  <div class="comp-card">
+    <h3>转动副</h3>
+    <p>空心圆○</p>
+  </div>
+  <div class="comp-card">
+    <h3>高副</h3>
+    <p>凸轮高副+齿轮高副</p>
+  </div>
+</div>
+
+</body>
+</html>

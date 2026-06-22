@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>元件调试 — 导路</title>
+<link rel="stylesheet" href="../mech.css">
+<style>
+.comp-layout { display: flex; gap: 24px; padding: 20px; align-items: flex-start; flex-wrap: wrap; }
+.comp-canvas-area { flex: 0 0 auto; }
+.comp-ref { flex: 0 0 auto; max-width: 360px; }
+.comp-ref img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+.comp-ref .caption { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+.comp-controls { width: 100%; padding: 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; }
+.comp-controls h3 { margin: 0 0 12px; font-size: 14px; color: var(--text); }
+.ctrl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ctrl-row label { flex: 0 0 140px; font-size: 12px; color: var(--text-dim); }
+.ctrl-row input[type=range] { flex: 1; }
+.ctrl-row .val { flex: 0 0 40px; font-size: 12px; color: var(--accent); text-align: right; font-family: monospace; }
+</style>
+</head>
+<body>
+<a href="index.html" class="back-btn">&larr; 返回元件列表</a>
+<div class="header">
+  <h1>导路（机架） <span class="version-badge">comp</span></h1>
+  <p>教材3(c)标准 — 两条短平行线+顶部封闭+剖面线</p>
+</div>
+<div class="comp-layout">
+  <div class="comp-canvas-area">
+    <div class="canvas-card"><div class="canvas-wrapper"><canvas id="canvas"></canvas></div></div>
+  </div>
+  <div class="comp-ref">
+    <img src="ref/textbook-3c.png" alt="教材3(c)参考图">
+    <div class="caption">教材图3(c) — 注意机架3的导路，很小一段，很干净</div>
+  </div>
+</div>
+<div class="comp-controls">
+  <h3>参数调节</h3>
+  <div class="ctrl-row"><label>中心X cx</label><input type="range" id="cx" min="180" max="280" value="225"><span class="val" id="cx-val">225</span></div>
+  <div class="ctrl-row"><label>半宽 guideHW</label><input type="range" id="hw" min="4" max="20" value="7"><span class="val" id="hw-val">7</span></div>
+  <div class="ctrl-row"><label>顶部Y top</label><input type="range" id="gTop" min="100" max="160" value="130"><span class="val" id="gTop-val">130</span></div>
+  <div class="ctrl-row"><label>底部Y bot</label><input type="range" id="gBot" min="160" max="240" value="195"><span class="val" id="gBot-val">195</span></div>
+  <div class="ctrl-row"><label>顶部剖面线数</label><input type="range" id="topHatch" min="0" max="8" value="3"><span class="val" id="topHatch-val">3</span></div>
+  <div class="ctrl-row"><label>剖面线间距</label><input type="range" id="hatchStep" min="3" max="10" value="4"><span class="val" id="hatchStep-val">4</span></div>
+  <div class="ctrl-row"><label>剖面线长度</label><input type="range" id="hatchLen" min="2" max="8" value="4"><span class="val" id="hatchLen-val">4</span></div>
+  <div class="ctrl-row"><label>线宽</label><input type="range" id="lineW" min="10" max="30" value="18" step="1"><span class="val" id="lineW-val">1.8</span></div>
+</div>
+
+<script src="../mech.js"></script>
+<script>
+var { ctx, getDimensions, canvas } = Mech.setupCanvas(document.getElementById('canvas'));
+var REF_W = 460, REF_H = 360;
+
+var P = { cx: 225, hw: 7, gTop: 130, gBot: 195, topHatch: 3, hatchStep: 4, hatchLen: 4, lineW: 1.8 };
+
+function draw() {
+  var dims = getDimensions();
+  var w = dims.w, h = dims.h;
+  ctx.clearRect(0, 0, w, h);
+
+  var padX = 30, padY = 30;
+  var sx = (w - padX * 2) / REF_W;
+  var sy = (h - padY * 2) / REF_H;
+  var sc = Math.min(sx, sy);
+  var ox = (w - REF_W * sc) / 2;
+  var oy = (h - REF_H * sc) / 2;
+
+  ctx.save();
+  ctx.translate(ox, oy);
+  ctx.scale(sc, sc);
+
+  var C = Mech.colors;
+  var gL = P.cx - P.hw;
+  var gR = P.cx + P.hw;
+
+  // Draw two examples side by side
+  var examples = [
+    { offsetX: 0, label: '当前参数', show: true },
+    { offsetX: 130, label: '对照：大号导路', hw: 17, gTop: 108, gBot: 215, topHatch: 5, hatchStep: 8, hatchLen: 5, lineW: 2 }
+  ];
+
+  for (var e = 0; e < examples.length; e++) {
+    var ex = examples[e];
+    var exL = P.cx + ex.offsetX - (e === 0 ? P.hw : ex.hw);
+    var exR = P.cx + ex.offsetX + (e === 0 ? P.hw : ex.hw);
+    var exTop = e === 0 ? P.gTop : ex.gTop;
+    var exBot = e === 0 ? P.gBot : ex.gBot;
+    var exTH = e === 0 ? P.topHatch : ex.topHatch;
+    var exHS = e === 0 ? P.hatchStep : ex.hatchStep;
+    var exHL = e === 0 ? P.hatchLen : ex.hatchLen;
+    var exLW = e === 0 ? P.lineW : ex.lineW;
+    var exCx = P.cx + ex.offsetX;
+
+    // Two vertical lines
+    ctx.strokeStyle = C.hinge;
+    ctx.lineWidth = exLW;
+    ctx.beginPath();
+    ctx.moveTo(exL, exTop);
+    ctx.lineTo(exL, exBot);
+    ctx.moveTo(exR, exTop);
+    ctx.lineTo(exR, exBot);
+    ctx.stroke();
+
+    // Top horizontal cap
+    ctx.lineWidth = exLW;
+    ctx.beginPath();
+    ctx.moveTo(exL, exTop);
+    ctx.lineTo(exR, exTop);
+    ctx.stroke();
+
+    // Top hatch lines
+    ctx.lineWidth = exLW * 0.45;
+    for (var j = 0; j < exTH; j++) {
+      var x = exL + 3 + j * exHS;
+      if (x > exR - 2) break;
+      ctx.beginPath();
+      ctx.moveTo(x, exTop);
+      ctx.lineTo(x - exHL, exTop - exHL);
+      ctx.stroke();
+    }
+
+    // Faint guide follower rod for context
+    ctx.strokeStyle = 'rgba(52,211,153,0.2)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(exCx, exTop + 5);
+    ctx.lineTo(exCx, exBot - 5);
+    ctx.stroke();
+
+    // Label
+    Mech.draw.text(ctx, ex.label, exCx, exBot + 20, { color: C.textDim, font: '12px sans-serif', align: 'center' });
+    Mech.draw.text(ctx, '1', exL - 8, (exTop + exBot) / 2, { color: C.hinge, font: '11px sans-serif', align: 'right' });
+  }
+
+  // Dimension info
+  var guideH = P.gBot - P.gTop;
+  var guideW = P.hw * 2;
+  Mech.draw.text(ctx, '宽=' + guideW + ' 高=' + guideH, P.cx + 80, P.gTop, { color: 'rgba(161,161,170,0.6)', font: '10px sans-serif', align: 'left' });
+
+  ctx.restore();
+}
+
+Object.keys(P).forEach(function(key) {
+  var el = document.getElementById(key);
+  if (!el) return;
+  var valEl = document.getElementById(key + '-val');
+  el.addEventListener('input', function() {
+    var v = parseFloat(el.value);
+    if (key === 'lineW') { P[key] = v / 10; valEl.textContent = (v / 10).toFixed(1); }
+    else { P[key] = v; valEl.textContent = Math.round(v); }
+    draw();
+  });
+});
+
+window.addEventListener('resize', draw);
+draw();
+</script>
+</body>
+</html>
