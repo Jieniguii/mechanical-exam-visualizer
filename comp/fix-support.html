@@ -5,26 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>元件调试 — 固定支座</title>
 <link rel="stylesheet" href="../mech.css">
-<style>
-.comp-page { max-width: 1100px; margin: 0 auto; }
-.comp-row { display: flex; gap: 16px; align-items: flex-start; }
-.comp-canvas-box { flex: 1; min-width: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-.comp-canvas-box canvas { display: block; width: 100%; height: 340px; background: #12141d; }
-.comp-side { flex: 0 0 300px; display: flex; flex-direction: column; gap: 12px; }
-.comp-ref-box img { width: 100%; border-radius: 8px; border: 1px solid var(--border); }
-.comp-ref-box .caption { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
-.comp-ctrls { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
-.comp-ctrls h3 { margin: 0 0 10px; font-size: 13px; color: var(--text); }
-.cr { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
-.cr label { flex: 0 0 90px; font-size: 11px; color: var(--text-dim); }
-.cr input[type=range] { flex: 1; accent-color: var(--accent); }
-.cr .v { flex: 0 0 32px; font-size: 11px; color: var(--accent); text-align: right; font-family: monospace; }
-.func-out { margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; font-family: monospace; font-size: 10px; color: #a5f3fc; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+<style>.comp-page { max-width: 1100px; margin: 0 auto; }
+.comp-row { display: flex; gap: 16px; align-items: stretch; min-height: 0; }
+.comp-canvas-box { flex: 1; min-width: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.comp-canvas-box canvas { display: block; width: 100%; height: 400px; background: #12141d; }
+.comp-side { flex: 0 0 280px; max-height: calc(100vh - 100px); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+.comp-side::-webkit-scrollbar { width: 4px; }
+.comp-side::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.comp-ref-box img { width: 100%; max-height: 160px; object-fit: contain; border-radius: 8px; border: 1px solid var(--border); }
+.comp-ref-box .caption { font-size: 10px; color: var(--text-dim); margin-top: 4px; line-height: 1.4; }
+.comp-ctrls { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.comp-ctrls h3 { margin: 0 0 8px; font-size: 12px; color: var(--text); }
+.cr { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.cr label { flex: 0 0 72px; font-size: 11px; color: var(--text-dim); }
+.cr input[type=range] { flex: 1; accent-color: var(--accent); height: 16px; }
+.cr .v { flex: 0 0 30px; font-size: 10px; color: var(--accent); text-align: right; font-family: monospace; }
+.func-out { margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px; font-family: monospace; font-size: 9px; color: #a5f3fc; white-space: pre-wrap; max-height: 160px; overflow-y: auto; }
 @media (max-width: 768px) {
   .comp-row { flex-direction: column; }
-  .comp-side { flex: none; width: 100%; }
-}
-</style>
+  .comp-side { flex: none; width: 100%; max-height: none; }
+  .comp-canvas-box canvas { height: 300px; }
+}</style>
 </head>
 <body>
 <div class="comp-page">
@@ -50,7 +51,7 @@
       <div class="cr"><label>缩放</label><input type="range" id="scale" min="5" max="25" value="10" step="1"><span class="v" id="scale-v">1.0</span></div>
       <div class="cr"><label>线宽</label><input type="range" id="lineW" min="10" max="40" value="18" step="1"><span class="v" id="lineW-v">1.8</span></div>
       <h3>生成函数</h3>
-      <button class="btn" onclick="copyFunc()">复制</button>
+      <button class="btn" onclick="copyFunc()" style="font-size:12px;padding:4px 12px">复制</button>
       <div class="func-out" id="funcOut"></div>
     </div>
   </div>
@@ -62,7 +63,7 @@ var canvasEl=document.getElementById('canvas'),ctx=canvasEl.getContext('2d');
 var P={triH:14,triW:12,baseExtra:4,hatchCount:5,hatchLen:8,scale:1.0,lineW:1.8};
 function resize(){var d=window.devicePixelRatio||1,r=canvasEl.getBoundingClientRect();canvasEl.width=r.width*d;canvasEl.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);return{w:r.width,h:r.height}}
 function draw(){var dim=resize(),w=dim.w,h=dim.h;ctx.clearRect(0,0,w,h);var RW=460,RH=300,px=40,py=40,sx=(w-px*2)/RW,sy=(h-py*2)/RH,sc=Math.min(sx,sy),ox=(w-RW*sc)/2,oy=(h-RH*sc)/2;ctx.save();ctx.translate(ox,oy);ctx.scale(sc,sc);var pos=[{x:100,y:180,l:'标准'},{x:230,y:180,l:'大号'},{x:360,y:180,l:'小号'}];for(var i=0;i<pos.length;i++){var p=pos[i],s=i===0?P.scale:i===1?P.scale*1.4:P.scale*0.7,tH=P.triH*s,tW=P.triW*s,bW=tW+P.baseExtra*s,c=Mech.colors.hinge;ctx.strokeStyle='rgba(161,161,170,0.4)';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(p.x,p.y-40);ctx.lineTo(p.x,p.y);ctx.stroke();ctx.setLineDash([]);ctx.strokeStyle=c;ctx.lineWidth=P.lineW*s;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-tW,p.y+tH);ctx.lineTo(p.x+tW,p.y+tH);ctx.closePath();ctx.stroke();ctx.lineWidth=P.lineW*s*0.8;ctx.beginPath();ctx.moveTo(p.x-bW,p.y+tH);ctx.lineTo(p.x+bW,p.y+tH);ctx.stroke();ctx.lineWidth=P.lineW*s*0.5;for(var j=0;j<P.hatchCount;j++){var hx=p.x-bW+3*s+j*((2*bW-6*s)/Math.max(P.hatchCount-1,1));ctx.beginPath();ctx.moveTo(hx,p.y+tH);ctx.lineTo(hx-P.hatchLen*s*0.6,p.y+tH+P.hatchLen*s*0.6);ctx.stroke()}Mech.draw.text(ctx,p.l,p.x,p.y+tH+P.hatchLen*s+16,{color:Mech.colors.textDim,font:'12px sans-serif',align:'center'})}ctx.restore();updateFunc()}
-function updateFunc(){var p=P;document.getElementById('funcOut').textContent=`function drawFixedSupport(ctx,x,y,opts){\n  opts=opts||{};var c=opts.color||Mech.colors.hinge,s=opts.scale||1;\n  var tH=${p.triH}*s,tW=${p.triW}*s,bW=tW+${p.baseExtra}*s;\n  ctx.strokeStyle=c;ctx.lineWidth=${p.lineW}*s;\n  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-tW,y+tH);ctx.lineTo(x+tW,y+tH);ctx.closePath();ctx.stroke();\n  ctx.lineWidth=${(p.lineW*0.8).toFixed(1)}*s;ctx.beginPath();ctx.moveTo(x-bW,y+tH);ctx.lineTo(x+bW,y+tH);ctx.stroke();\n  ctx.lineWidth=${(p.lineW*0.5).toFixed(1)}*s;\n  for(var i=0;i<${p.hatchCount};i++){var hx=x-bW+3*s+i*((2*bW-6*s)/${p.hatchCount-1});ctx.beginPath();ctx.moveTo(hx,y+tH);ctx.lineTo(hx-${p.hatchLen}*s*0.6,y+tH+${p.hatchLen}*s*0.6);ctx.stroke()}\n}`}
+function updateFunc(){var p=P;document.getElementById('funcOut').textContent='function drawFixedSupport(ctx,x,y,opts){\n  opts=opts||{};var c=opts.color||Mech.colors.hinge,s=opts.scale||1;\n  var tH='+p.triH+'*s,tW='+p.triW+'*s,bW=tW+'+p.baseExtra+'*s;\n  ctx.strokeStyle=c;ctx.lineWidth='+p.lineW+'*s;\n  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-tW,y+tH);ctx.lineTo(x+tW,y+tH);ctx.closePath();ctx.stroke();\n  ctx.lineWidth='+(p.lineW*0.8).toFixed(1)+'*s;ctx.beginPath();ctx.moveTo(x-bW,y+tH);ctx.lineTo(x+bW,y+tH);ctx.stroke();\n  ctx.lineWidth='+(p.lineW*0.5).toFixed(1)+'*s;\n  for(var i=0;i<'+p.hatchCount+';i++){var hx=x-bW+3*s+i*((2*bW-6*s)/'+(p.hatchCount-1)+');ctx.beginPath();ctx.moveTo(hx,y+tH);ctx.lineTo(hx-'+p.hatchLen+'*s*0.6,y+tH+'+p.hatchLen+'*s*0.6);ctx.stroke()}\n}'}
 function copyFunc(){navigator.clipboard.writeText(document.getElementById('funcOut').textContent).then(function(){alert('已复制')})}
 ['triH','triW','baseExtra','hatchCount','hatchLen'].forEach(function(id){var el=document.getElementById(id),v=document.getElementById(id+'-v');el.addEventListener('input',function(){P[id]=parseInt(el.value);v.textContent=el.value;draw()})});
 document.getElementById('scale').addEventListener('input',function(){P.scale=parseInt(this.value)/10;document.getElementById('scale-v').textContent=P.scale.toFixed(1);draw()});

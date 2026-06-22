@@ -5,25 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>元件调试 — 尖顶从动件</title>
 <link rel="stylesheet" href="../mech.css">
-<style>
-.comp-page { max-width: 1100px; margin: 0 auto; }
-.comp-row { display: flex; gap: 16px; align-items: flex-start; }
-.comp-canvas-box { flex: 1; min-width: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-.comp-canvas-box canvas { display: block; width: 100%; height: 340px; background: #12141d; }
-.comp-side { flex: 0 0 300px; display: flex; flex-direction: column; gap: 12px; }
-.comp-ref-box img { width: 100%; border-radius: 8px; border: 1px solid var(--border); }
-.comp-ref-box .caption { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
-.comp-ctrls { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
-.comp-ctrls h3 { margin: 0 0 10px; font-size: 13px; color: var(--text); }
-.cr { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
-.cr label { flex: 0 0 90px; font-size: 11px; color: var(--text-dim); }
-.cr input[type=range] { flex: 1; accent-color: var(--accent); }
-.cr .v { flex: 0 0 32px; font-size: 11px; color: var(--accent); text-align: right; font-family: monospace; }
+<style>.comp-page { max-width: 1100px; margin: 0 auto; }
+.comp-row { display: flex; gap: 16px; align-items: stretch; min-height: 0; }
+.comp-canvas-box { flex: 1; min-width: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.comp-canvas-box canvas { display: block; width: 100%; height: 400px; background: #12141d; }
+.comp-side { flex: 0 0 280px; max-height: calc(100vh - 100px); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+.comp-side::-webkit-scrollbar { width: 4px; }
+.comp-side::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.comp-ref-box img { width: 100%; max-height: 160px; object-fit: contain; border-radius: 8px; border: 1px solid var(--border); }
+.comp-ref-box .caption { font-size: 10px; color: var(--text-dim); margin-top: 4px; line-height: 1.4; }
+.comp-ctrls { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.comp-ctrls h3 { margin: 0 0 8px; font-size: 12px; color: var(--text); }
+.cr { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.cr label { flex: 0 0 72px; font-size: 11px; color: var(--text-dim); }
+.cr input[type=range] { flex: 1; accent-color: var(--accent); height: 16px; }
+.cr .v { flex: 0 0 30px; font-size: 10px; color: var(--accent); text-align: right; font-family: monospace; }
+.func-out { margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px; font-family: monospace; font-size: 9px; color: #a5f3fc; white-space: pre-wrap; max-height: 160px; overflow-y: auto; }
 @media (max-width: 768px) {
   .comp-row { flex-direction: column; }
-  .comp-side { flex: none; width: 100%; }
-}
-</style>
+  .comp-side { flex: none; width: 100%; max-height: none; }
+  .comp-canvas-box canvas { height: 300px; }
+}</style>
 </head>
 <body>
 <div class="comp-page">
@@ -56,7 +58,7 @@
 var canvasEl=document.getElementById('canvas'),ctx=canvasEl.getContext('2d');
 var P={cx:180,contactY:220,stemTopY:120,tipH:7,tipW:4,lineW:2.2};
 function resize(){var d=window.devicePixelRatio||1,r=canvasEl.getBoundingClientRect();canvasEl.width=r.width*d;canvasEl.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);return{w:r.width,h:r.height}}
-function draw(){var dim=resize(),w=dim.w,h=dim.h;ctx.clearRect(0,0,w,h);var RW=360,RH=320,px=30,py=30,sx=(w-px*2)/RW,sy=(h-py*2)/RH,sc=Math.min(sx,sy),ox=(w-RW*sc)/2,oy=(h-RH*sc)/2;ctx.save();ctx.translate(ox,oy);ctx.scale(sc,sc);var C=Mech.colors;ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(99,102,241,0.25)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(P.cx,P.contactY+30,35,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.strokeStyle=C.return;ctx.lineWidth=P.lineW;ctx.beginPath();ctx.moveTo(P.cx,P.stemTopY);ctx.lineTo(P.cx,P.contactY-P.tipH);ctx.stroke();var tipTop=P.contactY,tipBase=P.contactY-P.tipH;ctx.fillStyle=C.return;ctx.beginPath();ctx.moveTo(P.cx,tipTop);ctx.lineTo(P.cx-P.tipW,tipBase);ctx.lineTo(P.cx+P.tipW,tipBase);ctx.closePath();ctx.fill();ctx.strokeStyle=C.return;ctx.lineWidth=P.lineW*0.8;ctx.beginPath();ctx.moveTo(P.cx,tipTop);ctx.lineTo(P.cx-P.tipW,tipBase);ctx.lineTo(P.cx+P.tipW,tipBase);ctx.closePath();ctx.stroke();Mech.draw.text(ctx,'尖顶',P.cx+P.tipW+12,P.contactY-P.tipH/2,{color:C.textDim,font:'12px sans-serif',align:'left'});Mech.draw.text(ctx,'杆',P.cx+P.tipW+12,(P.stemTopY+P.contactY)/2,{color:C.textDim,font:'12px sans-serif',align:'left'});ctx.restore()}
+function draw(){var dim=resize(),w=dim.w,h=dim.h;ctx.clearRect(0,0,w,h);var RW=360,RH=320,px=30,py=30,sx=(w-px*2)/RW,sy=(h-py*2)/RH,sc=Math.min(sx,sy),ox=(w-RW*sc)/2,oy=(h-RH*sc)/2;ctx.save();ctx.translate(ox,oy);ctx.scale(sc,sc);var C=Mech.colors;ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(99,102,241,0.25)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(P.cx,P.contactY+30,35,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.strokeStyle=C.return;ctx.lineWidth=P.lineW;ctx.beginPath();ctx.moveTo(P.cx,P.stemTopY);ctx.lineTo(P.cx,P.contactY-P.tipH);ctx.stroke();var tipTop=P.contactY,tipBase=P.contactY-P.tipH;ctx.fillStyle=C.return;ctx.beginPath();ctx.moveTo(P.cx,tipTop);ctx.lineTo(P.cx-P.tipW,tipBase);ctx.lineTo(P.cx+P.tipW,tipBase);ctx.closePath();ctx.fill();ctx.strokeStyle=C.return;ctx.lineWidth=P.lineW*0.8;ctx.beginPath();ctx.moveTo(P.cx,tipTop);ctx.lineTo(P.cx-P.tipW,tipBase);ctx.lineTo(P.cx+P.tipW,tipBase);ctx.closePath();ctx.stroke();Mech.draw.text(ctx,'尖顶',P.cx+P.tipW+12,P.contactY-P.tipH/2,{color:C.textDim,font:'12px sans-serif',align:'left'});ctx.restore()}
 Object.keys(P).forEach(function(k){var el=document.getElementById(k);if(!el)return;var v=document.getElementById(k+'-v');el.addEventListener('input',function(){var n=parseFloat(el.value);if(k==='lineW'){P[k]=n/10;v.textContent=(n/10).toFixed(1)}else{P[k]=n;v.textContent=Math.round(n)}draw()})});
 window.addEventListener('resize',draw);draw();
 </script>

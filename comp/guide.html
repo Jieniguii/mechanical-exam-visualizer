@@ -5,25 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>元件调试 — 导路</title>
 <link rel="stylesheet" href="../mech.css">
-<style>
-.comp-page { max-width: 1100px; margin: 0 auto; }
-.comp-row { display: flex; gap: 16px; align-items: flex-start; }
-.comp-canvas-box { flex: 1; min-width: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-.comp-canvas-box canvas { display: block; width: 100%; height: 340px; background: #12141d; }
-.comp-side { flex: 0 0 300px; display: flex; flex-direction: column; gap: 12px; }
-.comp-ref-box img { width: 100%; border-radius: 8px; border: 1px solid var(--border); }
-.comp-ref-box .caption { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
-.comp-ctrls { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
-.comp-ctrls h3 { margin: 0 0 10px; font-size: 13px; color: var(--text); }
-.cr { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
-.cr label { flex: 0 0 90px; font-size: 11px; color: var(--text-dim); }
-.cr input[type=range] { flex: 1; accent-color: var(--accent); }
-.cr .v { flex: 0 0 32px; font-size: 11px; color: var(--accent); text-align: right; font-family: monospace; }
+<style>.comp-page { max-width: 1100px; margin: 0 auto; }
+.comp-row { display: flex; gap: 16px; align-items: stretch; min-height: 0; }
+.comp-canvas-box { flex: 1; min-width: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.comp-canvas-box canvas { display: block; width: 100%; height: 400px; background: #12141d; }
+.comp-side { flex: 0 0 280px; max-height: calc(100vh - 100px); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+.comp-side::-webkit-scrollbar { width: 4px; }
+.comp-side::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.comp-ref-box img { width: 100%; max-height: 160px; object-fit: contain; border-radius: 8px; border: 1px solid var(--border); }
+.comp-ref-box .caption { font-size: 10px; color: var(--text-dim); margin-top: 4px; line-height: 1.4; }
+.comp-ctrls { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.comp-ctrls h3 { margin: 0 0 8px; font-size: 12px; color: var(--text); }
+.cr { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.cr label { flex: 0 0 72px; font-size: 11px; color: var(--text-dim); }
+.cr input[type=range] { flex: 1; accent-color: var(--accent); height: 16px; }
+.cr .v { flex: 0 0 30px; font-size: 10px; color: var(--accent); text-align: right; font-family: monospace; }
+.func-out { margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px; font-family: monospace; font-size: 9px; color: #a5f3fc; white-space: pre-wrap; max-height: 160px; overflow-y: auto; }
 @media (max-width: 768px) {
   .comp-row { flex-direction: column; }
-  .comp-side { flex: none; width: 100%; }
-}
-</style>
+  .comp-side { flex: none; width: 100%; max-height: none; }
+  .comp-canvas-box canvas { height: 300px; }
+}</style>
 </head>
 <body>
 <div class="comp-page">
