@@ -86,7 +86,7 @@
 <a href="ch1-structure.html" class="back-btn">&larr; 返回章节</a>
 
 <div class="header">
-  <h1>简单自由度分步解题 <span class="version-badge">v1.1</span></h1>
+  <h1>简单自由度分步解题 <span class="version-badge">v1.2</span></h1>
   <p>系统引导式逐步标注 &mdash; 掌握标准解题流程</p>
 </div>
 
@@ -106,10 +106,46 @@
 
 <script src="mech.js"></script>
 <script>
-/* ===== 简单自由度分步解题 v1.1 ===== */
-/* 改进：凸轮机构画法对齐教材标准（偏心圆凸轮+基圆+统一从动件外观+剖面线机架） */
+/* ===== 简单自由度分步解题 v1.2 ===== */
+/* 改进：凸轮机构画法对齐教材原图（简洁机构简图，大号固定支座，清晰导路） */
 
 var { ctx, getDimensions, canvas } = Mech.setupCanvas(document.getElementById('canvas'));
+
+// ===== 辅助：画教材标准固定支座（大号） =====
+function drawFixedSupport(ctx, x, y, opts) {
+  opts = opts || {};
+  var color = opts.color || Mech.colors.hinge;
+  var scale = opts.scale || 1;
+  var triH = 14 * scale, triW = 12 * scale;
+  var baseW = triW + 4 * scale;
+  var hatchCount = 5;
+  var hatchLen = 8 * scale;
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.8 * scale;
+  // 倒三角
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x - triW, y + triH);
+  ctx.lineTo(x + triW, y + triH);
+  ctx.closePath();
+  ctx.stroke();
+  // 底线
+  ctx.lineWidth = 1.5 * scale;
+  ctx.beginPath();
+  ctx.moveTo(x - baseW, y + triH);
+  ctx.lineTo(x + baseW, y + triH);
+  ctx.stroke();
+  // 斜杠（剖面线）
+  ctx.lineWidth = 1 * scale;
+  for (var i = 0; i < hatchCount; i++) {
+    var hx = x - baseW + 3 * scale + i * ((2 * baseW - 6 * scale) / (hatchCount - 1));
+    ctx.beginPath();
+    ctx.moveTo(hx, y + triH);
+    ctx.lineTo(hx - hatchLen * 0.6, y + triH + hatchLen * 0.6);
+    ctx.stroke();
+  }
+}
 
 // ===== 题目数据 =====
 var problems = [
@@ -129,45 +165,47 @@ var problems = [
       {x: 380, y: 240, label: 'D', type: 'low', parts: '1,4', isRevolute: true},
     ],
     drawExtra: function(ctx, sc) {
-      // 机架 — 剖面线（细斜线）
-      var ax = 120, dx = 380, y = 240;
-      // 机架杆
-      Mech.draw.dashedLine(ctx, ax, y, dx, y, {color: Mech.colors.hinge, width: 2, dash: [6,4]});
-      // 剖面线
+      // 机架杆（虚线）
+      Mech.draw.dashedLine(ctx, 120, 240, 380, 240, {color: Mech.colors.hinge, width: 2, dash: [6,4]});
+      // 机架剖面线
       ctx.strokeStyle = Mech.colors.hinge;
       ctx.lineWidth = 1;
       for (var i = 0; i < 14; i++) {
-        var x = ax + 10 + i * 18;
-        if (x > dx - 5) break;
+        var x = 130 + i * 18;
+        if (x > 375) break;
         ctx.beginPath();
-        ctx.moveTo(x, y + 1);
-        ctx.lineTo(x - 6, y + 7);
+        ctx.moveTo(x, 241);
+        ctx.lineTo(x - 6, 247);
         ctx.stroke();
       }
       Mech.draw.text(ctx, '1', 250, 260, {color: Mech.colors.hinge, font: '12px sans-serif'});
+      // 两端大号固定支座
+      drawFixedSupport(ctx, 120, 240, {color: Mech.colors.hinge});
+      drawFixedSupport(ctx, 380, 240, {color: Mech.colors.hinge});
     }
   },
   {
     name: '凸轮机构',
     n: 2, PL: 2, PH: 1, F: 1, driving: 1,
-    frame: [{x: 200, y: 290, label: 'O'}],
+    frame: [{x: 210, y: 265, label: 'O'}],
     links: [
-      // 凸轮（偏心圆）— profileCx/Cy 是轮廓圆心，cx/cy 是转轴中心
-      {isCam: true, cx: 200, cy: 290, profileCx: 212, profileCy: 272, r: 42, baseR: 23, label: '2', partId: 2},
-      // 从动件（平底）— 绿色统一外观
-      {isFollower: true, type: 'flat', cx: 210, contactY: 230, stemTopY: 155, flatW: 26, label: '3', partId: 3},
+      // 凸轮 — 教材标准：偏心圆盘，转轴O偏离轮廓圆心
+      {isCam: true, cx: 210, cy: 265, profileCx: 225, profileCy: 245, r: 44, label: '2', partId: 2},
+      // 从动件（平底）— 教材标准：直杆+平底
+      {isFollower: true, type: 'flat', cx: 225, contactY: 201, stemTopY: 115, flatW: 22, label: '3', partId: 3},
     ],
     pairs: [
-      {x: 200, y: 290, label: 'O', type: 'low', parts: '1,2', isRevolute: true},
-      {x: 210, y: 192, label: '', type: 'low', parts: '1,3', isPrismatic: true, guideDir: 'vertical'},
-      {x: 210, y: 230, label: 'T', type: 'high', parts: '2,3'},
+      {x: 210, y: 265, label: 'O', type: 'low', parts: '1,2', isRevolute: true},
+      {x: 225, y: 158, label: '', type: 'low', parts: '1,3', isPrismatic: true, guideDir: 'vertical'},
+      {x: 225, y: 201, label: 'T', type: 'high', parts: '2,3'},
     ],
     drawExtra: function(ctx, sc) {
-      var cx = 210, guideHW = 16;
-      var gL = cx - guideHW, gR = cx + guideHW;
-      var gTop = 145, gBot = 242;
+      var fCx = 225, guideHW = 17;
+      var gL = fCx - guideHW, gR = fCx + guideHW;
+      var gTop = 108, gBot = 215;
 
-      // 导路外框（两条竖线）
+      // ===== 导路（机架1）— 教材标准画法 =====
+      // 两条竖线（导路）
       ctx.strokeStyle = Mech.colors.hinge;
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -175,24 +213,36 @@ var problems = [
       ctx.moveTo(gR, gTop); ctx.lineTo(gR, gBot);
       ctx.stroke();
 
-      // 剖面线（斜线表示机架固定）
+      // 顶部连接横线
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(gL, gTop); ctx.lineTo(gR, gTop);
+      ctx.stroke();
+
+      // 导路两侧剖面线（斜线表示固定机架）
       ctx.lineWidth = 1;
-      for (var i = 0; i < 8; i++) {
-        var y = gTop + 6 + i * 12;
+      for (var i = 0; i < 10; i++) {
+        var y = gTop + 6 + i * 11;
         if (y > gBot - 4) break;
         ctx.beginPath();
         ctx.moveTo(gL, y); ctx.lineTo(gL - 5, y + 5);
         ctx.moveTo(gR, y); ctx.lineTo(gR + 5, y + 5);
         ctx.stroke();
       }
-      // 底线
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(gL - 5, gBot); ctx.lineTo(gR + 5, gBot);
-      ctx.stroke();
+      // 顶部剖面线
+      for (var j = 0; j < 5; j++) {
+        var x = gL + 4 + j * 8;
+        if (x > gR - 2) break;
+        ctx.beginPath();
+        ctx.moveTo(x, gTop); ctx.lineTo(x - 4, gTop - 5);
+        ctx.stroke();
+      }
+
+      // ===== 凸轮转轴固定支座（大号，教材标准） =====
+      drawFixedSupport(ctx, 210, 265, {color: Mech.colors.hinge, scale: 1.2});
 
       // 机架标签
-      Mech.draw.text(ctx, '1', gL - 10, gTop + 12, {color: Mech.colors.hinge, font: '11px sans-serif', align: 'right'});
+      Mech.draw.text(ctx, '1', gL - 12, gTop + 14, {color: Mech.colors.hinge, font: '11px sans-serif', align: 'right'});
     }
   },
 ];
@@ -277,20 +327,11 @@ function draw() {
                        (info.phase === 'pairs' || info.phase === 'formula' || info.phase === 'conclusion');
 
     if (link.isCam) {
-      // ===== 凸轮绘制（偏心圆 + 基圆）=====
+      // ===== 凸轮绘制 — 教材标准风格 =====
       var camColor = highlighted ? C.accent : 'rgba(99,102,241,0.3)';
-      var camWidth = highlighted ? 3.5 : 2;
+      var camWidth = highlighted ? 3 : 2;
 
-      // 基圆（细点画线）— 以转轴为中心
-      if (highlighted) {
-        ctx.setLineDash([8, 4]);
-        Mech.draw.circle(ctx, link.cx, link.cy, link.baseR, {color: camColor, width: 1.2});
-        ctx.setLineDash([]);
-        // 基圆标签
-        Mech.draw.text(ctx, 'r0', link.cx + link.baseR + 4, link.cy - 4, {color: camColor, font: '10px sans-serif', align: 'left'});
-      }
-
-      // 凸轮轮廓（粗实线）— 以偏心圆圆心画
+      // 凸轮轮廓（粗实线）— 偏心圆
       ctx.beginPath();
       ctx.arc(link.profileCx, link.profileCy, link.r, 0, Math.PI * 2);
       ctx.strokeStyle = camColor;
@@ -299,17 +340,29 @@ function draw() {
       if (highlighted) {
         ctx.fillStyle = 'rgba(99,102,241,0.06)';
         ctx.fill();
-        // 偏心线（转轴到轮廓圆心）
-        Mech.draw.dashedLine(ctx, link.cx, link.cy, link.profileCx, link.profileCy, {color: camColor, width: 1, dash: [3,3]});
-        // 标签
+      }
+
+      // 转轴中心（小空心圆 — 教材标准：十字标记+圆圈）
+      ctx.beginPath();
+      ctx.arc(link.cx, link.cy, 4, 0, Math.PI * 2);
+      ctx.strokeStyle = camColor;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(link.cx - 6, link.cy); ctx.lineTo(link.cx + 6, link.cy);
+      ctx.moveTo(link.cx, link.cy - 6); ctx.lineTo(link.cx, link.cy + 6);
+      ctx.stroke();
+
+      if (highlighted) {
         Mech.draw.text(ctx, link.label, link.profileCx + link.r + 8, link.profileCy + 4, {color: camColor, font: 'bold 12px sans-serif', align: 'left'});
       }
 
     } else if (link.isFollower) {
-      // ===== 从动件绘制（平底 + 统一绿色外观）=====
+      // ===== 从动件绘制（平底 — 教材标准） =====
       var fColor = highlighted ? '#34d399' : 'rgba(52,211,153,0.3)';
       var fWidth = highlighted ? 3 : 2;
-      var flatW = link.flatW || 26;
+      var flatW = link.flatW || 22;
       var contactY = link.contactY;
       var stemTopY = link.stemTopY;
 
@@ -325,9 +378,9 @@ function draw() {
       ctx.lineWidth = fWidth;
       ctx.beginPath();
       ctx.moveTo(link.cx - flatW/2, contactY);
-      ctx.lineTo(link.cx - flatW/2, contactY + 7);
+      ctx.lineTo(link.cx - flatW/2, contactY + 6);
       ctx.moveTo(link.cx + flatW/2, contactY);
-      ctx.lineTo(link.cx + flatW/2, contactY + 7);
+      ctx.lineTo(link.cx + flatW/2, contactY + 6);
       ctx.stroke();
 
       // 直杆
@@ -360,14 +413,12 @@ function draw() {
 
     if (pairHi) {
       if (pair.type === 'low' && (pair.isRevolute || (!pair.isPrismatic))) {
-        // 转动低副：空心圆 ○（教材标准）+ cyan虚线圆高亮
-        // 先画空心圆
+        // 转动低副：空心圆 + cyan虚线圆高亮
         ctx.beginPath();
         ctx.arc(pair.x, pair.y, 6, 0, Math.PI * 2);
         ctx.strokeStyle = lowPairColor;
         ctx.lineWidth = 2;
         ctx.stroke();
-        // cyan 虚线圆（标注圈）
         ctx.save();
         ctx.shadowColor = lowPairColor;
         ctx.shadowBlur = 6;
@@ -375,7 +426,6 @@ function draw() {
         Mech.draw.circle(ctx, pair.x, pair.y, 11, {color: lowPairColor, width: 1.5});
         ctx.setLineDash([]);
         ctx.restore();
-        // 中心点
         Mech.draw.point(ctx, pair.x, pair.y, {color: lowPairColor, r: 2});
 
       } else if (pair.type === 'low' && pair.isPrismatic) {
@@ -388,7 +438,6 @@ function draw() {
         ctx.lineWidth = 2;
         ctx.beginPath();
         if (pair.guideDir === 'vertical') {
-          // 导路垂直 → 虚线水平
           ctx.moveTo(pair.x - 22, pair.y);
           ctx.lineTo(pair.x + 22, pair.y);
         } else {
@@ -398,9 +447,7 @@ function draw() {
         ctx.stroke();
         ctx.setLineDash([]);
         ctx.restore();
-        // 中心点
         Mech.draw.point(ctx, pair.x, pair.y, {color: lowPairColor, r: 2});
-        // 滑块矩形
         if (pair.guideDir === 'vertical') {
           ctx.strokeStyle = lowPairColor;
           ctx.lineWidth = 1.5;
@@ -408,19 +455,18 @@ function draw() {
         }
 
       } else if (pair.type === 'high') {
-        // 高副：橙色点 + 光环 + 公法线 n-n
+        // 高副：橙色实心点 + 光环 + 公法线 n-n
         ctx.save();
         ctx.shadowColor = C.orange;
         ctx.shadowBlur = 10;
         Mech.draw.point(ctx, pair.x, pair.y, {color: C.orange, r: 4.5});
         ctx.restore();
         Mech.draw.circle(ctx, pair.x, pair.y, 9, {color: C.orange, width: 1.5});
-        // 公法线 n-n（短虚线）
-        Mech.draw.dashedLine(ctx, pair.x - 18, pair.y - 12, pair.x + 18, pair.y + 12, {color: C.orange, width: 1, dash: [4,3]});
-        Mech.draw.text(ctx, 'n', pair.x + 20, pair.y + 14, {color: C.orange, font: '10px sans-serif', align: 'left'});
+        // 公法线 n-n
+        Mech.draw.dashedLine(ctx, pair.x - 16, pair.y - 12, pair.x + 16, pair.y + 12, {color: C.orange, width: 1, dash: [4,3]});
+        Mech.draw.text(ctx, 'n', pair.x + 18, pair.y + 14, {color: C.orange, font: '10px sans-serif', align: 'left'});
       }
     } else {
-      // 未高亮：灰色铰链点
       Mech.draw.hinge(ctx, pair.x, pair.y, {color: 'rgba(161,161,170,0.3)', r: 4});
     }
 
@@ -429,7 +475,6 @@ function draw() {
       var lblColor = pair.type === 'low' ? lowPairColor : C.orange;
       Mech.draw.text(ctx, pair.label, pair.x + 14, pair.y - 14, {color: lblColor, font: 'bold 12px sans-serif', align: 'left'});
 
-      // 运动副类型标注
       var typeText;
       if (pair.type === 'low') {
         typeText = pair.isRevolute ? 'PL(转动)' : 'PL(移动)';
@@ -441,15 +486,9 @@ function draw() {
     }
   }
 
-  // 固定铰支座
-  for (var k = 0; k < p.frame.length; k++) {
-    var fp = p.frame[k];
-    Mech.draw.hingedSupport(ctx, fp.x, fp.y);
-  }
-
   ctx.restore();
 
-  // 公式区域（右下角，不受缩放影响）
+  // 公式区域
   if (info.phase === 'formula' || info.phase === 'conclusion') {
     drawFormulaBox(w, h, p);
   }
@@ -606,7 +645,7 @@ function updateUI() {
 window.addEventListener('resize', function() { draw(); });
 updateUI();
 draw();
-console.log('freedom-simple-step v1.1 loaded');
+console.log('freedom-simple-step v1.2 loaded');
 </script>
 </body>
 </html>
