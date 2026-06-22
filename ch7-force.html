@@ -6,14 +6,14 @@
 <title>第7章 力分析与机械效率、自锁</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0f1117;color:#e4e4e7;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px}
+body{background:#0f1117;color:#e4e4e7;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;scrollbar-gutter:stable;overflow-y:scroll;padding:40px 20px}
 .back-btn{display:inline-block;margin-bottom:20px;padding:6px 14px;background:#1a1d27;border:1px solid #252833;border-radius:8px;color:#a1a1aa;text-decoration:none;font-size:13px;transition:all .2s}
 .back-btn:hover{border-color:#6366f1;color:#e4e4e7}
 .chapter-header{text-align:center;margin-bottom:36px}
 .chapter-num{font-size:13px;font-weight:700;color:#6366f1;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);border-radius:8px;padding:4px 12px;display:inline-block;margin-bottom:12px}
 h1{font-size:24px;font-weight:600;margin-bottom:8px;background:linear-gradient(135deg,#6366f1,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .chapter-desc{font-size:13px;color:#71717a;max-width:600px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;max-width:960px;width:100%}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;max-width:1200px;width:100%;margin:0 auto}
 .card{background:#1a1d27;border:1px solid #252833;border-radius:14px;padding:24px 20px;text-decoration:none;color:#e4e4e7;transition:all .25s ease;position:relative;overflow:hidden}
 .card:hover{border-color:#6366f1;transform:translateY(-3px);box-shadow:0 8px 32px rgba(99,102,241,0.15)}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#6366f1,#34d399);opacity:0;transition:opacity .25s}
