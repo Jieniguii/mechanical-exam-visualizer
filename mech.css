@@ -336,7 +336,36 @@ canvas {
   color: var(--text-dim);
   margin-left: auto;
 }
-@media (max-width: 768px) {
+/* ===== 响应式布局：宽度够就左右排列，不够就上下堆叠 ===== */
+/* 宽屏（电脑/平板全屏）：画布左侧 + 侧边栏右侧 */
+@media (min-width: 768px) {
+  .main-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .main-layout > div:first-child {
+    flex: 3;
+    min-width: 0;
+    position: sticky;
+    top: 16px;
+  }
+  .canvas-card .canvas-wrapper {
+    height: 70vh;
+    max-height: 640px;
+    min-height: 360px;
+  }
+  .sidebar {
+    flex: 2;
+    min-width: 280px;
+    max-width: 420px;
+  }
+  .sidebar > .panel {
+    /* 侧边栏内的面板保持独立，不需要网格 */
+  }
+}
+
+/* 窄屏（手机/平板分屏/浏览器窗口缩小）：画布上方 + 侧边栏下方 */
+@media (max-width: 767px) {
   .canvas-card .canvas-wrapper {
     height: 42vh;
     max-height: 320px;
