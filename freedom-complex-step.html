@@ -277,6 +277,7 @@ function getStepPhase() {
 }
 
 // ===== 绘制 =====
+var REF_W = 460, REF_H = 360;
 function draw() {
   var dims = getDimensions();
   var w = dims.w, h = dims.h;
@@ -286,7 +287,19 @@ function draw() {
   var p = getProblem();
   var info = getStepPhase();
   
-  Mech.draw.grid(ctx, w * 0.3, h * 0.5, w, h, 1);
+  // 计算缩放：让机构自适应画布大小
+  var padX = 20, padY = 40;
+  var sx = (w - padX * 2) / REF_W;
+  var sy = (h - padY * 2) / REF_H;
+  var sc = Math.min(sx, sy);
+  var ox = (w - REF_W * sc) / 2;
+  var oy = (h - REF_H * sc) / 2;
+  
+  ctx.save();
+  ctx.translate(ox, oy);
+  ctx.scale(sc, sc);
+  
+  Mech.draw.grid(ctx, REF_W * 0.38, REF_H * 0.42, REF_W, REF_H, 1);
   
   if (p.drawExtra) p.drawExtra(ctx);
   
@@ -459,6 +472,10 @@ function draw() {
       }
     }
   }
+  
+  ctx.restore(); // 结束缩放变换
+  
+  // 以下内容用实际画布坐标绘制（不受缩放影响）
   
   // Formula box
   if (info.phase === 'formula' || info.phase === 'conclusion') {
