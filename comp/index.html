@@ -18,6 +18,10 @@
 .comp-item .desc { font-size: 12px; color: var(--text-dim); }
 .comp-intro { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; font-size: 13px; color: var(--text-dim); line-height: 1.8; }
 .comp-intro strong { color: var(--text); }
+.comp-assemble { display: block; padding: 16px 20px; margin-bottom: 24px; background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.1)); border: 1px solid var(--accent); border-radius: 12px; text-decoration: none; color: var(--text); transition: transform 0.2s; }
+.comp-assemble:hover { transform: translateY(-1px); }
+.comp-assemble .title { font-size: 16px; font-weight: 600; color: var(--accent); }
+.comp-assemble .desc { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -27,63 +31,70 @@
 </div>
 <div class="comp-list">
   <div class="comp-intro">
-    <strong>工作流程：</strong>点进某个元件 → 左边canvas画元件，右边放教材参考图 → 拖滑块调参数让两者一致 → 调满意后告诉我，我把参数锁死写进 mech.js，所有模块直接调用。
+    <strong>工作流程：</strong>点进某个元件 → 拖滑块调形状比例 → 确认后写回 mech.js<br>
+    <strong>核心架构：</strong>所有尺寸 = 参数值 × scale，拼装时共用同一 scale → 不会出现一大一小<br>
+    <strong>锚点约定：</strong>每个元件有固定锚点(x,y)，绘制方向统一，拼装只需指定锚点位置+scale
   </div>
+
+  <a class="comp-assemble" href="assemble.html">
+    <div class="title">⚡ 组合预览</div>
+    <div class="desc">所有元件用同一个 scale 拼在一起，验证比例协调</div>
+  </a>
 
   <h2>机架与固定类</h2>
   <a class="comp-item" href="fix-support.html">
     <span class="status done">已创建</span>
     <span class="name">固定支座</span>
-    <span class="desc">倒三角+底线+剖面线</span>
+    <span class="desc">倒三角+底线+剖面线 | 锚点=三角顶点</span>
   </a>
 
   <h2>传动与驱动类</h2>
   <a class="comp-item" href="cam-disk.html">
     <span class="status done">已创建</span>
     <span class="name">偏心圆盘凸轮</span>
-    <span class="desc">偏心圆+转轴十字+固定支座</span>
+    <span class="desc">偏心圆+转轴十字 | 锚点=转轴中心</span>
   </a>
   <a class="comp-item" href="follower-pointed.html">
     <span class="status done">已创建</span>
     <span class="name">尖顶从动件</span>
-    <span class="desc">直杆+尖端三角</span>
+    <span class="desc">直杆+尖端三角 | 锚点=接触点</span>
   </a>
   <a class="comp-item" href="#">
     <span class="status todo">待制作</span>
     <span class="name">平底从动件</span>
-    <span class="desc">直杆+平底横线</span>
+    <span class="desc">直杆+平底横线 | 锚点=接触点</span>
   </a>
   <a class="comp-item" href="#">
     <span class="status todo">待制作</span>
     <span class="name">滚子从动件</span>
-    <span class="desc">直杆+滚子圆</span>
+    <span class="desc">直杆+滚子圆 | 锚点=接触点</span>
   </a>
 
   <h2>运动副与辅助</h2>
   <a class="comp-item" href="guide.html">
     <span class="status done">已创建</span>
     <span class="name">导路</span>
-    <span class="desc">两竖线+顶部封闭+短剖面线</span>
+    <span class="desc">两竖线+顶部封闭+短剖面线 | 锚点=底部中心</span>
   </a>
   <a class="comp-item" href="#">
     <span class="status todo">待制作</span>
     <span class="name">滑块</span>
-    <span class="desc">矩形方块</span>
+    <span class="desc">矩形方块 | 锚点=中心</span>
   </a>
   <a class="comp-item" href="#">
     <span class="status todo">待制作</span>
     <span class="name">齿轮</span>
-    <span class="desc">渐开线齿廓/简化圆</span>
+    <span class="desc">渐开线齿廓/简化圆 | 锚点=中心</span>
   </a>
   <a class="comp-item" href="#">
     <span class="status todo">待制作</span>
     <span class="name">转动副</span>
-    <span class="desc">小空心圆</span>
+    <span class="desc">小空心圆 | 锚点=圆心</span>
   </a>
   <a class="comp-item" href="#">
     <span class="status todo">待制作</span>
     <span class="name">高副</span>
-    <span class="desc">两曲线切点</span>
+    <span class="desc">两曲线切点 | 锚点=切点</span>
   </a>
 </div>
 </body>

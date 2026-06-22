@@ -5,21 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>元件调试 — 偏心圆盘凸轮</title>
 <link rel="stylesheet" href="../mech.css">
-<style>/* Comp page extras — extends mech.css layout */
+<style>
 .comp-ref { padding: 12px 14px; border-top: 1px solid var(--border); }
 .comp-ref img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 6px; }
 .comp-ref .caption { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.4; }
 .ctrl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .ctrl-row label { flex: 0 0 80px; font-size: 12px; color: var(--text-dim); }
 .ctrl-row input[type=range] { flex: 1; accent-color: var(--accent); }
-.ctrl-row .val { flex: 0 0 34px; font-size: 11px; color: var(--accent); text-align: right; font-family: monospace; }
-.func-output { margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; font-family: monospace; font-size: 10px; color: #a5f3fc; white-space: pre-wrap; max-height: 180px; overflow-y: auto; }</style>
+.ctrl-row .val { flex: 0 0 42px; font-size: 11px; color: var(--accent); text-align: right; font-family: monospace; }
+.func-output { margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; font-family: monospace; font-size: 10px; color: #a5f3fc; white-space: pre-wrap; max-height: 180px; overflow-y: auto; }
+.anchor-info { font-size: 11px; color: var(--accent); padding: 6px 10px; background: rgba(99,102,241,0.1); border-radius: 6px; margin-bottom: 8px; line-height: 1.5; }
+</style>
 </head>
 <body>
 <a href="index.html" class="back-btn">&larr; 返回</a>
 <div class="header">
   <h1>偏心圆盘凸轮 <span class="version-badge">comp</span></h1>
-  <p>对照教材图调参数 → 一致后告诉我锁死</p>
+  <p>所有尺寸 = 参数值 × scale | 调好形状后告诉我锁死</p>
 </div>
 <div class="app">
 <div class="main-layout">
@@ -34,16 +36,30 @@
   </div>
   <div class="sidebar">
     <div class="panel">
-      <div class="panel-title">参数调节</div>
-      <div class="ctrl-row"><label>轮廓圆心X</label><input type="range" id="pCx" min="180" max="280" value="225"><span class="val" id="pCx-v">225</span></div>
-      <div class="ctrl-row"><label>轮廓圆心Y</label><input type="range" id="pCy" min="200" max="280" value="245"><span class="val" id="pCy-v">245</span></div>
+      <div class="panel-title">锚点说明</div>
+      <div class="anchor-info">
+        锚点(x,y) = 转轴中心（十字交叉点）<br>
+        轮廓圆心偏移 = (eccX, eccY) × scale
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">形状参数（×scale）</div>
       <div class="ctrl-row"><label>轮廓半径</label><input type="range" id="r" min="20" max="70" value="44"><span class="val" id="r-v">44</span></div>
-      <div class="ctrl-row"><label>转轴X</label><input type="range" id="cx" min="180" max="250" value="210"><span class="val" id="cx-v">210</span></div>
-      <div class="ctrl-row"><label>转轴Y</label><input type="range" id="cy" min="220" max="300" value="265"><span class="val" id="cy-v">265</span></div>
-      <div class="ctrl-row"><label>十字半径</label><input type="range" id="crossR" min="3" max="12" value="6"><span class="val" id="crossR-v">6</span></div>
+      <div class="ctrl-row"><label>偏心X</label><input type="range" id="eccX" min="-30" max="30" value="15"><span class="val" id="eccX-v">15</span></div>
+      <div class="ctrl-row"><label>偏心Y</label><input type="range" id="eccY" min="-30" max="10" value="-20"><span class="val" id="eccY-v">-20</span></div>
       <div class="ctrl-row"><label>轴圆半径</label><input type="range" id="shaftR" min="2" max="8" value="4"><span class="val" id="shaftR-v">4</span></div>
-      <div class="ctrl-row"><label>轮廓线宽</label><input type="range" id="lineW" min="15" max="45" value="28" step="1"><span class="val" id="lineW-v">2.8</span></div>
+      <div class="ctrl-row"><label>十字半径</label><input type="range" id="crossR" min="3" max="12" value="6"><span class="val" id="crossR-v">6</span></div>
+      <div class="ctrl-row"><label>线宽</label><input type="range" id="lineW" min="15" max="45" value="28" step="1"><span class="val" id="lineW-v">2.8</span></div>
       <div class="ctrl-row"><label>填充透明</label><input type="range" id="fillA" min="0" max="20" value="6"><span class="val" id="fillA-v">0.06</span></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">缩放预览</div>
+      <div class="ctrl-row"><label>scale</label><input type="range" id="scale" min="5" max="20" value="10" step="1"><span class="val" id="scale-v">1.0</span></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">生成函数</div>
+      <button class="btn" onclick="copyFunc()" style="font-size:12px;padding:4px 12px">复制代码</button>
+      <div class="func-output" id="funcOut"></div>
     </div>
   </div>
 </div>
@@ -51,11 +67,93 @@
 <script src="../mech.js"></script>
 <script>
 var canvasEl=document.getElementById('canvas'),ctx=canvasEl.getContext('2d');
-var P={pCx:225,pCy:245,r:44,cx:210,cy:265,crossR:6,shaftR:4,lineW:2.8,fillA:0.06};
-function drawSupport(c,x,y,s){var tH=14*s,tW=12*s,bW=tW+4*s;c.strokeStyle=Mech.colors.hinge;c.lineWidth=1.8*s;c.beginPath();c.moveTo(x,y);c.lineTo(x-tW,y+tH);c.lineTo(x+tW,y+tH);c.closePath();c.stroke();c.lineWidth=1.5*s;c.beginPath();c.moveTo(x-bW,y+tH);c.lineTo(x+bW,y+tH);c.stroke();c.lineWidth=1*s;for(var i=0;i<5;i++){var hx=x-bW+3*s+i*((2*bW-6*s)/4);c.beginPath();c.moveTo(hx,y+tH);c.lineTo(hx-8*s*0.6,y+tH+8*s*0.6);c.stroke()}}
-function resize(){var d=window.devicePixelRatio||1,r=canvasEl.getBoundingClientRect();canvasEl.width=r.width*d;canvasEl.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);return{w:r.width,h:r.height}}
-function draw(){var dim=resize(),w=dim.w,h=dim.h;ctx.clearRect(0,0,w,h);var RW=460,RH=360,px=30,py=30,sx=(w-px*2)/RW,sy=(h-py*2)/RH,sc=Math.min(sx,sy),ox=(w-RW*sc)/2,oy=(h-RH*sc)/2;ctx.save();ctx.translate(ox,oy);ctx.scale(sc,sc);var C=Mech.colors;ctx.beginPath();ctx.arc(P.pCx,P.pCy,P.r,0,Math.PI*2);ctx.strokeStyle=C.accent;ctx.lineWidth=P.lineW;ctx.stroke();ctx.fillStyle='rgba(99,102,241,'+P.fillA+')';ctx.fill();ctx.strokeStyle=C.accent;ctx.lineWidth=2;ctx.beginPath();ctx.arc(P.cx,P.cy,P.shaftR,0,Math.PI*2);ctx.stroke();ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(P.cx-P.crossR,P.cy);ctx.lineTo(P.cx+P.crossR,P.cy);ctx.moveTo(P.cx,P.cy-P.crossR);ctx.lineTo(P.cx,P.cy+P.crossR);ctx.stroke();drawSupport(ctx,P.cx,P.cy,1.2);Mech.draw.text(ctx,'2',P.pCx+P.r+10,P.pCy+4,{color:C.accent,font:'bold 14px sans-serif',align:'left'});ctx.setLineDash([3,3]);ctx.strokeStyle='rgba(161,161,170,0.5)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(P.cx,P.cy);ctx.lineTo(P.pCx,P.pCy);ctx.stroke();ctx.setLineDash([]);var ecc=Math.sqrt(Math.pow(P.pCx-P.cx,2)+Math.pow(P.pCy-P.cy,2));Mech.draw.text(ctx,'e='+ecc.toFixed(1),(P.cx+P.pCx)/2+8,(P.cy+P.pCy)/2-8,{color:'rgba(161,161,170,0.7)',font:'10px sans-serif',align:'left'});ctx.restore()}
-Object.keys(P).forEach(function(k){var el=document.getElementById(k);if(!el)return;var v=document.getElementById(k+'-v');el.addEventListener('input',function(){var n=parseFloat(el.value);if(k==='lineW'){P[k]=n/10;v.textContent=(n/10).toFixed(1)}else if(k==='fillA'){P[k]=n/100;v.textContent=(n/100).toFixed(2)}else{P[k]=n;v.textContent=Math.round(n)}draw()})});
+var P={r:44,eccX:15,eccY:-20,shaftR:4,crossR:6,lineW:2.8,fillA:0.06,scale:1.0};
+
+/* 固定支座子函数（从fix-support调好的参数） */
+function drawSupport(c,x,y,s){
+  var tH=14*s,tW=12*s,bW=tW+4*s;
+  c.strokeStyle=Mech.colors.hinge;
+  c.lineWidth=1.8*s;c.beginPath();c.moveTo(x,y);c.lineTo(x-tW,y+tH);c.lineTo(x+tW,y+tH);c.closePath();c.stroke();
+  c.lineWidth=1.5*s;c.beginPath();c.moveTo(x-bW,y+tH);c.lineTo(x+bW,y+tH);c.stroke();
+  c.lineWidth=1*s;
+  for(var i=0;i<5;i++){var hx=x-bW+3*s+i*((2*bW-6*s)/4);c.beginPath();c.moveTo(hx,y+tH);c.lineTo(hx-8*s*0.6,y+tH+8*s*0.6);c.stroke();}
+}
+
+/* 核心绘制函数 — 会写回 mech.js */
+function drawCamDisk(c,x,y,s,p){
+  var r=p.r*s, eX=p.eccX*s, eY=p.eccY*s, sR=p.shaftR*s, cR=p.crossR*s, lw=p.lineW*s;
+  var pCx=x+eX, pCy=y+eY;
+  // 轮廓圆
+  c.beginPath();c.arc(pCx,pCy,r,0,Math.PI*2);
+  c.strokeStyle=Mech.colors.accent;c.lineWidth=lw;c.stroke();
+  c.fillStyle='rgba(99,102,241,'+p.fillA+')';c.fill();
+  // 转轴圆
+  c.strokeStyle=Mech.colors.accent;c.lineWidth=2*s;c.beginPath();c.arc(x,y,sR,0,Math.PI*2);c.stroke();
+  // 十字
+  c.lineWidth=1.2*s;c.beginPath();c.moveTo(x-cR,y);c.lineTo(x+cR,y);c.moveTo(x,y-cR);c.lineTo(x,y+cR);c.stroke();
+  // 偏心距虚线
+  c.setLineDash([3,3]);c.strokeStyle='rgba(161,161,170,0.5)';c.lineWidth=1*s;
+  c.beginPath();c.moveTo(x,y);c.lineTo(pCx,pCy);c.stroke();c.setLineDash([]);
+  var ecc=Math.sqrt(eX*eX+eY*eY);
+  if(ecc>1) Mech.draw.text(c,'e='+(ecc/s).toFixed(1),(x+pCx)/2+6,(y+pCy)/2-6,{color:'rgba(161,161,170,0.7)',font:Math.round(10*s)+'px sans-serif',align:'left'});
+}
+
+function resize(){
+  var d=window.devicePixelRatio||1,r=canvasEl.getBoundingClientRect();
+  canvasEl.width=r.width*d;canvasEl.height=r.height*d;
+  ctx.setTransform(d,0,0,d,0,0);return{w:r.width,h:r.height};
+}
+
+function draw(){
+  var dim=resize(),w=dim.w,h=dim.h;ctx.clearRect(0,0,w,h);
+  var sizes=[{s:0.7,l:'0.7×'},{s:P.scale,l:'当前 '+P.scale.toFixed(1)+'×'},{s:1.4,l:'1.4×'}];
+  var gap=w/sizes.length;
+  for(var i=0;i<sizes.length;i++){
+    var si=sizes[i];
+    var pos={x:gap*i+gap/2, y:h*0.45};
+    drawCamDisk(ctx,pos.x,pos.y,si.s,P);
+    drawSupport(ctx,pos.x,pos.y,si.s);
+    Mech.draw.text(ctx,si.l,pos.x,pos.y+P.r*si.s+30*si.s,{color:Mech.colors.textDim,font:Math.round(11*si.s)+'px sans-serif',align:'center'});
+  }
+  updateFunc();
+}
+
+function updateFunc(){
+  var p=P;
+  document.getElementById('funcOut').textContent=
+'drawCamDisk(ctx, x, y, scale, opts) {\n'+
+'  opts = opts || {}; var s = scale || 1;\n'+
+'  var r = '+p.r+'*s, eX = '+p.eccX+'*s, eY = '+p.eccY+'*s;\n'+
+'  var sR = '+p.shaftR+'*s, cR = '+p.crossR+'*s, lw = '+p.lineW.toFixed(1)+'*s;\n'+
+'  var pCx = x+eX, pCy = y+eY;\n'+
+'  // 轮廓圆\n'+
+'  ctx.beginPath(); ctx.arc(pCx, pCy, r, 0, Math.PI*2);\n'+
+'    ctx.strokeStyle = Mech.colors.accent; ctx.lineWidth = lw; ctx.stroke();\n'+
+'    ctx.fillStyle = "rgba(99,102,241,'+p.fillA.toFixed(2)+')"; ctx.fill();\n'+
+'  // 转轴\n'+
+'  ctx.lineWidth = 2*s; ctx.beginPath(); ctx.arc(x,y,sR,0,Math.PI*2); ctx.stroke();\n'+
+'  // 十字\n'+
+'  ctx.lineWidth = 1.2*s; ctx.beginPath();\n'+
+'    ctx.moveTo(x-cR,y); ctx.lineTo(x+cR,y);\n'+
+'    ctx.moveTo(x,y-cR); ctx.lineTo(x,y+cR); ctx.stroke();\n'+
+'}';
+}
+
+function copyFunc(){navigator.clipboard.writeText(document.getElementById('funcOut').textContent).then(function(){alert('已复制')})}
+
+['r','eccX','eccY','shaftR','crossR'].forEach(function(id){
+  var el=document.getElementById(id),v=document.getElementById(id+'-v');
+  el.addEventListener('input',function(){P[id]=parseInt(el.value);v.textContent=el.value;draw()});
+});
+document.getElementById('scale').addEventListener('input',function(){
+  P.scale=parseInt(this.value)/10;document.getElementById('scale-v').textContent=P.scale.toFixed(1);draw();
+});
+document.getElementById('lineW').addEventListener('input',function(){
+  P.lineW=parseInt(this.value)/10;document.getElementById('lineW-v').textContent=P.lineW.toFixed(1);draw();
+});
+document.getElementById('fillA').addEventListener('input',function(){
+  P.fillA=parseInt(this.value)/100;document.getElementById('fillA-v').textContent=P.fillA.toFixed(2);draw();
+});
 window.addEventListener('resize',draw);draw();
 </script>
 </body>

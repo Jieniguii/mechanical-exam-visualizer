@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>元件调试 — 组合预览</title>
+<link rel="stylesheet" href="../mech.css">
+<style>
+.comp-ref { padding: 12px 14px; border-top: 1px solid var(--border); }
+.comp-ref img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 6px; }
+.comp-ref .caption { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.4; }
+.ctrl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.ctrl-row label { flex: 0 0 80px; font-size: 12px; color: var(--text-dim); }
+.ctrl-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.ctrl-row .val { flex: 0 0 42px; font-size: 11px; color: var(--accent); text-align: right; font-family: monospace; }
+.anchor-info { font-size: 11px; color: var(--accent); padding: 6px 10px; background: rgba(99,102,241,0.1); border-radius: 6px; margin-bottom: 8px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<a href="index.html" class="back-btn">&larr; 返回</a>
+<div class="header">
+  <h1>组合预览 <span class="version-badge">comp</span></h1>
+  <p>所有元件使用同一个 scale 拼装 — 验证比例协调</p>
+</div>
+<div class="app">
+<div class="main-layout">
+  <div>
+    <div class="canvas-card">
+      <div class="canvas-wrapper"><canvas id="canvas"></canvas></div>
+      <div class="comp-ref">
+        <img src="ref/textbook-3c.png" alt="教材3(c)">
+        <div class="caption">教材图3(c) — 偏心圆盘凸轮机构完整组合</div>
+      </div>
+    </div>
+  </div>
+  <div class="sidebar">
+    <div class="panel">
+      <div class="panel-title">统一缩放</div>
+      <div class="anchor-info">
+        所有元件共用同一个 scale，<br>
+        调大调小看比例是否协调
+      </div>
+      <div class="ctrl-row"><label>scale</label><input type="range" id="scale" min="4" max="20" value="10" step="1"><span class="val" id="scale-v">1.0</span></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">布局参数</div>
+      <div class="ctrl-row"><label>凸轮转角</label><input type="range" id="camAngle" min="0" max="360" value="0" step="5"><span class="val" id="camAngle-v">0°</span></div>
+    </div>
+  </div>
+</div>
+</div>
+<script src="../mech.js"></script>
+<script>
+var canvasEl=document.getElementById('canvas'),ctx=canvasEl.getContext('2d');
+var S=1.0, camAngle=0;
+
+/* === 各元件的调好参数（从各comp页复制过来） === */
+var P_support={triH:14,triW:12,baseExtra:4,hatchCount:5,hatchLen:8,lineW:1.8};
+var P_cam={r:44,eccX:15,eccY:-20,shaftR:4,crossR:6,lineW:2.8,fillA:0.06};
+var P_follower={tipH:7,tipW:4,stemLen:90,lineW:2.2};
+var P_guide={hw:7,guideLen:65,topHatch:3,hatchStep:5,hatchLen:6,lineW:1.6};
+
+/* === 绘制函数（与各comp页一致） === */
+function drawFixedSupport(c,x,y,s,p){
+  var tH=p.triH*s,tW=p.triW*s,bW=tW+p.baseExtra*s,lw=p.lineW*s;
+  c.strokeStyle=p.color||Mech.colors.hinge;c.lineWidth=lw;
+  c.beginPath();c.moveTo(x,y);c.lineTo(x-tW,y+tH);c.lineTo(x+tW,y+tH);c.closePath();c.stroke();
+  c.lineWidth=lw*0.8;c.beginPath();c.moveTo(x-bW,y+tH);c.lineTo(x+bW,y+tH);c.stroke();
+  c.lineWidth=lw*0.5;
+  for(var i=0;i<p.hatchCount;i++){var hx=x-bW+3*s+i*((2*bW-6*s)/Math.max(p.hatchCount-1,1));c.beginPath();c.moveTo(hx,y+tH);c.lineTo(hx-p.hatchLen*s*0.6,y+tH+p.hatchLen*s*0.6);c.stroke();}
+}
+
+function drawCamDisk(c,x,y,s,p){
+  var r=p.r*s,eX=p.eccX*s,eY=p.eccY*s,sR=p.shaftR*s,cR=p.crossR*s,lw=p.lineW*s;
+  var pCx=x+eX,pCy=y+eY;
+  c.beginPath();c.arc(pCx,pCy,r,0,Math.PI*2);c.strokeStyle=Mech.colors.accent;c.lineWidth=lw;c.stroke();
+  c.fillStyle='rgba(99,102,241,'+p.fillA+')';c.fill();
+  c.strokeStyle=Mech.colors.accent;c.lineWidth=2*s;c.beginPath();c.arc(x,y,sR,0,Math.PI*2);c.stroke();
+  c.lineWidth=1.2*s;c.beginPath();c.moveTo(x-cR,y);c.lineTo(x+cR,y);c.moveTo(x,y-cR);c.lineTo(x,y+cR);c.stroke();
+}
+
+function drawFollowerPointed(c,x,y,s,p){
+  var tH=p.tipH*s,tW=p.tipW*s,sL=p.stemLen*s,lw=p.lineW*s;
+  var col=p.color||Mech.colors.return;
+  var tipTop=y,tipBase=y-tH;
+  c.fillStyle=col;c.beginPath();c.moveTo(x,tipTop);c.lineTo(x-tW,tipBase);c.lineTo(x+tW,tipBase);c.closePath();c.fill();
+  c.strokeStyle=col;c.lineWidth=lw*0.8;c.beginPath();c.moveTo(x,tipTop);c.lineTo(x-tW,tipBase);c.lineTo(x+tW,tipBase);c.closePath();c.stroke();
+  c.lineWidth=lw;c.beginPath();c.moveTo(x,tipBase);c.lineTo(x,tipBase-sL);c.stroke();
+}
+
+function drawGuide(c,x,y,s,p){
+  var hw=p.hw*s,gL=p.guideLen*s,lw=p.lineW*s;
+  var gTop=y-gL;
+  var col=p.color||Mech.colors.hinge;
+  c.strokeStyle=col;c.lineWidth=lw;
+  c.beginPath();c.moveTo(x-hw,gTop);c.lineTo(x-hw,y);c.moveTo(x+hw,gTop);c.lineTo(x+hw,y);c.stroke();
+  c.beginPath();c.moveTo(x-hw,gTop);c.lineTo(x+hw,gTop);c.stroke();
+  c.lineWidth=lw*0.6;
+  for(var i=0;i<p.topHatch;i++){var hx=x-hw+(i+1)*p.hatchStep*s;if(hx>x+hw-2*s)break;c.beginPath();c.moveTo(hx,gTop);c.lineTo(hx-p.hatchLen*s*0.5,gTop-p.hatchLen*s);c.stroke();}
+}
+
+/* === 组合绘制 === */
+function resize(){
+  var d=window.devicePixelRatio||1,r=canvasEl.getBoundingClientRect();
+  canvasEl.width=r.width*d;canvasEl.height=r.height*d;
+  ctx.setTransform(d,0,0,d,0,0);return{w:r.width,h:r.height};
+}
+
+function draw(){
+  var dim=resize(),w=dim.w,h=dim.h;ctx.clearRect(0,0,w,h);
+  var s=S;
+  // 机构中心点（凸轮转轴位置）
+  var pivotX=w*0.5, pivotY=h*0.55;
+
+  // 1. 凸轮转轴处的固定支座（在转轴下方）
+  drawFixedSupport(ctx,pivotX,pivotY,s,P_support);
+
+  // 2. 偏心圆盘凸轮（以转轴为圆心）
+  drawCamDisk(ctx,pivotX,pivotY,s,P_cam);
+
+  // 3. 计算从动件接触点位置
+  // 凸轮轮廓圆心偏移旋转后的位置
+  var ecc=Math.sqrt(P_cam.eccX*P_cam.eccX+P_cam.eccY*P_cam.eccY)*s;
+  var eccAngle=Math.atan2(P_cam.eccY,P_cam.eccX);
+  var rotAngle=Mech.math.deg2rad(camAngle);
+  var pCx=pivotX+ecc*Math.cos(eccAngle+rotAngle);
+  var pCy=pivotY+ecc*Math.sin(eccAngle+rotAngle);
+  // 从动件接触点在凸轮轮廓最高点
+  var r=P_cam.r*s;
+  var followerX=pCx;
+  var followerY=pCy-r; // 接触点在凸轮正上方
+
+  // 4. 尖顶从动件（从接触点向上）
+  drawFollowerPointed(ctx,followerX,followerY,s,P_follower);
+
+  // 5. 导路（在从动件杆体中部）
+  var guideX=followerX;
+  var guideBotY=followerY-P_follower.tipH*s-P_follower.stemLen*s*0.35;
+  drawGuide(ctx,guideX,guideBotY,s,P_guide);
+
+  // 6. 导路顶部的固定支座（机架连接）
+  var supportTopX=guideX;
+  var supportTopY=guideBotY-P_guide.guideLen*s;
+  drawFixedSupport(ctx,supportTopX,supportTopY,s,P_support);
+
+  // 标注
+  Mech.draw.text(ctx,'scale = '+s.toFixed(1),w/2,h-20,{color:Mech.colors.textDim,font:'12px sans-serif',align:'center'});
+  Mech.draw.text(ctx,'所有元件共用同一 scale → 比例始终协调',w/2,h-38,{color:'rgba(99,102,241,0.5)',font:'10px sans-serif',align:'center'});
+}
+
+document.getElementById('scale').addEventListener('input',function(){
+  S=parseInt(this.value)/10;document.getElementById('scale-v').textContent=S.toFixed(1);draw();
+});
+document.getElementById('camAngle').addEventListener('input',function(){
+  camAngle=parseInt(this.value);document.getElementById('camAngle-v').textContent=camAngle+'°';draw();
+});
+window.addEventListener('resize',draw);draw();
+</script>
+</body>
+</html>
