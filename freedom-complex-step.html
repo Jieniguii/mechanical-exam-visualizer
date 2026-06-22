@@ -22,6 +22,7 @@
 .step-desc .green { color: var(--success); font-weight: 600; }
 .step-desc .blue { color: var(--accent); font-weight: 600; }
 .step-desc .orange { color: var(--orange); font-weight: 600; }
+.step-desc .cyan { color: #06b6d4; font-weight: 600; }
 .step-desc .warn { color: var(--warning); font-weight: 600; }
 .step-nav { display: flex; gap: 8px; margin-bottom: 14px; }
 .step-nav .btn { flex: 1; }
@@ -101,12 +102,12 @@ var problems = [
       {x1: 280, y1: 80, x2: 380, y2: 120, label: '6', partId: 6},
     ],
     pairs: [
-      {x: 100, y: 300, label: 'A', type: 'low', parts: '1,2'},
-      {x: 200, y: 160, label: 'B', type: 'low', parts: '2,3,5'},
-      {x: 350, y: 200, label: 'C', type: 'low', parts: '3,4'},
-      {x: 380, y: 300, label: 'D', type: 'low', parts: '1,4'},
-      {x: 280, y: 80, label: 'E', type: 'low', parts: '5,6'},
-      {x: 380, y: 120, label: 'F', type: 'low', parts: '4,6'},
+      {x: 100, y: 300, label: 'A', type: 'low', parts: '1,2', isRevolute: true},
+      {x: 200, y: 160, label: 'B', type: 'low', parts: '2,3,5', isRevolute: true},
+      {x: 350, y: 200, label: 'C', type: 'low', parts: '3,4', isRevolute: true},
+      {x: 380, y: 300, label: 'D', type: 'low', parts: '1,4', isRevolute: true},
+      {x: 280, y: 80, label: 'E', type: 'low', parts: '5,6', isRevolute: true},
+      {x: 380, y: 120, label: 'F', type: 'low', parts: '4,6', isRevolute: true},
     ],
     drawExtra: function(ctx) {
       Mech.draw.dashedLine(ctx, 100, 300, 380, 300, {color: Mech.colors.hinge, width: 2, dash: [6,4]});
@@ -140,10 +141,10 @@ var problems = [
       {isFollower: true, cx: 200, cy: 150, label: '3', partId: 3},
     ],
     pairs: [
-      {x: 160, y: 300, label: 'O', type: 'low', parts: '1,2'},
-      {x: 200, y: 210, label: 'B', type: 'low', parts: "2',3"},
+      {x: 160, y: 300, label: 'O', type: 'low', parts: '1,2', isRevolute: true},
+      {x: 200, y: 210, label: 'B', type: 'low', parts: "2',3", isRevolute: true},
       {x: 200, y: 185, label: '', type: 'high', parts: "2,2'"},
-      {x: 200, y: 120, label: '', type: 'low', parts: '1,3', isPrismatic: true},
+      {x: 200, y: 120, label: '', type: 'low', parts: '1,3', isPrismatic: true, guideDir: 'vertical'},
     ],
     drawExtra: function(ctx) {
       Mech.draw.hingedSupport(ctx, 160, 300);
@@ -191,10 +192,10 @@ var problems = [
       {x1: 180, y1: 160, x2: 300, y2: 160, label: '5', partId: 5, isVirtual: true},
     ],
     pairs: [
-      {x: 120, y: 280, label: 'A', type: 'low', parts: '1,2'},
-      {x: 180, y: 160, label: 'B', type: 'low', parts: '2,3,5'},
-      {x: 300, y: 160, label: 'C', type: 'low', parts: '3,4,5'},
-      {x: 360, y: 280, label: 'D', type: 'low', parts: '1,4'},
+      {x: 120, y: 280, label: 'A', type: 'low', parts: '1,2', isRevolute: true},
+      {x: 180, y: 160, label: 'B', type: 'low', parts: '2,3,5', isRevolute: true},
+      {x: 300, y: 160, label: 'C', type: 'low', parts: '3,4,5', isRevolute: true},
+      {x: 360, y: 280, label: 'D', type: 'low', parts: '1,4', isRevolute: true},
     ],
     drawExtra: function(ctx) {
       Mech.draw.dashedLine(ctx, 120, 280, 360, 280, {color: Mech.colors.hinge, width: 2, dash: [6,4]});
@@ -355,33 +356,59 @@ function draw() {
     }
   }
   
-  // Draw pairs
+  // Draw pairs with distinct styles
+  var lowPairColor = '#06b6d4'; // cyan for low-pairs
   for (var j = 0; j < p.pairs.length; j++) {
     var pair = p.pairs[j];
     var pairStep = (info.phase === 'pairs' && info.idx >= j) || pastPairs;
-    var pairColor = pairStep ? (pair.type === 'low' ? C.accent : C.orange) : 'rgba(161,161,170,0.25)';
-    var pairR = pairStep ? 6 : 3;
     
-    if (pairStep && pair.type === 'low') {
-      ctx.save();
-      ctx.shadowColor = C.accent;
-      ctx.shadowBlur = 10;
-      Mech.draw.circle(ctx, pair.x, pair.y, pairR + 3, {color: C.accent, width: 2, fill: 'rgba(99,102,241,0.1)'});
-      ctx.restore();
-    } else if (pairStep && pair.type === 'high') {
-      ctx.save();
-      ctx.shadowColor = C.orange;
-      ctx.shadowBlur = 12;
-      Mech.draw.point(ctx, pair.x, pair.y, {color: C.orange, r: 5});
-      ctx.restore();
-      Mech.draw.circle(ctx, pair.x, pair.y, 8, {color: C.orange, width: 1.5});
+    if (pairStep) {
+      if (pair.type === 'low' && (pair.isRevolute || (!pair.isPrismatic && !pair.isHighPair))) {
+        // 转动低副：虚线圆高亮
+        ctx.save();
+        ctx.shadowColor = lowPairColor;
+        ctx.shadowBlur = 8;
+        ctx.setLineDash([4, 3]);
+        Mech.draw.circle(ctx, pair.x, pair.y, 10, {color: lowPairColor, width: 2});
+        ctx.setLineDash([]);
+        ctx.restore();
+        Mech.draw.circle(ctx, pair.x, pair.y, 3, {color: lowPairColor, width: 0, fill: lowPairColor});
+      } else if (pair.type === 'low' && pair.isPrismatic) {
+        // 移动低副：虚线垂直于导路方向
+        ctx.save();
+        ctx.shadowColor = lowPairColor;
+        ctx.shadowBlur = 8;
+        ctx.setLineDash([4, 3]);
+        ctx.strokeStyle = lowPairColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (pair.guideDir === 'vertical') {
+          ctx.moveTo(pair.x - 20, pair.y);
+          ctx.lineTo(pair.x + 20, pair.y);
+        } else {
+          ctx.moveTo(pair.x, pair.y - 20);
+          ctx.lineTo(pair.x, pair.y + 20);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+        Mech.draw.circle(ctx, pair.x, pair.y, 3, {color: lowPairColor, width: 0, fill: lowPairColor});
+      } else if (pair.type === 'high') {
+        // 高副：橙色点 + 光环
+        ctx.save();
+        ctx.shadowColor = C.orange;
+        ctx.shadowBlur = 12;
+        Mech.draw.point(ctx, pair.x, pair.y, {color: C.orange, r: 5});
+        ctx.restore();
+        Mech.draw.circle(ctx, pair.x, pair.y, 8, {color: C.orange, width: 1.5});
+      }
     } else {
-      Mech.draw.hinge(ctx, pair.x, pair.y, {color: pairColor, r: pairR});
+      Mech.draw.hinge(ctx, pair.x, pair.y, {color: 'rgba(161,161,170,0.25)', r: 3});
     }
     
     if (pairStep && pair.label) {
-      var lblColor = pair.type === 'low' ? C.accent : C.orange;
-      Mech.draw.text(ctx, pair.label, pair.x + 12, pair.y - 12, {color: lblColor, font: 'bold 12px sans-serif', align: 'left'});
+      var lblColor = pair.type === 'low' ? lowPairColor : C.orange;
+      Mech.draw.text(ctx, pair.label, pair.x + 14, pair.y - 14, {color: lblColor, font: 'bold 12px sans-serif', align: 'left'});
     }
   }
   
