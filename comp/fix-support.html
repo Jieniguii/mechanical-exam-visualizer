@@ -5,54 +5,48 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>元件调试 — 固定支座</title>
 <link rel="stylesheet" href="../mech.css">
-<style>.comp-page { max-width: 1100px; margin: 0 auto; }
-.comp-row { display: flex; gap: 16px; align-items: stretch; min-height: 0; }
-.comp-canvas-box { flex: 1; min-width: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-.comp-canvas-box canvas { display: block; width: 100%; height: 400px; background: #12141d; }
-.comp-side { flex: 0 0 280px; max-height: calc(100vh - 100px); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
-.comp-side::-webkit-scrollbar { width: 4px; }
-.comp-side::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-.comp-ref-box img { width: 100%; max-height: 160px; object-fit: contain; border-radius: 8px; border: 1px solid var(--border); }
-.comp-ref-box .caption { font-size: 10px; color: var(--text-dim); margin-top: 4px; line-height: 1.4; }
-.comp-ctrls { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
-.comp-ctrls h3 { margin: 0 0 8px; font-size: 12px; color: var(--text); }
-.cr { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-.cr label { flex: 0 0 72px; font-size: 11px; color: var(--text-dim); }
-.cr input[type=range] { flex: 1; accent-color: var(--accent); height: 16px; }
-.cr .v { flex: 0 0 30px; font-size: 10px; color: var(--accent); text-align: right; font-family: monospace; }
-.func-out { margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px; font-family: monospace; font-size: 9px; color: #a5f3fc; white-space: pre-wrap; max-height: 160px; overflow-y: auto; }
-@media (max-width: 768px) {
-  .comp-row { flex-direction: column; }
-  .comp-side { flex: none; width: 100%; max-height: none; }
-  .comp-canvas-box canvas { height: 300px; }
-}</style>
+<style>/* Comp page extras — extends mech.css layout */
+.comp-ref { padding: 12px 14px; border-top: 1px solid var(--border); }
+.comp-ref img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 6px; }
+.comp-ref .caption { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.4; }
+.ctrl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.ctrl-row label { flex: 0 0 80px; font-size: 12px; color: var(--text-dim); }
+.ctrl-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.ctrl-row .val { flex: 0 0 34px; font-size: 11px; color: var(--accent); text-align: right; font-family: monospace; }
+.func-output { margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; font-family: monospace; font-size: 10px; color: #a5f3fc; white-space: pre-wrap; max-height: 180px; overflow-y: auto; }</style>
 </head>
 <body>
-<div class="comp-page">
 <a href="index.html" class="back-btn">&larr; 返回</a>
 <div class="header">
   <h1>固定支座 <span class="version-badge">comp</span></h1>
   <p>对照教材图调参数 → 一致后告诉我锁死</p>
 </div>
-<div class="comp-row">
-  <div class="comp-canvas-box"><canvas id="canvas"></canvas></div>
-  <div class="comp-side">
-    <div class="comp-ref-box">
-      <img src="ref/textbook-3c.png" alt="教材3(c)">
-      <div class="caption">教材图3(c) — 注意机架固定支座画法</div>
+<div class="app">
+<div class="main-layout">
+  <div>
+    <div class="canvas-card">
+      <div class="canvas-wrapper"><canvas id="canvas"></canvas></div>
+      <div class="comp-ref">
+        <img src="ref/textbook-3c.png" alt="教材3(c)">
+        <div class="caption">教材图3(c) — 注意机架1和3的固定支座画法</div>
+      </div>
     </div>
-    <div class="comp-ctrls">
-      <h3>参数调节</h3>
-      <div class="cr"><label>三角高度</label><input type="range" id="triH" min="8" max="24" value="14"><span class="v" id="triH-v">14</span></div>
-      <div class="cr"><label>三角半宽</label><input type="range" id="triW" min="6" max="20" value="12"><span class="v" id="triW-v">12</span></div>
-      <div class="cr"><label>底线加宽</label><input type="range" id="baseExtra" min="0" max="8" value="4"><span class="v" id="baseExtra-v">4</span></div>
-      <div class="cr"><label>剖面线数</label><input type="range" id="hatchCount" min="2" max="9" value="5"><span class="v" id="hatchCount-v">5</span></div>
-      <div class="cr"><label>剖面线长</label><input type="range" id="hatchLen" min="4" max="14" value="8"><span class="v" id="hatchLen-v">8</span></div>
-      <div class="cr"><label>缩放</label><input type="range" id="scale" min="5" max="25" value="10" step="1"><span class="v" id="scale-v">1.0</span></div>
-      <div class="cr"><label>线宽</label><input type="range" id="lineW" min="10" max="40" value="18" step="1"><span class="v" id="lineW-v">1.8</span></div>
-      <h3>生成函数</h3>
-      <button class="btn" onclick="copyFunc()" style="font-size:12px;padding:4px 12px">复制</button>
-      <div class="func-out" id="funcOut"></div>
+  </div>
+  <div class="sidebar">
+    <div class="panel">
+      <div class="panel-title">参数调节</div>
+      <div class="ctrl-row"><label>三角高度</label><input type="range" id="triH" min="8" max="24" value="14"><span class="val" id="triH-v">14</span></div>
+      <div class="ctrl-row"><label>三角半宽</label><input type="range" id="triW" min="6" max="20" value="12"><span class="val" id="triW-v">12</span></div>
+      <div class="ctrl-row"><label>底线加宽</label><input type="range" id="baseExtra" min="0" max="8" value="4"><span class="val" id="baseExtra-v">4</span></div>
+      <div class="ctrl-row"><label>剖面线数</label><input type="range" id="hatchCount" min="2" max="9" value="5"><span class="val" id="hatchCount-v">5</span></div>
+      <div class="ctrl-row"><label>剖面线长</label><input type="range" id="hatchLen" min="4" max="14" value="8"><span class="val" id="hatchLen-v">8</span></div>
+      <div class="ctrl-row"><label>缩放</label><input type="range" id="scale" min="5" max="25" value="10" step="1"><span class="val" id="scale-v">1.0</span></div>
+      <div class="ctrl-row"><label>线宽</label><input type="range" id="lineW" min="10" max="40" value="18" step="1"><span class="val" id="lineW-v">1.8</span></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">生成函数</div>
+      <button class="btn" onclick="copyFunc()" style="font-size:12px;padding:4px 12px">复制代码</button>
+      <div class="func-output" id="funcOut"></div>
     </div>
   </div>
 </div>

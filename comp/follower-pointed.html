@@ -5,50 +5,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>元件调试 — 尖顶从动件</title>
 <link rel="stylesheet" href="../mech.css">
-<style>.comp-page { max-width: 1100px; margin: 0 auto; }
-.comp-row { display: flex; gap: 16px; align-items: stretch; min-height: 0; }
-.comp-canvas-box { flex: 1; min-width: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-.comp-canvas-box canvas { display: block; width: 100%; height: 400px; background: #12141d; }
-.comp-side { flex: 0 0 280px; max-height: calc(100vh - 100px); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
-.comp-side::-webkit-scrollbar { width: 4px; }
-.comp-side::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-.comp-ref-box img { width: 100%; max-height: 160px; object-fit: contain; border-radius: 8px; border: 1px solid var(--border); }
-.comp-ref-box .caption { font-size: 10px; color: var(--text-dim); margin-top: 4px; line-height: 1.4; }
-.comp-ctrls { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
-.comp-ctrls h3 { margin: 0 0 8px; font-size: 12px; color: var(--text); }
-.cr { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-.cr label { flex: 0 0 72px; font-size: 11px; color: var(--text-dim); }
-.cr input[type=range] { flex: 1; accent-color: var(--accent); height: 16px; }
-.cr .v { flex: 0 0 30px; font-size: 10px; color: var(--accent); text-align: right; font-family: monospace; }
-.func-out { margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px; font-family: monospace; font-size: 9px; color: #a5f3fc; white-space: pre-wrap; max-height: 160px; overflow-y: auto; }
-@media (max-width: 768px) {
-  .comp-row { flex-direction: column; }
-  .comp-side { flex: none; width: 100%; max-height: none; }
-  .comp-canvas-box canvas { height: 300px; }
-}</style>
+<style>/* Comp page extras — extends mech.css layout */
+.comp-ref { padding: 12px 14px; border-top: 1px solid var(--border); }
+.comp-ref img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 6px; }
+.comp-ref .caption { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.4; }
+.ctrl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.ctrl-row label { flex: 0 0 80px; font-size: 12px; color: var(--text-dim); }
+.ctrl-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.ctrl-row .val { flex: 0 0 34px; font-size: 11px; color: var(--accent); text-align: right; font-family: monospace; }
+.func-output { margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; font-family: monospace; font-size: 10px; color: #a5f3fc; white-space: pre-wrap; max-height: 180px; overflow-y: auto; }</style>
 </head>
 <body>
-<div class="comp-page">
 <a href="index.html" class="back-btn">&larr; 返回</a>
 <div class="header">
   <h1>尖顶从动件 <span class="version-badge">comp</span></h1>
   <p>对照教材图调参数 → 一致后告诉我锁死</p>
 </div>
-<div class="comp-row">
-  <div class="comp-canvas-box"><canvas id="canvas"></canvas></div>
-  <div class="comp-side">
-    <div class="comp-ref-box">
-      <img src="ref/textbook-3c.png" alt="教材3(c)">
-      <div class="caption">教材图3(c) — 从动件2是尖顶（直杆+小三角尖端）</div>
+<div class="app">
+<div class="main-layout">
+  <div>
+    <div class="canvas-card">
+      <div class="canvas-wrapper"><canvas id="canvas"></canvas></div>
+      <div class="comp-ref">
+        <img src="ref/textbook-3c.png" alt="教材3(c)">
+        <div class="caption">教材图3(c) — 从动件2是尖顶（直杆+小三角尖端）</div>
+      </div>
     </div>
-    <div class="comp-ctrls">
-      <h3>参数调节</h3>
-      <div class="cr"><label>中心X</label><input type="range" id="cx" min="80" max="300" value="180"><span class="v" id="cx-v">180</span></div>
-      <div class="cr"><label>接触点Y</label><input type="range" id="contactY" min="150" max="280" value="220"><span class="v" id="contactY-v">220</span></div>
-      <div class="cr"><label>杆顶Y</label><input type="range" id="stemTopY" min="60" max="200" value="120"><span class="v" id="stemTopY-v">120</span></div>
-      <div class="cr"><label>尖端高度</label><input type="range" id="tipH" min="3" max="16" value="7"><span class="v" id="tipH-v">7</span></div>
-      <div class="cr"><label>尖端半宽</label><input type="range" id="tipW" min="2" max="10" value="4"><span class="v" id="tipW-v">4</span></div>
-      <div class="cr"><label>线宽</label><input type="range" id="lineW" min="10" max="35" value="22" step="1"><span class="v" id="lineW-v">2.2</span></div>
+  </div>
+  <div class="sidebar">
+    <div class="panel">
+      <div class="panel-title">参数调节</div>
+      <div class="ctrl-row"><label>中心X</label><input type="range" id="cx" min="80" max="300" value="180"><span class="val" id="cx-v">180</span></div>
+      <div class="ctrl-row"><label>接触点Y</label><input type="range" id="contactY" min="150" max="280" value="220"><span class="val" id="contactY-v">220</span></div>
+      <div class="ctrl-row"><label>杆顶Y</label><input type="range" id="stemTopY" min="60" max="200" value="120"><span class="val" id="stemTopY-v">120</span></div>
+      <div class="ctrl-row"><label>尖端高度</label><input type="range" id="tipH" min="3" max="16" value="7"><span class="val" id="tipH-v">7</span></div>
+      <div class="ctrl-row"><label>尖端半宽</label><input type="range" id="tipW" min="2" max="10" value="4"><span class="val" id="tipW-v">4</span></div>
+      <div class="ctrl-row"><label>线宽</label><input type="range" id="lineW" min="10" max="35" value="22" step="1"><span class="val" id="lineW-v">2.2</span></div>
     </div>
   </div>
 </div>
