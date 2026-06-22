@@ -6,134 +6,63 @@
 <title>元件调试 — 偏心圆盘凸轮</title>
 <link rel="stylesheet" href="../mech.css">
 <style>
-.comp-top { display: flex; gap: 20px; padding: 16px 20px; align-items: flex-start; }
-.comp-canvas-box { flex: 1; min-width: 300px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-.comp-canvas-box canvas { display: block; width: 100%; height: 50vh; min-height: 280px; max-height: 480px; background: #12141d; }
-.comp-ref-box { flex: 0 0 280px; }
+.comp-page { max-width: 1100px; margin: 0 auto; }
+.comp-row { display: flex; gap: 16px; align-items: flex-start; }
+.comp-canvas-box { flex: 1; min-width: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.comp-canvas-box canvas { display: block; width: 100%; height: 340px; background: #12141d; }
+.comp-side { flex: 0 0 300px; display: flex; flex-direction: column; gap: 12px; }
 .comp-ref-box img { width: 100%; border-radius: 8px; border: 1px solid var(--border); }
-.comp-ref-box .caption { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
-.comp-ctrls { padding: 16px 20px; }
-.comp-ctrls-inner { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-.comp-ctrls h3 { margin: 0 0 12px; font-size: 14px; color: var(--text); }
-.cr { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.cr label { flex: 0 0 120px; font-size: 12px; color: var(--text-dim); }
+.comp-ref-box .caption { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+.comp-ctrls { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+.comp-ctrls h3 { margin: 0 0 10px; font-size: 13px; color: var(--text); }
+.cr { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.cr label { flex: 0 0 90px; font-size: 11px; color: var(--text-dim); }
 .cr input[type=range] { flex: 1; accent-color: var(--accent); }
-.cr .v { flex: 0 0 40px; font-size: 12px; color: var(--accent); text-align: right; font-family: monospace; }
+.cr .v { flex: 0 0 32px; font-size: 11px; color: var(--accent); text-align: right; font-family: monospace; }
+@media (max-width: 768px) {
+  .comp-row { flex-direction: column; }
+  .comp-side { flex: none; width: 100%; }
+}
 </style>
 </head>
 <body>
-<a href="index.html" class="back-btn">&larr; 返回元件列表</a>
+<div class="comp-page">
+<a href="index.html" class="back-btn">&larr; 返回</a>
 <div class="header">
   <h1>偏心圆盘凸轮 <span class="version-badge">comp</span></h1>
-  <p>教材3(c)标准 — 偏心圆盘+转轴十字+固定支座 | 拖滑块调整</p>
+  <p>对照教材图调参数 → 一致后告诉我锁死</p>
 </div>
-<div class="comp-top">
-  <div class="comp-canvas-box">
-    <canvas id="canvas"></canvas>
-  </div>
-  <div class="comp-ref-box">
-    <img src="ref/textbook-3c.png" alt="教材3(c)参考图">
-    <div class="caption">教材图3(c) — 注意凸轮是完整偏心圆盘，转轴有十字标记</div>
-  </div>
-</div>
-<div class="comp-ctrls">
-  <div class="comp-ctrls-inner">
-    <h3>参数调节</h3>
-    <div class="cr"><label>轮廓圆心X</label><input type="range" id="pCx" min="180" max="280" value="225"><span class="v" id="pCx-v">225</span></div>
-    <div class="cr"><label>轮廓圆心Y</label><input type="range" id="pCy" min="200" max="280" value="245"><span class="v" id="pCy-v">245</span></div>
-    <div class="cr"><label>轮廓半径 r</label><input type="range" id="r" min="20" max="70" value="44"><span class="v" id="r-v">44</span></div>
-    <div class="cr"><label>转轴X</label><input type="range" id="cx" min="180" max="250" value="210"><span class="v" id="cx-v">210</span></div>
-    <div class="cr"><label>转轴Y</label><input type="range" id="cy" min="220" max="300" value="265"><span class="v" id="cy-v">265</span></div>
-    <div class="cr"><label>十字半径</label><input type="range" id="crossR" min="3" max="12" value="6"><span class="v" id="crossR-v">6</span></div>
-    <div class="cr"><label>转轴圆半径</label><input type="range" id="shaftR" min="2" max="8" value="4"><span class="v" id="shaftR-v">4</span></div>
-    <div class="cr"><label>轮廓线宽</label><input type="range" id="lineW" min="15" max="45" value="28" step="1"><span class="v" id="lineW-v">2.8</span></div>
-    <div class="cr"><label>填充透明度</label><input type="range" id="fillA" min="0" max="20" value="6"><span class="v" id="fillA-v">0.06</span></div>
+<div class="comp-row">
+  <div class="comp-canvas-box"><canvas id="canvas"></canvas></div>
+  <div class="comp-side">
+    <div class="comp-ref-box">
+      <img src="ref/textbook-3c.png" alt="教材3(c)">
+      <div class="caption">教材图3(c) — 偏心圆盘+转轴十字</div>
+    </div>
+    <div class="comp-ctrls">
+      <h3>参数调节</h3>
+      <div class="cr"><label>轮廓圆心X</label><input type="range" id="pCx" min="180" max="280" value="225"><span class="v" id="pCx-v">225</span></div>
+      <div class="cr"><label>轮廓圆心Y</label><input type="range" id="pCy" min="200" max="280" value="245"><span class="v" id="pCy-v">245</span></div>
+      <div class="cr"><label>轮廓半径</label><input type="range" id="r" min="20" max="70" value="44"><span class="v" id="r-v">44</span></div>
+      <div class="cr"><label>转轴X</label><input type="range" id="cx" min="180" max="250" value="210"><span class="v" id="cx-v">210</span></div>
+      <div class="cr"><label>转轴Y</label><input type="range" id="cy" min="220" max="300" value="265"><span class="v" id="cy-v">265</span></div>
+      <div class="cr"><label>十字半径</label><input type="range" id="crossR" min="3" max="12" value="6"><span class="v" id="crossR-v">6</span></div>
+      <div class="cr"><label>轴圆半径</label><input type="range" id="shaftR" min="2" max="8" value="4"><span class="v" id="shaftR-v">4</span></div>
+      <div class="cr"><label>轮廓线宽</label><input type="range" id="lineW" min="15" max="45" value="28" step="1"><span class="v" id="lineW-v">2.8</span></div>
+      <div class="cr"><label>填充透明</label><input type="range" id="fillA" min="0" max="20" value="6"><span class="v" id="fillA-v">0.06</span></div>
+    </div>
   </div>
 </div>
-
+</div>
 <script src="../mech.js"></script>
 <script>
-var canvasEl = document.getElementById('canvas');
-var ctx = canvasEl.getContext('2d');
-var P = { pCx: 225, pCy: 245, r: 44, cx: 210, cy: 265, crossR: 6, shaftR: 4, lineW: 2.8, fillA: 0.06 };
-
-function drawSupport(ctx, x, y, sc) {
-  var color = Mech.colors.hinge;
-  var triH = 14*sc, triW = 12*sc, baseW = triW + 4*sc;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1.8*sc;
-  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-triW,y+triH); ctx.lineTo(x+triW,y+triH); ctx.closePath(); ctx.stroke();
-  ctx.lineWidth = 1.5*sc;
-  ctx.beginPath(); ctx.moveTo(x-baseW,y+triH); ctx.lineTo(x+baseW,y+triH); ctx.stroke();
-  ctx.lineWidth = 1*sc;
-  for (var i=0;i<5;i++) { var hx=x-baseW+3*sc+i*((2*baseW-6*sc)/4); ctx.beginPath(); ctx.moveTo(hx,y+triH); ctx.lineTo(hx-8*sc*0.6,y+triH+8*sc*0.6); ctx.stroke(); }
-}
-
-function resize() {
-  var dpr = window.devicePixelRatio || 1;
-  var rect = canvasEl.getBoundingClientRect();
-  canvasEl.width = rect.width * dpr;
-  canvasEl.height = rect.height * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  return { w: rect.width, h: rect.height };
-}
-
-function draw() {
-  var dim = resize();
-  var w = dim.w, h = dim.h;
-  ctx.clearRect(0, 0, w, h);
-  var REF_W = 460, REF_H = 360;
-  var padX = 30, padY = 30;
-  var sx = (w - padX*2) / REF_W, sy = (h - padY*2) / REF_H;
-  var sc = Math.min(sx, sy);
-  var ox = (w - REF_W*sc)/2, oy = (h - REF_H*sc)/2;
-
-  ctx.save(); ctx.translate(ox,oy); ctx.scale(sc,sc);
-  var C = Mech.colors;
-
-  // Cam profile
-  ctx.beginPath(); ctx.arc(P.pCx, P.pCy, P.r, 0, Math.PI*2);
-  ctx.strokeStyle = C.accent; ctx.lineWidth = P.lineW; ctx.stroke();
-  ctx.fillStyle = 'rgba(99,102,241,' + P.fillA + ')'; ctx.fill();
-
-  // Shaft cross + circle
-  ctx.strokeStyle = C.accent; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(P.cx, P.cy, P.shaftR, 0, Math.PI*2); ctx.stroke();
-  ctx.lineWidth = 1.2;
-  ctx.beginPath(); ctx.moveTo(P.cx-P.crossR, P.cy); ctx.lineTo(P.cx+P.crossR, P.cy);
-  ctx.moveTo(P.cx, P.cy-P.crossR); ctx.lineTo(P.cx, P.cy+P.crossR); ctx.stroke();
-
-  // Fixed support
-  drawSupport(ctx, P.cx, P.cy, 1.2);
-
-  // Label
-  Mech.draw.text(ctx, '2', P.pCx+P.r+10, P.pCy+4, { color: C.accent, font: 'bold 14px sans-serif', align: 'left' });
-
-  // Eccentricity dashed line
-  ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(161,161,170,0.5)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(P.cx,P.cy); ctx.lineTo(P.pCx,P.pCy); ctx.stroke(); ctx.setLineDash([]);
-
-  var ecc = Math.sqrt(Math.pow(P.pCx-P.cx,2)+Math.pow(P.pCy-P.cy,2));
-  Mech.draw.text(ctx, 'e='+ecc.toFixed(1), (P.cx+P.pCx)/2+8, (P.cy+P.pCy)/2-8, { color:'rgba(161,161,170,0.7)', font:'10px sans-serif', align:'left' });
-
-  ctx.restore();
-}
-
-Object.keys(P).forEach(function(k) {
-  var el = document.getElementById(k);
-  if (!el) return;
-  var vEl = document.getElementById(k+'-v');
-  el.addEventListener('input', function() {
-    var v = parseFloat(el.value);
-    if (k==='lineW') { P[k]=v/10; vEl.textContent=(v/10).toFixed(1); }
-    else if (k==='fillA') { P[k]=v/100; vEl.textContent=(v/100).toFixed(2); }
-    else { P[k]=v; vEl.textContent=Math.round(v); }
-    draw();
-  });
-});
-
-window.addEventListener('resize', draw);
-draw();
+var canvasEl=document.getElementById('canvas'),ctx=canvasEl.getContext('2d');
+var P={pCx:225,pCy:245,r:44,cx:210,cy:265,crossR:6,shaftR:4,lineW:2.8,fillA:0.06};
+function drawSupport(c,x,y,s){var tH=14*s,tW=12*s,bW=tW+4*s;c.strokeStyle=Mech.colors.hinge;c.lineWidth=1.8*s;c.beginPath();c.moveTo(x,y);c.lineTo(x-tW,y+tH);c.lineTo(x+tW,y+tH);c.closePath();c.stroke();c.lineWidth=1.5*s;c.beginPath();c.moveTo(x-bW,y+tH);c.lineTo(x+bW,y+tH);c.stroke();c.lineWidth=1*s;for(var i=0;i<5;i++){var hx=x-bW+3*s+i*((2*bW-6*s)/4);c.beginPath();c.moveTo(hx,y+tH);c.lineTo(hx-8*s*0.6,y+tH+8*s*0.6);c.stroke()}}
+function resize(){var d=window.devicePixelRatio||1,r=canvasEl.getBoundingClientRect();canvasEl.width=r.width*d;canvasEl.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);return{w:r.width,h:r.height}}
+function draw(){var dim=resize(),w=dim.w,h=dim.h;ctx.clearRect(0,0,w,h);var RW=460,RH=360,px=30,py=30,sx=(w-px*2)/RW,sy=(h-py*2)/RH,sc=Math.min(sx,sy),ox=(w-RW*sc)/2,oy=(h-RH*sc)/2;ctx.save();ctx.translate(ox,oy);ctx.scale(sc,sc);var C=Mech.colors;ctx.beginPath();ctx.arc(P.pCx,P.pCy,P.r,0,Math.PI*2);ctx.strokeStyle=C.accent;ctx.lineWidth=P.lineW;ctx.stroke();ctx.fillStyle='rgba(99,102,241,'+P.fillA+')';ctx.fill();ctx.strokeStyle=C.accent;ctx.lineWidth=2;ctx.beginPath();ctx.arc(P.cx,P.cy,P.shaftR,0,Math.PI*2);ctx.stroke();ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(P.cx-P.crossR,P.cy);ctx.lineTo(P.cx+P.crossR,P.cy);ctx.moveTo(P.cx,P.cy-P.crossR);ctx.lineTo(P.cx,P.cy+P.crossR);ctx.stroke();drawSupport(ctx,P.cx,P.cy,1.2);Mech.draw.text(ctx,'2',P.pCx+P.r+10,P.pCy+4,{color:C.accent,font:'bold 14px sans-serif',align:'left'});ctx.setLineDash([3,3]);ctx.strokeStyle='rgba(161,161,170,0.5)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(P.cx,P.cy);ctx.lineTo(P.pCx,P.pCy);ctx.stroke();ctx.setLineDash([]);var ecc=Math.sqrt(Math.pow(P.pCx-P.cx,2)+Math.pow(P.pCy-P.cy,2));Mech.draw.text(ctx,'e='+ecc.toFixed(1),(P.cx+P.pCx)/2+8,(P.cy+P.pCy)/2-8,{color:'rgba(161,161,170,0.7)',font:'10px sans-serif',align:'left'});ctx.restore()}
+Object.keys(P).forEach(function(k){var el=document.getElementById(k);if(!el)return;var v=document.getElementById(k+'-v');el.addEventListener('input',function(){var n=parseFloat(el.value);if(k==='lineW'){P[k]=n/10;v.textContent=(n/10).toFixed(1)}else if(k==='fillA'){P[key]=n/100;v.textContent=(n/100).toFixed(2)}else{P[k]=n;v.textContent=Math.round(n)}draw()})});
+window.addEventListener('resize',draw);draw();
 </script>
 </body>
 </html>
