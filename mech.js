@@ -250,6 +250,214 @@ const Mech = {
       }
     },
 
+    // --- 块状构件类 ---
+
+    // 滑块 — 锚点(x,y)=矩形中心，教材表1-3
+    // 教材画法：矩形框，内部可加斜线/网格或无填充
+    slider(ctx, x, y, scale, opts = {}) {
+      const s = scale || 1;
+      const col = opts.color || Mech.colors.body;
+      const w = (opts.w || 28)*s, h = (opts.h || 14)*s, lw = 2.0*s;
+      const l = x - w/2, r = x + w/2, t = y - h/2, b = y + h/2;
+      // 矩形框
+      ctx.strokeStyle = col; ctx.lineWidth = lw;
+      ctx.strokeRect(l, t, w, h);
+    },
+
+    // --- 传动与驱动类 ---
+
+    // 滚子 — 锚点(x,y)=圆心，教材图1-22~1-25
+    // 教材画法：小实心圆（局部自由度标识）
+    roller(ctx, x, y, scale, opts = {}) {
+      const s = scale || 1;
+      const col = opts.color || Mech.colors.body;
+      const r = (opts.r || 8)*s, lw = 2.0*s;
+      // 外圈
+      ctx.strokeStyle = col; ctx.lineWidth = lw;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+      // 中心小圆（轴）
+      ctx.beginPath(); ctx.arc(x, y, 3*s, 0, Math.PI * 2);
+        ctx.fillStyle = col; ctx.fill();
+    },
+
+    // 弹簧 — 锚点(x,y)=弹簧一端，绘制向另一端
+    // 教材画法：Z字形线或波浪线，第18页注
+    spring(ctx, x1, y1, x2, y2, scale, opts = {}) {
+      const s = scale || 1;
+      const col = opts.color || Mech.colors.body;
+      const coils = opts.coils || 5, amp = (opts.amp || 6)*s, lw = 2.0*s;
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      if (len < 1) return;
+      // 方向和法线
+      const ux = dx/len, uy = dy/len;
+      const nx = -uy, ny = ux;
+      ctx.strokeStyle = col; ctx.lineWidth = lw;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      // 引线段
+      const leadIn = len * 0.1;
+      ctx.lineTo(x1 + ux*leadIn, y1 + uy*leadIn);
+      // 锯齿段
+      const coilLen = (len - 2*leadIn) / (coils * 2);
+      for (let i = 0; i < coils * 2; i++) {
+        const t = leadIn + (i+1) * coilLen;
+        const sign = (i % 2 === 0) ? 1 : -1;
+        ctx.lineTo(x1 + ux*t + nx*amp*sign, y1 + uy*t + ny*amp*sign);
+      }
+      // 引线段
+      ctx.lineTo(x2 - ux*leadIn, y2 - uy*leadIn);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    },
+
+    // --- 杆件类 ---
+
+    // 折杆 — 两段折线连接两端铰链，教材表1-3
+    // 锚点1(x1,y1)和锚点2(x2,y2)为两端铰链，拐点由bendOffset控制
+    bentLink(ctx, x1, y1, x2, y2, scale, opts = {}) {
+      const s = scale || 1;
+      const col = opts.color || Mech.colors.body;
+      const lw = 2.5*s;
+      const off = (opts.bendOffset || 20)*s;
+      const mx = (x1+x2)/2, my = (y1+y2)/2;
+      const dx = x2-x1, dy = y2-y1;
+      const len = Math.sqrt(dx*dx+dy*dy);
+      if (len < 1) return;
+      // 拐点：中点沿法线方向偏移
+      const nx = -dy/len, ny = dx/len;
+      const bx = mx + nx*off, by = my + ny*off;
+      ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(bx, by); ctx.lineTo(x2, y2); ctx.stroke();
+    },
+
+    // 三副构件（三角架）— 三个铰链点，教材表1-6、图1-10
+    // 三个锚点连接成三角形轮廓
+    triPlate(ctx, x1, y1, x2, y2, x3, y3, scale, opts = {}) {
+      const s = scale || 1;
+      const col = opts.color || Mech.colors.body;
+      const lw = 2.5*s;
+      ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineJoin = 'round';
+      ctx.beginPath();
+        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x3, y3); ctx.closePath();
+        ctx.stroke();
+    },
+
+    // --- 机架与固定类 ---
+
+    // 固定杆 — 在杆件上画剖面线标记为机架，教材表1-3
+    // 两端铰链坐标(x1,y1)(x2,y2)，杆身中部画剖面线
+    fixedLink(ctx, x1, y1, x2, y2, scale, opts = {}) {
+      const s = scale || 1;
+      const col = opts.color || Mech.colors.hinge;
+      const lw = 2.5*s;
+      // 先画杆
+      ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      // 剖面线标记（杆身中部3条短线，垂直于杆方向）
+      const dx = x2-x1, dy = y2-y1;
+      const len = Math.sqrt(dx*dx+dy*dy);
+      if (len < 10*s) return;
+      const ux = dx/len, uy = dy/len;
+      const nx = -uy, ny = ux;
+      const hLen = 8*s, hStep = 7*s;
+      ctx.lineWidth = lw * 0.5;
+      for (let i = -1; i <= 1; i++) {
+        const cx = (x1+x2)/2 + ux*i*hStep;
+        const cy = (y1+y2)/2 + uy*i*hStep;
+        ctx.beginPath(); ctx.moveTo(cx - nx*hLen, cy - ny*hLen);
+          ctx.lineTo(cx + nx*hLen, cy + ny*hLen); ctx.stroke();
+      }
+    },
+
+    // 定块 — 固定的块状构件，教材表1-3
+    // 锚点(x,y)=矩形中心，内部填充剖面线
+    fixedBlock(ctx, x, y, scale, opts = {}) {
+      const s = scale || 1;
+      const col = opts.color || Mech.colors.hinge;
+      const w = (opts.w || 28)*s, h = (opts.h || 14)*s, lw = 2.0*s;
+      const l = x - w/2, t = y - h/2;
+      // 矩形框
+      ctx.strokeStyle = col; ctx.lineWidth = lw;
+      ctx.strokeRect(l, t, w, h);
+      // 剖面线
+      ctx.lineWidth = lw * 0.5;
+      const step = 7*s, hLen = 8*s*0.6;
+      for (let hx = l + 3*s; hx < l + w; hx += step) {
+        ctx.beginPath(); ctx.moveTo(hx, t + h);
+          ctx.lineTo(hx - hLen, t + h + hLen); ctx.stroke();
+      }
+    },
+
+    // --- 运动副类 ---
+
+    // 移动副标记 — 滑块+导路的组合，教材表1-3、图1-1
+    // 锚点(x,y)=滑块中心，自动在两侧画短导轨
+    prismaticPair(ctx, x, y, scale, opts = {}) {
+      const s = scale || 1;
+      const sliderW = (opts.sliderW || 28)*s, sliderH = (opts.sliderH || 14)*s;
+      const guideGap = (opts.guideGap || 2)*s;
+      const guideLen = (opts.guideLen || 20)*s;
+      const col = opts.color || Mech.colors.body;
+      const mCol = opts.machineColor || Mech.colors.hinge;
+      const lw = 2.0*s;
+      // 滑块矩形
+      ctx.strokeStyle = col; ctx.lineWidth = lw;
+      ctx.strokeRect(x - sliderW/2, y - sliderH/2, sliderW, sliderH);
+      // 上导轨
+      const gTop = y - sliderH/2 - guideGap;
+      ctx.strokeStyle = mCol; ctx.lineWidth = lw;
+      ctx.beginPath();
+        ctx.moveTo(x - sliderW/2 - guideLen, gTop);
+        ctx.lineTo(x + sliderW/2 + guideLen, gTop);
+        ctx.stroke();
+      // 下导轨
+      const gBot = y + sliderH/2 + guideGap;
+      ctx.beginPath();
+        ctx.moveTo(x - sliderW/2 - guideLen, gBot);
+        ctx.lineTo(x + sliderW/2 + guideLen, gBot);
+        ctx.stroke();
+    },
+
+    // --- 高副低代类 ---
+
+    // 高副标记 — 在接触点画公法线短虚线，教材图1-33
+    // 锚点(x,y)=接触点，法线方向由angle指定
+    highPairMark(ctx, x, y, scale, opts = {}) {
+      const s = scale || 1;
+      const col = opts.color || Mech.colors.textDim;
+      const angle = opts.angle || 0; // 法线方向（弧度）
+      const markLen = (opts.markLen || 15)*s, lw = 1.2*s;
+      const dx = Math.cos(angle), dy = Math.sin(angle);
+      ctx.strokeStyle = col; ctx.lineWidth = lw;
+      ctx.setLineDash([4*s, 3*s]);
+      ctx.beginPath();
+        ctx.moveTo(x - dx*markLen, y - dy*markLen);
+        ctx.lineTo(x + dx*markLen, y + dy*markLen);
+        ctx.stroke();
+      ctx.setLineDash([]);
+      // 标注 n
+      if (opts.label !== false) {
+        ctx.fillStyle = col; ctx.font = `${11*s}px sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('n', x + dx*(markLen + 8*s), y + dy*(markLen + 8*s));
+      }
+    },
+
+    // --- 辅助标注类 ---
+
+    // 焊接符号 — 黑色实心小三角形，教材表1-4
+    weldMark(ctx, x, y, scale, opts = {}) {
+      const s = scale || 1;
+      const sz = (opts.size || 5)*s;
+      ctx.fillStyle = '#e4e4e7';
+      ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - sz*0.5, y + sz);
+        ctx.lineTo(x + sz*0.5, y + sz);
+        ctx.closePath(); ctx.fill();
+    },
+
     // 虚线
     dashedLine(ctx, x1, y1, x2, y2, opts = {}) {
       const { color = '#71717a', width = 1.5, dash = [4, 4] } = opts;
