@@ -44,10 +44,10 @@
     </div>
     <div class="panel">
       <div class="panel-title">形状参数（×scale）</div>
-      <div class="ctrl-row"><label>尖端高度</label><input type="range" id="tipH" min="3" max="16" value="7"><span class="val" id="tipH-v">7</span></div>
-      <div class="ctrl-row"><label>尖端半宽</label><input type="range" id="tipW" min="2" max="10" value="4"><span class="val" id="tipW-v">4</span></div>
-      <div class="ctrl-row"><label>杆长</label><input type="range" id="stemLen" min="40" max="140" value="90"><span class="val" id="stemLen-v">90</span></div>
-      <div class="ctrl-row"><label>线宽</label><input type="range" id="lineW" min="10" max="35" value="22" step="1"><span class="val" id="lineW-v">2.2</span></div>
+      <div class="ctrl-row"><label>尖端高度</label><input type="range" id="tipH" min="3" max="16" value="8"><span class="val" id="tipH-v">8</span></div>
+      <div class="ctrl-row"><label>尖端半宽</label><input type="range" id="tipW" min="2" max="10" value="3"><span class="val" id="tipW-v">3</span></div>
+      <div class="ctrl-row"><label>杆长</label><input type="range" id="stemLen" min="40" max="140" value="53"><span class="val" id="stemLen-v">53</span></div>
+      <div class="ctrl-row"><label>线宽</label><input type="range" id="lineW" min="10" max="35" value="20" step="1"><span class="val" id="lineW-v">2.0</span></div>
     </div>
     <div class="panel">
       <div class="panel-title">缩放预览</div>
@@ -64,7 +64,7 @@
 <script src="../mech.js"></script>
 <script>
 var canvasEl=document.getElementById('canvas'),ctx=canvasEl.getContext('2d');
-var P={tipH:7,tipW:4,stemLen:90,lineW:2.2,scale:1.0};
+var P={tipH:8,tipW:3,stemLen:53,lineW:2.0,scale:1.0};
 
 /* 核心绘制函数 — 会写回 mech.js */
 function drawFollowerPointed(c,x,y,s,p){
