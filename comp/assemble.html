@@ -54,13 +54,13 @@
 var canvasEl=document.getElementById('canvas'),ctx=canvasEl.getContext('2d');
 var S=1.0, camAngle=0;
 
-/* === 各元件的调好参数（从各comp页复制过来） === */
+/* === 各元件的调好参数 === */
 var P_support={triH:14,triW:10,baseExtra:4,hatchCount:5,hatchLen:8,lineW:2.0};
 var P_cam={r:44,eccX:15,eccY:-20,shaftR:4,crossR:6,lineW:2.0,fillA:0.01};
 var P_follower={tipH:8,tipW:3,stemLen:53,lineW:2.0};
-var P_guide={hw:7,guideLen:65,topHatch:3,hatchStep:5,hatchLen:6,lineW:1.6};
+var P_guide={gap:7,blockW:14,guideLen:65,hatchN:4,hatchStep:7,hatchLen:8,lineW:1.8};
 
-/* === 绘制函数（与各comp页一致） === */
+/* === 绘制函数 === */
 function drawFixedSupport(c,x,y,s,p){
   var tH=p.triH*s,tW=p.triW*s,bW=tW+p.baseExtra*s,lw=p.lineW*s;
   c.strokeStyle=p.color||Mech.colors.hinge;c.lineWidth=lw;
@@ -89,14 +89,21 @@ function drawFollowerPointed(c,x,y,s,p){
 }
 
 function drawGuide(c,x,y,s,p){
-  var hw=p.hw*s,gL=p.guideLen*s,lw=p.lineW*s;
-  var gTop=y-gL;
+  var g=p.gap*s,bw=p.blockW*s,gL=p.guideLen*s,lw=p.lineW*s;
+  var top=y-gL;
   var col=p.color||Mech.colors.hinge;
+  var lL=x-g-bw,lR=x-g,rL=x+g,rR=x+g+bw;
   c.strokeStyle=col;c.lineWidth=lw;
-  c.beginPath();c.moveTo(x-hw,gTop);c.lineTo(x-hw,y);c.moveTo(x+hw,gTop);c.lineTo(x+hw,y);c.stroke();
-  c.beginPath();c.moveTo(x-hw,gTop);c.lineTo(x+hw,gTop);c.stroke();
-  c.lineWidth=lw*0.6;
-  for(var i=0;i<p.topHatch;i++){var hx=x-hw+(i+1)*p.hatchStep*s;if(hx>x+hw-2*s)break;c.beginPath();c.moveTo(hx,gTop);c.lineTo(hx-p.hatchLen*s*0.5,gTop-p.hatchLen*s);c.stroke();}
+  // 左机架块
+  c.beginPath();c.moveTo(lL,top);c.lineTo(lR,top);c.lineTo(lR,y);c.lineTo(lL,y);c.closePath();c.stroke();
+  c.lineWidth=lw*0.5;
+  for(var i=0;i<p.hatchN;i++){var hy=top+(i+1)*p.hatchStep*s;if(hy>y-2*s)break;c.beginPath();c.moveTo(lL,hy);c.lineTo(lL+p.hatchLen*s*0.6,hy+p.hatchLen*s*0.6);c.stroke();}
+  // 右机架块
+  c.lineWidth=lw;c.beginPath();c.moveTo(rL,top);c.lineTo(rR,top);c.lineTo(rR,y);c.lineTo(rL,y);c.closePath();c.stroke();
+  c.lineWidth=lw*0.5;
+  for(var i=0;i<p.hatchN;i++){var hy=top+(i+1)*p.hatchStep*s;if(hy>y-2*s)break;c.beginPath();c.moveTo(rR,hy);c.lineTo(rR-p.hatchLen*s*0.6,hy+p.hatchLen*s*0.6);c.stroke();}
+  // 顶部横线
+  c.lineWidth=lw*0.8;c.beginPath();c.moveTo(lL,top);c.lineTo(rR,top);c.stroke();
 }
 
 /* === 组合绘制 === */
@@ -109,43 +116,32 @@ function resize(){
 function draw(){
   var dim=resize(),w=dim.w,h=dim.h;ctx.clearRect(0,0,w,h);
   var s=S;
-  // 机构中心点（凸轮转轴位置）
   var pivotX=w*0.5, pivotY=h*0.55;
 
-  // 1. 凸轮转轴处的固定支座（在转轴下方）
+  // 1. 凸轮转轴处的固定支座
   drawFixedSupport(ctx,pivotX,pivotY,s,P_support);
-
-  // 2. 偏心圆盘凸轮（以转轴为圆心）
+  // 2. 偏心圆盘凸轮
   drawCamDisk(ctx,pivotX,pivotY,s,P_cam);
-
-  // 3. 计算从动件接触点位置
-  // 凸轮轮廓圆心偏移旋转后的位置
+  // 3. 从动件接触点
   var ecc=Math.sqrt(P_cam.eccX*P_cam.eccX+P_cam.eccY*P_cam.eccY)*s;
   var eccAngle=Math.atan2(P_cam.eccY,P_cam.eccX);
   var rotAngle=Mech.math.deg2rad(camAngle);
   var pCx=pivotX+ecc*Math.cos(eccAngle+rotAngle);
   var pCy=pivotY+ecc*Math.sin(eccAngle+rotAngle);
-  // 从动件接触点在凸轮轮廓最高点
   var r=P_cam.r*s;
-  var followerX=pCx;
-  var followerY=pCy-r; // 接触点在凸轮正上方
-
-  // 4. 尖顶从动件（从接触点向上）
+  var followerX=pCx, followerY=pCy-r;
+  // 4. 尖顶从动件
   drawFollowerPointed(ctx,followerX,followerY,s,P_follower);
-
-  // 5. 导路（在从动件杆体中部）
+  // 5. 导路
   var guideX=followerX;
   var guideBotY=followerY-P_follower.tipH*s-P_follower.stemLen*s*0.35;
   drawGuide(ctx,guideX,guideBotY,s,P_guide);
-
-  // 6. 导路顶部的固定支座（机架连接）
+  // 6. 导路顶部固定支座
   var supportTopX=guideX;
   var supportTopY=guideBotY-P_guide.guideLen*s;
   drawFixedSupport(ctx,supportTopX,supportTopY,s,P_support);
 
-  // 标注
   Mech.draw.text(ctx,'scale = '+s.toFixed(1),w/2,h-20,{color:Mech.colors.textDim,font:'12px sans-serif',align:'center'});
-  Mech.draw.text(ctx,'所有元件共用同一 scale → 比例始终协调',w/2,h-38,{color:'rgba(99,102,241,0.5)',font:'10px sans-serif',align:'center'});
 }
 
 document.getElementById('scale').addEventListener('input',function(){
