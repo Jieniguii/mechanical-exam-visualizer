@@ -45,11 +45,11 @@
     <div class="panel">
       <div class="panel-title">形状参数（×scale）</div>
       <div class="ctrl-row"><label>三角高度</label><input type="range" id="triH" min="8" max="24" value="14"><span class="val" id="triH-v">14</span></div>
-      <div class="ctrl-row"><label>三角半宽</label><input type="range" id="triW" min="6" max="20" value="12"><span class="val" id="triW-v">12</span></div>
+      <div class="ctrl-row"><label>三角半宽</label><input type="range" id="triW" min="6" max="20" value="10"><span class="val" id="triW-v">10</span></div>
       <div class="ctrl-row"><label>底线加宽</label><input type="range" id="baseExtra" min="0" max="8" value="4"><span class="val" id="baseExtra-v">4</span></div>
       <div class="ctrl-row"><label>剖面线数</label><input type="range" id="hatchCount" min="2" max="9" value="5"><span class="val" id="hatchCount-v">5</span></div>
       <div class="ctrl-row"><label>剖面线长</label><input type="range" id="hatchLen" min="4" max="14" value="8"><span class="val" id="hatchLen-v">8</span></div>
-      <div class="ctrl-row"><label>线宽</label><input type="range" id="lineW" min="10" max="40" value="18" step="1"><span class="val" id="lineW-v">1.8</span></div>
+      <div class="ctrl-row"><label>线宽</label><input type="range" id="lineW" min="10" max="40" value="20" step="1"><span class="val" id="lineW-v">2.0</span></div>
     </div>
     <div class="panel">
       <div class="panel-title">缩放预览</div>
@@ -66,7 +66,7 @@
 <script src="../mech.js"></script>
 <script>
 var canvasEl=document.getElementById('canvas'),ctx=canvasEl.getContext('2d');
-var P={triH:14,triW:12,baseExtra:4,hatchCount:5,hatchLen:8,lineW:1.8,scale:1.0};
+var P={triH:14,triW:10,baseExtra:4,hatchCount:5,hatchLen:8,lineW:2.0,scale:1.0};
 
 /* 核心绘制函数 — 会写回 mech.js */
 function drawFixedSupport(c,x,y,s,p){

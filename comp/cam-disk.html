@@ -71,7 +71,7 @@ var P={r:44,eccX:15,eccY:-20,shaftR:4,crossR:6,lineW:2.8,fillA:0.06,scale:1.0};
 
 /* 固定支座子函数（从fix-support调好的参数） */
 function drawSupport(c,x,y,s){
-  var tH=14*s,tW=12*s,bW=tW+4*s;
+  var tH=14*s,tW=10*s,bW=tW+4*s;
   c.strokeStyle=Mech.colors.hinge;
   c.lineWidth=1.8*s;c.beginPath();c.moveTo(x,y);c.lineTo(x-tW,y+tH);c.lineTo(x+tW,y+tH);c.closePath();c.stroke();
   c.lineWidth=1.5*s;c.beginPath();c.moveTo(x-bW,y+tH);c.lineTo(x+bW,y+tH);c.stroke();
