@@ -49,8 +49,8 @@
       <div class="ctrl-row"><label>偏心Y</label><input type="range" id="eccY" min="-30" max="10" value="-20"><span class="val" id="eccY-v">-20</span></div>
       <div class="ctrl-row"><label>轴圆半径</label><input type="range" id="shaftR" min="2" max="8" value="4"><span class="val" id="shaftR-v">4</span></div>
       <div class="ctrl-row"><label>十字半径</label><input type="range" id="crossR" min="3" max="12" value="6"><span class="val" id="crossR-v">6</span></div>
-      <div class="ctrl-row"><label>线宽</label><input type="range" id="lineW" min="15" max="45" value="28" step="1"><span class="val" id="lineW-v">2.8</span></div>
-      <div class="ctrl-row"><label>填充透明</label><input type="range" id="fillA" min="0" max="20" value="6"><span class="val" id="fillA-v">0.06</span></div>
+      <div class="ctrl-row"><label>线宽</label><input type="range" id="lineW" min="15" max="45" value="20" step="1"><span class="val" id="lineW-v">2.0</span></div>
+      <div class="ctrl-row"><label>填充透明</label><input type="range" id="fillA" min="0" max="20" value="1"><span class="val" id="fillA-v">0.01</span></div>
     </div>
     <div class="panel">
       <div class="panel-title">缩放预览</div>
@@ -67,7 +67,7 @@
 <script src="../mech.js"></script>
 <script>
 var canvasEl=document.getElementById('canvas'),ctx=canvasEl.getContext('2d');
-var P={r:44,eccX:15,eccY:-20,shaftR:4,crossR:6,lineW:2.8,fillA:0.06,scale:1.0};
+var P={r:44,eccX:15,eccY:-20,shaftR:4,crossR:6,lineW:2.0,fillA:0.01,scale:1.0};
 
 /* 固定支座子函数（从fix-support调好的参数） */
 function drawSupport(c,x,y,s){
