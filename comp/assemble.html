@@ -58,7 +58,7 @@ var S=1.0, camAngle=0;
 var P_support={triH:14,triW:10,baseExtra:4,hatchCount:5,hatchLen:8,lineW:2.0};
 var P_cam={r:44,eccX:15,eccY:-20,shaftR:4,crossR:6,lineW:2.0,fillA:0.01};
 var P_follower={tipH:8,tipW:3,stemLen:53,lineW:2.0};
-var P_guide={gap:7,blockW:14,guideLen:65,hatchN:4,hatchStep:7,hatchLen:8,lineW:1.8};
+var P_guide={gap:7,blockW:14,guideLen:50,hatchN:4,hatchStep:7,hatchLen:8,lineW:1.8};
 
 /* === 绘制函数 === */
 function drawFixedSupport(c,x,y,s,p){
@@ -94,16 +94,12 @@ function drawGuide(c,x,y,s,p){
   var col=p.color||Mech.colors.hinge;
   var lL=x-g-bw,lR=x-g,rL=x+g,rR=x+g+bw;
   c.strokeStyle=col;c.lineWidth=lw;
-  // 左机架块
-  c.beginPath();c.moveTo(lL,top);c.lineTo(lR,top);c.lineTo(lR,y);c.lineTo(lL,y);c.closePath();c.stroke();
+  c.beginPath();c.moveTo(lL,y);c.lineTo(lL,top);c.lineTo(lR,top);c.lineTo(lR,y);c.stroke();
   c.lineWidth=lw*0.5;
-  for(var i=0;i<p.hatchN;i++){var hy=top+(i+1)*p.hatchStep*s;if(hy>y-2*s)break;c.beginPath();c.moveTo(lL,hy);c.lineTo(lL+p.hatchLen*s*0.6,hy+p.hatchLen*s*0.6);c.stroke();}
-  // 右机架块
-  c.lineWidth=lw;c.beginPath();c.moveTo(rL,top);c.lineTo(rR,top);c.lineTo(rR,y);c.lineTo(rL,y);c.closePath();c.stroke();
+  for(var i=0;i<p.hatchN;i++){var hy=top+(i+1)*p.hatchStep*s;if(hy>y-2*s)break;c.beginPath();c.moveTo(lR,hy);c.lineTo(lR-p.hatchLen*s*0.6,hy+p.hatchLen*s*0.6);c.stroke();}
+  c.lineWidth=lw;c.beginPath();c.moveTo(rL,y);c.lineTo(rL,top);c.lineTo(rR,top);c.lineTo(rR,y);c.stroke();
   c.lineWidth=lw*0.5;
-  for(var i=0;i<p.hatchN;i++){var hy=top+(i+1)*p.hatchStep*s;if(hy>y-2*s)break;c.beginPath();c.moveTo(rR,hy);c.lineTo(rR-p.hatchLen*s*0.6,hy+p.hatchLen*s*0.6);c.stroke();}
-  // 顶部横线
-  c.lineWidth=lw*0.8;c.beginPath();c.moveTo(lL,top);c.lineTo(rR,top);c.stroke();
+  for(var i=0;i<p.hatchN;i++){var hy=top+(i+1)*p.hatchStep*s;if(hy>y-2*s)break;c.beginPath();c.moveTo(rL,hy);c.lineTo(rL+p.hatchLen*s*0.6,hy+p.hatchLen*s*0.6);c.stroke();}
 }
 
 /* === 组合绘制 === */

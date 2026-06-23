@@ -30,7 +30,7 @@
       <div class="canvas-wrapper"><canvas id="canvas"></canvas></div>
       <div class="comp-ref">
         <img src="ref/textbook-3c.png" alt="教材3(c)">
-        <div class="caption">教材图3(c) — 导路=左右两个机架块，中间通道走杆体</div>
+        <div class="caption">教材图3(c) — 导路=左右两个机架块，中间通道走杆体，剖面线在内侧</div>
       </div>
     </div>
   </div>
@@ -46,7 +46,7 @@
       <div class="panel-title">形状参数（×scale）</div>
       <div class="ctrl-row"><label>通道半宽</label><input type="range" id="gap" min="3" max="16" value="7"><span class="val" id="gap-v">7</span></div>
       <div class="ctrl-row"><label>机架块宽</label><input type="range" id="blockW" min="6" max="30" value="14"><span class="val" id="blockW-v">14</span></div>
-      <div class="ctrl-row"><label>导路长度</label><input type="range" id="guideLen" min="30" max="100" value="65"><span class="val" id="guideLen-v">65</span></div>
+      <div class="ctrl-row"><label>导路长度</label><input type="range" id="guideLen" min="20" max="80" value="50"><span class="val" id="guideLen-v">50</span></div>
       <div class="ctrl-row"><label>剖面线数</label><input type="range" id="hatchN" min="2" max="8" value="4"><span class="val" id="hatchN-v">4</span></div>
       <div class="ctrl-row"><label>剖面线距</label><input type="range" id="hatchStep" min="4" max="12" value="7"><span class="val" id="hatchStep-v">7</span></div>
       <div class="ctrl-row"><label>剖面线长</label><input type="range" id="hatchLen" min="4" max="14" value="8"><span class="val" id="hatchLen-v">8</span></div>
@@ -67,41 +67,40 @@
 <script src="../mech.js"></script>
 <script>
 var canvasEl=document.getElementById('canvas'),ctx=canvasEl.getContext('2d');
-var P={gap:7,blockW:14,guideLen:65,hatchN:4,hatchStep:7,hatchLen:8,lineW:1.8,scale:1.0};
+var P={gap:7,blockW:14,guideLen:50,hatchN:4,hatchStep:7,hatchLen:8,lineW:1.8,scale:1.0};
 
 /* 核心绘制函数 — 会写回 mech.js */
 function drawGuide(c,x,y,s,p){
   var g=p.gap*s, bw=p.blockW*s, gL=p.guideLen*s, lw=p.lineW*s;
   var top=y-gL;
   var col=p.color||Mech.colors.hinge;
+  var lL=x-g-bw, lR=x-g; // 左块左右边界
+  var rL=x+g, rR=x+g+bw; // 右块左右边界
+
   c.strokeStyle=col;c.lineWidth=lw;
 
-  // 左机架块外框
-  var lL=x-g-bw, lR=x-g;
-  c.beginPath();c.moveTo(lL,top);c.lineTo(lR,top);c.lineTo(lR,y);c.lineTo(lL,y);c.closePath();c.stroke();
-  // 左块剖面线（从左壁向右下45°）
+  // 左机架块外框（三边：左、上、右=内侧，底边不画）
+  c.beginPath();c.moveTo(lL,y);c.lineTo(lL,top);c.lineTo(lR,top);c.lineTo(lR,y);c.stroke();
+
+  // 左块剖面线（从内侧壁lR向左下45°）
   c.lineWidth=lw*0.5;
   for(var i=0;i<p.hatchN;i++){
     var hy=top+(i+1)*p.hatchStep*s;
     if(hy>y-2*s)break;
-    c.beginPath();c.moveTo(lL,hy);c.lineTo(lL+p.hatchLen*s*0.6,hy+p.hatchLen*s*0.6);c.stroke();
+    c.beginPath();c.moveTo(lR,hy);c.lineTo(lR-p.hatchLen*s*0.6,hy+p.hatchLen*s*0.6);c.stroke();
   }
 
-  // 右机架块外框
-  var rL=x+g, rR=x+g+bw;
+  // 右机架块外框（三边：左=内侧、上、右，底边不画）
   c.lineWidth=lw;
-  c.beginPath();c.moveTo(rL,top);c.lineTo(rR,top);c.lineTo(rR,y);c.lineTo(rL,y);c.closePath();c.stroke();
-  // 右块剖面线（从右壁向左下45°）
+  c.beginPath();c.moveTo(rL,y);c.lineTo(rL,top);c.lineTo(rR,top);c.lineTo(rR,y);c.stroke();
+
+  // 右块剖面线（从内侧壁rL向右下45°）
   c.lineWidth=lw*0.5;
   for(var i=0;i<p.hatchN;i++){
     var hy=top+(i+1)*p.hatchStep*s;
     if(hy>y-2*s)break;
-    c.beginPath();c.moveTo(rR,hy);c.lineTo(rR-p.hatchLen*s*0.6,hy+p.hatchLen*s*0.6);c.stroke();
+    c.beginPath();c.moveTo(rL,hy);c.lineTo(rL+p.hatchLen*s*0.6,hy+p.hatchLen*s*0.6);c.stroke();
   }
-
-  // 顶部连接横线（封闭通道顶部）
-  c.lineWidth=lw*0.8;
-  c.beginPath();c.moveTo(lL,top);c.lineTo(rR,top);c.stroke();
 }
 
 function resize(){
@@ -113,10 +112,10 @@ function resize(){
 function draw(){
   var dim=resize(),w=dim.w,h=dim.h;ctx.clearRect(0,0,w,h);
   var sizes=[{s:0.7,l:'0.7×'},{s:P.scale,l:'当前 '+P.scale.toFixed(1)+'×'},{s:1.4,l:'1.4×'}];
-  var gap=w/sizes.length;
+  var gapW=w/sizes.length;
   for(var i=0;i<sizes.length;i++){
     var si=sizes[i];
-    var pos={x:gap*i+gap/2, y:h*0.75};
+    var pos={x:gapW*i+gapW/2, y:h*0.75};
     // 参考虚线（杆体位置提示）
     ctx.setLineDash([4,3]);ctx.strokeStyle='rgba(52,211,153,0.25)';ctx.lineWidth=1.5*si.s;
     ctx.beginPath();ctx.moveTo(pos.x,pos.y+5*si.s);ctx.lineTo(pos.x,pos.y-P.guideLen*si.s-20*si.s);ctx.stroke();ctx.setLineDash([]);
@@ -135,33 +134,29 @@ function updateFunc(){
 '  var g = '+p.gap+'*s, bw = '+p.blockW+'*s, gL = '+p.guideLen+'*s;\n'+
 '  var lw = '+p.lineW.toFixed(1)+'*s;\n'+
 '  var top = y - gL;\n'+
-'  // 左机架块\n'+
-'  var lL = x-g-bw, lR = x-g;\n'+
+'  var lL = x-g-bw, lR = x-g, rL = x+g, rR = x+g+bw;\n'+
+'  // 左机架块（三边框，底不封）\n'+
 '  ctx.strokeStyle = col; ctx.lineWidth = lw;\n'+
-'  ctx.beginPath(); ctx.moveTo(lL,top); ctx.lineTo(lR,top);\n'+
-'    ctx.lineTo(lR,y); ctx.lineTo(lL,y); ctx.closePath(); ctx.stroke();\n'+
-'  // 左块剖面线\n'+
+'  ctx.beginPath(); ctx.moveTo(lL,y); ctx.lineTo(lL,top);\n'+
+'    ctx.lineTo(lR,top); ctx.lineTo(lR,y); ctx.stroke();\n'+
+'  // 左块内侧剖面线\n'+
 '  ctx.lineWidth = lw*0.5;\n'+
 '  for (var i=0; i<'+p.hatchN+'; i++) {\n'+
 '    var hy = top+'+p.hatchStep+'*s*(i+1); if (hy>y-2*s) break;\n'+
-'    ctx.beginPath(); ctx.moveTo(lL,hy);\n'+
-'      ctx.lineTo(lL+'+p.hatchLen+'*s*0.6, hy+'+p.hatchLen+'*s*0.6); ctx.stroke();\n'+
+'    ctx.beginPath(); ctx.moveTo(lR,hy);\n'+
+'      ctx.lineTo(lR-'+p.hatchLen+'*s*0.6, hy+'+p.hatchLen+'*s*0.6); ctx.stroke();\n'+
 '  }\n'+
-'  // 右机架块\n'+
-'  var rL = x+g, rR = x+g+bw;\n'+
+'  // 右机架块（三边框，底不封）\n'+
 '  ctx.lineWidth = lw;\n'+
-'  ctx.beginPath(); ctx.moveTo(rL,top); ctx.lineTo(rR,top);\n'+
-'    ctx.lineTo(rR,y); ctx.lineTo(rL,y); ctx.closePath(); ctx.stroke();\n'+
-'  // 右块剖面线\n'+
+'  ctx.beginPath(); ctx.moveTo(rL,y); ctx.lineTo(rL,top);\n'+
+'    ctx.lineTo(rR,top); ctx.lineTo(rR,y); ctx.stroke();\n'+
+'  // 右块内侧剖面线\n'+
 '  ctx.lineWidth = lw*0.5;\n'+
 '  for (var i=0; i<'+p.hatchN+'; i++) {\n'+
 '    var hy = top+'+p.hatchStep+'*s*(i+1); if (hy>y-2*s) break;\n'+
-'    ctx.beginPath(); ctx.moveTo(rR,hy);\n'+
-'      ctx.lineTo(rR-'+p.hatchLen+'*s*0.6, hy+'+p.hatchLen+'*s*0.6); ctx.stroke();\n'+
+'    ctx.beginPath(); ctx.moveTo(rL,hy);\n'+
+'      ctx.lineTo(rL+'+p.hatchLen+'*s*0.6, hy+'+p.hatchLen+'*s*0.6); ctx.stroke();\n'+
 '  }\n'+
-'  // 顶部横线封闭\n'+
-'  ctx.lineWidth = lw*0.8;\n'+
-'  ctx.beginPath(); ctx.moveTo(lL,top); ctx.lineTo(rR,top); ctx.stroke();\n'+
 '}';
 }
 
