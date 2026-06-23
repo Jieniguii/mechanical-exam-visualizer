@@ -124,12 +124,11 @@ const Mech = {
       this.hinge(ctx, x, y, { color: '#71717a', ...opts });
     },
 
-    // 铰支座符号（三角形 + 底线 + 斜杠）
+    // 铰支座符号（三角形 + 底线 + 斜杠）— 旧版简单支座
     hingedSupport(ctx, x, y, opts = {}) {
       const { color = '#71717a' } = opts;
       const triH = 9, triW = 7, baseW = triW + 3, hatchCount = 4, hatchLen = 6;
       ctx.strokeStyle = color;
-      // 倒三角
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.lineTo(x - triW, y + triH);
@@ -137,13 +136,11 @@ const Mech = {
       ctx.closePath();
       ctx.lineWidth = 1.5;
       ctx.stroke();
-      // 底线
       ctx.beginPath();
       ctx.moveTo(x - baseW, y + triH);
       ctx.lineTo(x + baseW, y + triH);
       ctx.lineWidth = 1.5;
       ctx.stroke();
-      // 斜杠
       for (let i = 0; i < hatchCount; i++) {
         const hx = x - baseW + 2 + i * ((2 * baseW - 4) / (hatchCount - 1));
         ctx.beginPath();
@@ -151,6 +148,105 @@ const Mech = {
         ctx.lineTo(hx - hatchLen * 0.6, y + triH + hatchLen * 0.6);
         ctx.lineWidth = 1;
         ctx.stroke();
+      }
+    },
+
+    // === 教材标准元件（comp确认参数，scale统一架构）===
+
+    // 固定支座 — 锚点(x,y)=三角顶点，绘制向下
+    // 参数来源：comp/fix-support 确认 triH:14 triW:10 baseExtra:4 hatchCount:5 hatchLen:8 lineW:2.0
+    fixedSupport(ctx, x, y, scale, opts = {}) {
+      const s = scale || 1;
+      const col = opts.color || Mech.colors.hinge;
+      const tH = 14*s, tW = 10*s, bW = tW + 4*s, lw = 2.0*s;
+      // 倒三角
+      ctx.strokeStyle = col; ctx.lineWidth = lw;
+      ctx.beginPath(); ctx.moveTo(x, y);
+        ctx.lineTo(x - tW, y + tH); ctx.lineTo(x + tW, y + tH); ctx.closePath(); ctx.stroke();
+      // 底线
+      ctx.lineWidth = lw * 0.8;
+      ctx.beginPath(); ctx.moveTo(x - bW, y + tH); ctx.lineTo(x + bW, y + tH); ctx.stroke();
+      // 剖面线
+      ctx.lineWidth = lw * 0.5;
+      for (let i = 0; i < 5; i++) {
+        const hx = x - bW + 3*s + i * ((2*bW - 6*s) / 4);
+        ctx.beginPath(); ctx.moveTo(hx, y + tH);
+          ctx.lineTo(hx - 8*s*0.6, y + tH + 8*s*0.6); ctx.stroke();
+      }
+    },
+
+    // 偏心圆盘凸轮 — 锚点(x,y)=转轴中心
+    // 参数来源：comp/cam-disk 确认 r:44 eccX:15 eccY:-20 shaftR:4 crossR:6 lineW:2.0 fillA:0.01
+    camDisk(ctx, x, y, scale, opts = {}) {
+      const s = scale || 1;
+      const r = 44*s, eX = 15*s, eY = -20*s, sR = 4*s, cR = 6*s, lw = 2.0*s;
+      const pCx = x + eX, pCy = y + eY;
+      // 轮廓圆
+      ctx.beginPath(); ctx.arc(pCx, pCy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = Mech.colors.accent; ctx.lineWidth = lw; ctx.stroke();
+        ctx.fillStyle = 'rgba(99,102,241,0.01)'; ctx.fill();
+      // 转轴圆
+      ctx.strokeStyle = Mech.colors.accent; ctx.lineWidth = 2*s;
+      ctx.beginPath(); ctx.arc(x, y, sR, 0, Math.PI * 2); ctx.stroke();
+      // 十字
+      ctx.lineWidth = 1.2*s;
+      ctx.beginPath();
+        ctx.moveTo(x - cR, y); ctx.lineTo(x + cR, y);
+        ctx.moveTo(x, y - cR); ctx.lineTo(x, y + cR); ctx.stroke();
+    },
+
+    // 尖顶从动件 — 锚点(x,y)=尖端接触点，绘制向上
+    // 参数来源：comp/follower-pointed 确认 tipH:8 tipW:3 stemLen:53 lineW:2.0
+    followerPointed(ctx, x, y, scale, opts = {}) {
+      const s = scale || 1;
+      const col = opts.color || Mech.colors.return;
+      const tH = 8*s, tW = 3*s, sL = 53*s, lw = 2.0*s;
+      const tipTop = y, tipBase = y - tH;
+      // 尖端三角
+      ctx.fillStyle = col; ctx.beginPath();
+        ctx.moveTo(x, tipTop); ctx.lineTo(x - tW, tipBase); ctx.lineTo(x + tW, tipBase);
+        ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = col; ctx.lineWidth = lw * 0.8;
+      ctx.beginPath();
+        ctx.moveTo(x, tipTop); ctx.lineTo(x - tW, tipBase); ctx.lineTo(x + tW, tipBase);
+        ctx.closePath(); ctx.stroke();
+      // 杆体
+      ctx.lineWidth = lw;
+      ctx.beginPath(); ctx.moveTo(x, tipBase); ctx.lineTo(x, tipBase - sL); ctx.stroke();
+    },
+
+    // 导路（左右机架块+中间通道）— 锚点(x,y)=通道底部中心，绘制向上
+    // 参数来源：comp/guide 确认 gap:7 blockW:14 guideLen:50 hatchN:4 hatchStep:7 hatchLen:8 lineW:1.8
+    guide(ctx, x, y, scale, opts = {}) {
+      const s = scale || 1;
+      const col = opts.color || Mech.colors.hinge;
+      const g = 7*s, bw = 14*s, gL = 50*s, lw = 1.8*s;
+      const top = y - gL;
+      const lL = x - g - bw, lR = x - g;
+      const rL = x + g, rR = x + g + bw;
+      // 左机架块（三边框，底不封）
+      ctx.strokeStyle = col; ctx.lineWidth = lw;
+      ctx.beginPath(); ctx.moveTo(lL, y); ctx.lineTo(lL, top);
+        ctx.lineTo(lR, top); ctx.lineTo(lR, y); ctx.stroke();
+      // 左块内侧剖面线（从内壁向左下45°）
+      ctx.lineWidth = lw * 0.5;
+      for (let i = 0; i < 4; i++) {
+        const hy = top + 7*s*(i+1);
+        if (hy > y - 2*s) break;
+        ctx.beginPath(); ctx.moveTo(lR, hy);
+          ctx.lineTo(lR - 8*s*0.6, hy + 8*s*0.6); ctx.stroke();
+      }
+      // 右机架块（三边框，底不封）
+      ctx.lineWidth = lw;
+      ctx.beginPath(); ctx.moveTo(rL, y); ctx.lineTo(rL, top);
+        ctx.lineTo(rR, top); ctx.lineTo(rR, y); ctx.stroke();
+      // 右块内侧剖面线（从内壁向右下45°）
+      ctx.lineWidth = lw * 0.5;
+      for (let i = 0; i < 4; i++) {
+        const hy = top + 7*s*(i+1);
+        if (hy > y - 2*s) break;
+        ctx.beginPath(); ctx.moveTo(rL, hy);
+          ctx.lineTo(rL + 8*s*0.6, hy + 8*s*0.6); ctx.stroke();
       }
     },
 
